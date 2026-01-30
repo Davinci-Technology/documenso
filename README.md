@@ -1,70 +1,17 @@
-<img src="https://github.com/documenso/documenso/assets/13398220/a643571f-0239-46a6-a73e-6bef38d1228b" alt="Documenso Logo">
+# Davinci ESign
 
-<p align="center" style="margin-top: 20px">
-  <p align="center">
-  The Open Source DocuSign Alternative.
-  <br>
-    <a href="https://documenso.com"><strong>Learn more »</strong></a>
-    <br />
-    <br />
-    <a href="https://documen.so/discord">Discord</a>
-    ·
-    <a href="https://documenso.com">Website</a>
-    ·
-    <a href="https://github.com/documenso/documenso/issues">Issues</a>
-    ·
-    <a href="https://documen.so/live">Upcoming Releases</a>
-    ·
-    <a href="https://documen.so/roadmap">Roadmap</a>
-  </p>
-</p>
+Professional electronic signature solution by Davinci AI Solutions.
 
-<p align="center">
-   <a href="https://documen.so/discord"><img src="https://img.shields.io/badge/Discord-documen.so/discord-%235865F2" alt="Join Documenso on Discord"></a>
-   <a href="https://github.com/documenso/documenso/stargazers"><img src="https://img.shields.io/github/stars/documenso/documenso" alt="Github Stars"></a>
-   <a href="https://github.com/documenso/documenso/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-purple" alt="License"></a>
-   <a href="https://github.com/documenso/documenso/pulse"><img src="https://img.shields.io/github/commit-activity/m/documenso/documenso" alt="Commits-per-month"></a>
-   <a href="https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/documenso/documenso">
-   <img alt="open in devcontainer" src="https://img.shields.io/static/v1?label=Dev%20Containers&message=Enabled&color=blue&logo=visualstudiocode" />
-   </a>
-   <a href="CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"></a>
-</p>
+> **Note:** This project is based on [Documenso](https://github.com/documenso/documenso), an open-source document signing platform. We extend our gratitude to the Documenso team for their excellent work.
 
-<div align="center">
-  <img src="https://github.com/documenso/documenso/assets/13398220/d96ed533-6f34-4a97-be9b-442bdb189c69" style="width: 80%;" />
-</div>
+## About Davinci ESign
 
-## About Documenso
+Davinci ESign provides a fast, secure, and easy document signing experience for businesses. Built on the robust Documenso platform, it offers:
 
-Signing documents digitally should be fast and easy and should be the best practice for every document signed worldwide. This is technically quite easy today, but it also introduces a new party to every signature: The signing tool providers. While this is not a problem in itself, it should make us think about how we want these providers of trust to work. Documenso aims to be the world's most trusted document-signing tool. This trust is built by empowering you to self-host Documenso and review how it works under the hood.
-
-Join us in creating the next generation of open trust infrastructure.
-
-## Recognition
-
-<p align="center">
-  <a href="https://www.producthunt.com/posts/documenso?utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-documenso" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=395047&theme=light&period=daily" alt="Documenso - The&#0032;open&#0032;source&#0032;DocuSign&#0032;alternative | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-  <a href="https://www.producthunt.com/posts/documenso?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-documenso" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=395047&theme=light" alt="Documenso - The&#0032;Open&#0032;Source&#0032;DocuSign&#0032;Alternative&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-</p>
-
-## Community and Next Steps 🎯
-
-- Check out the first source code release in this repository and test it.
-- Tell us what you think in the [Discussions](https://github.com/documenso/documenso/discussions).
-- Join the [Discord server](https://documen.so/discord) for any questions and getting to know to other community members.
-- ⭐ the repository to help us raise awareness.
-- Spread the word on Twitter that Documenso is working towards a more open signing tool.
-- Fix or create [issues](https://github.com/documenso/documenso/issues), that are needed for the first production release.
-
-## Contributing
-
-- To contribute, please see our [contribution guide](https://github.com/documenso/documenso/blob/main/CONTRIBUTING.md).
-
-## Contact us
-
-Contact us if you are interested in our Enterprise plan for large organizations that need extra flexibility and control.
-
-<a href="https://cal.com/timurercan/enterprise-customers?utm_source=banner&utm_campaign=oss"><img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" /></a>
+- Secure electronic signatures
+- Self-hosting capability
+- Full control over your document signing infrastructure
+- Integration with your existing workflows
 
 ## Tech Stack
 
@@ -97,7 +44,7 @@ Contact us if you are interested in our Enterprise plan for large organizations 
 
 ### Requirements
 
-To run Documenso locally, you will need
+To run Davinci ESign locally, you will need
 
 - Node.js (v22 or above)
 - Postgres SQL Database
@@ -146,7 +93,7 @@ npm run d
 
 ### Manual Setup
 
-Follow these steps to setup Documenso on your local machine:
+Follow these steps to setup Davinci ESign on your local machine:
 
 1. [Fork this repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks) to your GitHub account.
 
@@ -201,7 +148,7 @@ If you're a visual learner and prefer to watch a video walkthrough of setting up
 
 ## Docker
 
-We provide a Docker container for Documenso, which is published on both DockerHub and GitHub Container Registry.
+Docker containers are available for running Davinci ESign. The original Documenso images are published on both DockerHub and GitHub Container Registry.
 
 - DockerHub: [https://hub.docker.com/r/documenso/documenso](https://hub.docker.com/r/documenso/documenso)
 - GitHub Container Registry: [https://ghcr.io/documenso/documenso](https://ghcr.io/documenso/documenso)
@@ -308,7 +255,7 @@ The Web UI can be found at http://localhost:9000, while the SMTP port will be on
 
 ### Support IPv6
 
-If you are deploying to a cluster that uses only IPv6, You can use a custom command to pass a parameter to the Remix start command
+If you are deploying to a cluster that uses only IPv6, you can use a custom command to pass a parameter to the Remix start command
 
 For local docker run
 

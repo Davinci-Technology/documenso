@@ -27,11 +27,11 @@ docker buildx build \
     --progress=plain \
     --build-arg NEXT_PRIVATE_TELEMETRY_KEY="${NEXT_PRIVATE_TELEMETRY_KEY:-}" \
     --build-arg NEXT_PRIVATE_TELEMETRY_HOST="${NEXT_PRIVATE_TELEMETRY_HOST:-}" \
-    -t "documenso/documenso:latest" \
-    -t "documenso/documenso:$GIT_SHA" \
-    -t "documenso/documenso:$APP_VERSION" \
-    -t "ghcr.io/documenso/documenso:latest" \
-    -t "ghcr.io/documenso/documenso:$GIT_SHA" \
-    -t "ghcr.io/documenso/documenso:$APP_VERSION" \
+    -t "davinci/davinci-esign:latest" \
+    -t "davinci/davinci-esign:$GIT_SHA" \
+    -t "davinci/davinci-esign:$APP_VERSION" \
+    -t "ghcr.io/davinci/davinci-esign:latest" \
+    -t "ghcr.io/davinci/davinci-esign:$GIT_SHA" \
+    -t "ghcr.io/davinci/davinci-esign:$APP_VERSION" \
     --push \
     "$MONOREPO_ROOT"

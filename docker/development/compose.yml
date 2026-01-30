@@ -1,11 +1,11 @@
-name: documenso-development
+name: davinci-esign-development
 
 services:
   database:
     image: postgres:15
     container_name: database
     volumes:
-      - documenso_database:/var/lib/postgresql/data
+      - davinci_esign_database:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
       interval: 10s
@@ -42,4 +42,4 @@ services:
 
 volumes:
   minio:
-  documenso_database:
+  davinci_esign_database:

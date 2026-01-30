@@ -2,12 +2,12 @@ import type { DocsThemeConfig } from 'nextra-theme-docs';
 import { useConfig } from 'nextra-theme-docs';
 
 const themeConfig: DocsThemeConfig = {
-  logo: <span>Documenso</span>,
+  logo: <span>Davinci ESign</span>,
   head: function useHead() {
     const config = useConfig();
 
-    const title = `${config.frontMatter.title} | Documenso Docs` || 'Documenso Docs';
-    const description = config.frontMatter.description || 'The official Documenso documentation';
+    const title = `${config.frontMatter.title} | Davinci ESign Docs` || 'Davinci ESign Docs';
+    const description = config.frontMatter.description || 'The official Davinci ESign documentation';
 
     return (
       <>
@@ -50,6 +50,10 @@ const themeConfig: DocsThemeConfig = {
     content: (
       <span>
         {new Date().getFullYear()} ©{' '}
+        <a href="https://davincisolutions.ai" target="_blank">
+          Davinci AI Solutions
+        </a>
+        . Based on{' '}
         <a href="https://documen.so" target="_blank">
           Documenso
         </a>
@@ -58,8 +62,8 @@ const themeConfig: DocsThemeConfig = {
     ),
   },
   color: {
-    hue: 100,
-    saturation: 48.47,
+    hue: 197,
+    saturation: 79,
   },
 };
 

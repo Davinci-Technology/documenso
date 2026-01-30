@@ -11,7 +11,7 @@ import { prisma } from '@documenso/prisma';
 
 import { getI18nInstance } from '../../../client-only/providers/i18n-server';
 import { NEXT_PUBLIC_WEBAPP_URL } from '../../../constants/app';
-import { DOCUMENSO_INTERNAL_EMAIL } from '../../../constants/email';
+import { DAVINCI_INTERNAL_EMAIL } from '../../../constants/email';
 import { getEmailContext } from '../../../server-only/email/get-email-context';
 import { extractDerivedDocumentEmailSettings } from '../../../types/document-email';
 import { unsafeBuildEnvelopeIdQuery } from '../../../utils/envelope';
@@ -145,7 +145,7 @@ export const run = async ({
         name: documentOwner.name || '',
         address: documentOwner.email,
       },
-      from: DOCUMENSO_INTERNAL_EMAIL, // Purposefully using internal email here.
+      from: DAVINCI_INTERNAL_EMAIL, // Purposefully using internal email here.
       subject: i18n._(msg`Document "${envelope.title}" - Rejected by ${recipient.name}`),
       html,
       text,
