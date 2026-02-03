@@ -1,4 +1,4 @@
-name: davinci-esign-test
+name: davinci-sign-test
 
 services:
   database:
@@ -22,7 +22,7 @@ services:
       - 2500:2500
       - 1100:1100
 
-  davinci-esign:
+  davinci-sign:
     build:
       context: ../../
       dockerfile: docker/Dockerfile
@@ -45,10 +45,10 @@ services:
       - NEXT_PRIVATE_SMTP_PORT=2500
       - NEXT_PRIVATE_SMTP_USERNAME=documenso
       - NEXT_PRIVATE_SMTP_PASSWORD=password
-      - NEXT_PRIVATE_SMTP_FROM_NAME="No Reply @ Davinci ESign"
+      - NEXT_PRIVATE_SMTP_FROM_NAME="No Reply @ Davinci Sign"
       - NEXT_PRIVATE_SMTP_FROM_ADDRESS=noreply@davincisolutions.ai
-      - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/opt/davinci-esign/cert.p12
+      - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/opt/davinci-sign/cert.p12
     ports:
       - 3000:3000
     volumes:
-      - ../../apps/remix/example/cert.p12:/opt/davinci-esign/cert.p12
+      - ../../apps/remix/example/cert.p12:/opt/davinci-sign/cert.p12

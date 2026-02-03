@@ -9,10 +9,10 @@ export const OpenAPIV1 = Object.assign(
     ApiContractV1,
     {
       info: {
-        title: 'Davinci ESign API',
+        title: 'Davinci Sign API',
         version: '1.0.0',
         description:
-          'API V1 is deprecated, but will continue to be supported.\n\nThe Davinci ESign API for retrieving, creating, updating and deleting documents.',
+          'API V1 is deprecated, but will continue to be supported.\n\nThe Davinci Sign API for retrieving, creating, updating and deleting documents.',
       },
       servers: [
         {

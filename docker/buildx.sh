@@ -28,7 +28,7 @@ docker buildx build \
     --progress=plain \
     --build-arg NEXT_PRIVATE_TELEMETRY_KEY="${NEXT_PRIVATE_TELEMETRY_KEY:-}" \
     --build-arg NEXT_PRIVATE_TELEMETRY_HOST="${NEXT_PRIVATE_TELEMETRY_HOST:-}" \
-    -t "davinci-esign-base" \
+    -t "davinci-sign-base" \
     "$MONOREPO_ROOT"
 
 # Handle repository tagging
@@ -36,28 +36,28 @@ if [ ! -z "$DOCKER_REPOSITORY" ]; then
     echo "Using custom repository: $DOCKER_REPOSITORY"
     
     # Add tags for custom repository
-    docker tag "davinci-esign-base" "$DOCKER_REPOSITORY:latest"
-    docker tag "davinci-esign-base" "$DOCKER_REPOSITORY:$GIT_SHA"
+    docker tag "davinci-sign-base" "$DOCKER_REPOSITORY:latest"
+    docker tag "davinci-sign-base" "$DOCKER_REPOSITORY:$GIT_SHA"
 
     # Add version tag if available
     if [ ! -z "$APP_VERSION" ] && [ "$APP_VERSION" != "undefined" ]; then
-        docker tag "davinci-esign-base" "$DOCKER_REPOSITORY:$APP_VERSION"
+        docker tag "davinci-sign-base" "$DOCKER_REPOSITORY:$APP_VERSION"
     fi
 else
     echo "Using default repositories: dockerhub and ghcr.io"
     
     # Add tags for both default repositories
-    docker tag "davinci-esign-base" "davinci/davinci-esign:latest"
-    docker tag "davinci-esign-base" "davinci/davinci-esign:$GIT_SHA"
-    docker tag "davinci-esign-base" "ghcr.io/davinci/davinci-esign:latest"
-    docker tag "davinci-esign-base" "ghcr.io/davinci/davinci-esign:$GIT_SHA"
+    docker tag "davinci-sign-base" "davinci/davinci-sign:latest"
+    docker tag "davinci-sign-base" "davinci/davinci-sign:$GIT_SHA"
+    docker tag "davinci-sign-base" "ghcr.io/davinci/davinci-sign:latest"
+    docker tag "davinci-sign-base" "ghcr.io/davinci/davinci-sign:$GIT_SHA"
 
     # Add version tags if available
     if [ ! -z "$APP_VERSION" ] && [ "$APP_VERSION" != "undefined" ]; then
-        docker tag "davinci-esign-base" "davinci/davinci-esign:$APP_VERSION"
-        docker tag "davinci-esign-base" "ghcr.io/davinci/davinci-esign:$APP_VERSION"
+        docker tag "davinci-sign-base" "davinci/davinci-sign:$APP_VERSION"
+        docker tag "davinci-sign-base" "ghcr.io/davinci/davinci-sign:$APP_VERSION"
     fi
 fi
 
 # Remove the temporary base tag
-docker rmi "davinci-esign-base"
+docker rmi "davinci-sign-base"

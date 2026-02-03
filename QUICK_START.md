@@ -1,6 +1,6 @@
-# Davinci ESign Quick Start
+# Davinci Sign Quick Start
 
-Get Davinci ESign running locally with Docker in minutes.
+Get Davinci Sign running locally with Docker in minutes.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ docker compose -f docker/testing/compose.yml up -d
 ```
 
 This starts:
-- **Davinci ESign** at http://localhost:3000
+- **Davinci Sign** at http://localhost:3000
 - **Inbucket** (email testing) at http://localhost:9000
 - **PostgreSQL** database
 
@@ -37,7 +37,7 @@ This starts:
 4. Check http://localhost:9000 for the verification email
 5. Click the verification link
 
-You're ready to use Davinci ESign!
+You're ready to use Davinci Sign!
 
 ## Other Docker Commands
 
@@ -84,7 +84,7 @@ See `docker/README.md` for full production configuration options including:
 
 | Service | Port | Description |
 |---------|------|-------------|
-| Davinci ESign | 3000 | Main application |
+| Davinci Sign | 3000 | Main application |
 | Inbucket Web | 9000 | Email testing UI |
 | Inbucket SMTP | 2500 | SMTP server |
 | PostgreSQL | 54322 | Database |
@@ -95,7 +95,7 @@ See `docker/README.md` for full production configuration options including:
 
 Check the logs:
 ```bash
-docker compose -f docker/testing/compose.yml logs davinci-esign
+docker compose -f docker/testing/compose.yml logs davinci-sign
 ```
 
 ### Database connection issues

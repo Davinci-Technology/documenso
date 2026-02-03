@@ -1,4 +1,4 @@
-# Davinci ESign Branding Guide
+# Davinci Sign Branding Guide
 
 This document details all branding-related locations in the codebase for future reference and maintenance.
 
@@ -120,21 +120,21 @@ Primary HSL values:
 ### Image Names
 | File | Image Name |
 |------|------------|
-| `docker/production/compose.yml` | `davinci/davinci-esign:latest` |
-| `docker/build.sh` | `davinci/davinci-esign` |
-| `docker/buildx.sh` | `davinci/davinci-esign` |
-| `docker/buildx-and-push.sh` | `davinci/davinci-esign` |
-| `docker/Dockerfile.chromium` | `davinci/davinci-esign` |
+| `docker/production/compose.yml` | `davinci/davinci-sign:latest` |
+| `docker/build.sh` | `davinci/davinci-sign` |
+| `docker/buildx.sh` | `davinci/davinci-sign` |
+| `docker/buildx-and-push.sh` | `davinci/davinci-sign` |
+| `docker/Dockerfile.chromium` | `davinci/davinci-sign` |
 
 ### Container Names
 | File | Container Name |
 |------|----------------|
-| `docker/development/compose.yml` | `davinci-esign-development` |
-| `docker/production/compose.yml` | `davinci-esign-production` |
-| `docker/testing/compose.yml` | `davinci-esign-test` |
+| `docker/development/compose.yml` | `davinci-sign-development` |
+| `docker/production/compose.yml` | `davinci-sign-production` |
+| `docker/testing/compose.yml` | `davinci-sign-test` |
 
 ### Certificate Paths
-Default certificate path: `/opt/davinci-esign/cert.p12`
+Default certificate path: `/opt/davinci-sign/cert.p12`
 
 Files referencing certificate path:
 - `docker/production/compose.yml`

@@ -1,12 +1,12 @@
-# Davinci ESign
+# Davinci Sign
 
 Professional electronic signature solution by Davinci AI Solutions.
 
 > **Note:** This project is based on [Documenso](https://github.com/documenso/documenso), an open-source document signing platform. We extend our gratitude to the Documenso team for their excellent work.
 
-## About Davinci ESign
+## About Davinci Sign
 
-Davinci ESign provides a fast, secure, and easy document signing experience for businesses. Built on the robust Documenso platform, it offers:
+Davinci Sign provides a fast, secure, and easy document signing experience for businesses. Built on the robust Documenso platform, it offers:
 
 - Secure electronic signatures
 - Self-hosting capability
@@ -44,7 +44,7 @@ Davinci ESign provides a fast, secure, and easy document signing experience for 
 
 ### Requirements
 
-To run Davinci ESign locally, you will need
+To run Davinci Sign locally, you will need
 
 - Node.js (v22 or above)
 - Postgres SQL Database
@@ -93,7 +93,7 @@ npm run d
 
 ### Manual Setup
 
-Follow these steps to setup Davinci ESign on your local machine:
+Follow these steps to setup Davinci Sign on your local machine:
 
 1. [Fork this repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks) to your GitHub account.
 
@@ -148,7 +148,7 @@ If you're a visual learner and prefer to watch a video walkthrough of setting up
 
 ## Docker
 
-Docker containers are available for running Davinci ESign. The original Documenso images are published on both DockerHub and GitHub Container Registry.
+Docker containers are available for running Davinci Sign. The original Documenso images are published on both DockerHub and GitHub Container Registry.
 
 - DockerHub: [https://hub.docker.com/r/documenso/documenso](https://hub.docker.com/r/documenso/documenso)
 - GitHub Container Registry: [https://ghcr.io/documenso/documenso](https://ghcr.io/documenso/documenso)

@@ -27,7 +27,7 @@ export const TeamEmailRemovedTemplate = ({
   const { _ } = useLingui();
   const branding = useBranding();
 
-  const previewText = msg`Team email removed for ${teamName} on Davinci ESign`;
+  const previewText = msg`Team email removed for ${teamName} on Davinci Sign`;
 
   return (
     <Html>

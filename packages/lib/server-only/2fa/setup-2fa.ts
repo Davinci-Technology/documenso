@@ -12,7 +12,7 @@ type SetupTwoFactorAuthenticationOptions = {
   user: Pick<User, 'id' | 'email'>;
 };
 
-const ISSUER = 'Davinci ESign';
+const ISSUER = 'Davinci Sign';
 
 export const setupTwoFactorAuthentication = async ({
   user,

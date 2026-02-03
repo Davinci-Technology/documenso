@@ -1,7 +1,7 @@
 import { env } from '../utils/env';
 
 export const FROM_ADDRESS = env('NEXT_PRIVATE_SMTP_FROM_ADDRESS') || 'noreply@davincisolutions.ai';
-export const FROM_NAME = env('NEXT_PRIVATE_SMTP_FROM_NAME') || 'Davinci ESign';
+export const FROM_NAME = env('NEXT_PRIVATE_SMTP_FROM_NAME') || 'Davinci Sign';
 
 export const DAVINCI_INTERNAL_EMAIL = {
   name: FROM_NAME,

@@ -1,6 +1,6 @@
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
-import { Bird, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, FileText } from 'lucide-react';
 import { match } from 'ts-pattern';
 
 import { ExtendedDocumentStatus } from '@documenso/prisma/types/extended-document-status';
@@ -28,7 +28,7 @@ export const DocumentsTableEmptyState = ({ status }: DocumentsTableEmptyStatePro
     .with(ExtendedDocumentStatus.ALL, () => ({
       title: msg`We're all empty`,
       message: msg`You have not yet created or received any documents. To create a document please upload one.`,
-      icon: Bird,
+      icon: FileText,
     }))
     .otherwise(() => ({
       title: msg`Nothing to do`,
@@ -38,7 +38,7 @@ export const DocumentsTableEmptyState = ({ status }: DocumentsTableEmptyStatePro
 
   return (
     <div
-      className="text-muted-foreground/60 flex h-60 flex-col items-center justify-center gap-y-4"
+      className="flex h-60 flex-col items-center justify-center gap-y-4 text-muted-foreground/60"
       data-testid="empty-document-state"
     >
       <Icon className="h-12 w-12" strokeWidth={1.5} />

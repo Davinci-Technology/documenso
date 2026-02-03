@@ -71,7 +71,7 @@ export const DocumentInviteEmailTemplate = ({
               ) : (
                 <Img
                   src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci ESign Logo"
+                  alt="Davinci Sign Logo"
                   className="mb-4 h-6"
                 />
               )}

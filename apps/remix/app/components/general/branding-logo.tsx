@@ -7,12 +7,5 @@ export type LogoProps = HTMLAttributes<HTMLImageElement> & {
 };
 
 export const BrandingLogo = ({ className, ...props }: LogoProps) => {
-  return (
-    <img
-      src={LogoImage}
-      alt="Davinci ESign"
-      className={className}
-      {...props}
-    />
-  );
+  return <img src={LogoImage} alt="Davinci Sign" className={className} {...props} />;
 };

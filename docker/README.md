@@ -1,6 +1,6 @@
-# Docker Setup for Davinci ESign
+# Docker Setup for Davinci Sign
 
-The following guide will walk you through setting up Davinci ESign using Docker. You can choose between a production setup using Docker Compose or a standalone container.
+The following guide will walk you through setting up Davinci Sign using Docker. You can choose between a production setup using Docker Compose or a standalone container.
 
 > **Note:** This project is based on [Documenso](https://github.com/documenso/documenso).
 
@@ -13,7 +13,7 @@ Before you begin, ensure that you have the following installed:
 
 ## Option 1: Production Docker Compose Setup
 
-This setup includes a PostgreSQL database and the Davinci ESign application. You will need to provide your own SMTP details via environment variables.
+This setup includes a PostgreSQL database and the Davinci Sign application. You will need to provide your own SMTP details via environment variables.
 
 1. Download the Docker Compose file from the Documenso repository: [compose.yml](https://raw.githubusercontent.com/documenso/documenso/release/docker/production/compose.yml)
 2. Navigate to the directory containing the `compose.yml` file.
@@ -77,7 +77,7 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
 
    ```yaml
    volumes:
-     - /path/to/your/cert.p12:/opt/davinci-esign/cert.p12:ro
+     - /path/to/your/cert.p12:/opt/davinci-sign/cert.p12:ro
    ```
 
 5. Run the following command to start the containers:
@@ -86,13 +86,13 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
 docker-compose --env-file ./.env up -d
 ```
 
-This will start the PostgreSQL database and the Davinci ESign application containers.
+This will start the PostgreSQL database and the Davinci Sign application containers.
 
-6. Access the Davinci ESign application by visiting `http://localhost:3000` in your web browser.
+6. Access the Davinci Sign application by visiting `http://localhost:3000` in your web browser.
 
 ## Option 2: Standalone Docker Container
 
-If you prefer to host the Davinci ESign application on your container provider of choice, you can build your own Docker image or use the upstream Documenso images from DockerHub or GitHub's Package Registry. Note that you will need to provide your own database and SMTP host.
+If you prefer to host the Davinci Sign application on your container provider of choice, you can build your own Docker image or use the upstream Documenso images from DockerHub or GitHub's Package Registry. Note that you will need to provide your own database and SMTP host.
 
 1. Pull the Documenso Docker image:
 
@@ -122,17 +122,17 @@ docker run -d \
   -e NEXT_PRIVATE_SMTP_FROM_NAME="<your-next-private-smtp-from-name>" \
   -e NEXT_PRIVATE_SMTP_FROM_ADDRESS="<your-next-private-smtp-from-address>" \
   -e NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>" \
-  -v /path/to/your/cert.p12:/opt/davinci-esign/cert.p12:ro \
+  -v /path/to/your/cert.p12:/opt/davinci-sign/cert.p12:ro \
   documenso/documenso
 ```
 
 Replace the placeholders with your actual database and SMTP details.
 
-3. Access the Davinci ESign application by visiting the URL you provided in the `NEXT_PUBLIC_WEBAPP_URL` environment variable in your web browser.
+3. Access the Davinci Sign application by visiting the URL you provided in the `NEXT_PUBLIC_WEBAPP_URL` environment variable in your web browser.
 
 ## Success
 
-You have now successfully set up Davinci ESign using Docker. You can start organizing and managing your documents efficiently.
+You have now successfully set up Davinci Sign using Docker. You can start organizing and managing your documents efficiently.
 
 ## Troubleshooting
 
@@ -157,7 +157,7 @@ If you encounter errors related to certificate access, here are common solutions
 
 3. **Verify Docker mount:**
    ```bash
-   docker exec -it <container_name> ls -la /opt/davinci-esign/cert.p12
+   docker exec -it <container_name> ls -la /opt/davinci-sign/cert.p12
    ```
 
 ### Container Logs
@@ -174,7 +174,7 @@ docker logs -f <container_name>
 
 ### Health Checks
 
-Check the status of your Davinci ESign instance:
+Check the status of your Davinci Sign instance:
 
 ```bash
 # Basic health check (database + certificate)
@@ -200,13 +200,13 @@ If you encounter any issues or have further questions, please refer to the offic
 
 ## Advanced Configuration
 
-The environment variables listed above are a subset of those that are available for configuring Davinci ESign. For a complete list of environment variables and their descriptions, refer to the table below:
+The environment variables listed above are a subset of those that are available for configuring Davinci Sign. For a complete list of environment variables and their descriptions, refer to the table below:
 
 Here's a markdown table documenting all the provided environment variables:
 
 | Variable                                                       | Description                                                                                         |
 | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `PORT`                                                         | The port to run the Davinci ESign application on, defaults to `3000`.                                   |
+| `PORT`                                                         | The port to run the Davinci Sign application on, defaults to `3000`.                                   |
 | `NEXTAUTH_SECRET`                                              | The secret key used by NextAuth.js for encryption and signing.                                      |
 | `NEXT_PRIVATE_ENCRYPTION_KEY`                                  | The primary encryption key for symmetric encryption and decryption (at least 32 characters).        |
 | `NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY`                        | The secondary encryption key for symmetric encryption and decryption (at least 32 characters).      |
@@ -218,7 +218,7 @@ Here's a markdown table documenting all the provided environment variables:
 | `NEXT_PRIVATE_SIGNING_TRANSPORT`                               | The signing transport to use. Available options: local (default), gcloud-hsm                        |
 | `NEXT_PRIVATE_SIGNING_PASSPHRASE`                              | The passphrase for the key file.                                                                    |
 | `NEXT_PRIVATE_SIGNING_LOCAL_FILE_CONTENTS`                     | The base64-encoded contents of the key file, will be used instead of file path.                     |
-| `NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH`                         | The path to the key file, default `/opt/davinci-esign/cert.p12`.                                        |
+| `NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH`                         | The path to the key file, default `/opt/davinci-sign/cert.p12`.                                        |
 | `NEXT_PRIVATE_SIGNING_GCLOUD_HSM_KEY_PATH`                     | The Google Cloud HSM key path for the gcloud-hsm signing transport.                                 |
 | `NEXT_PRIVATE_SIGNING_GCLOUD_HSM_PUBLIC_CRT_FILE_PATH`         | The path to the Google Cloud HSM public certificate file for the gcloud-hsm transport.              |
 | `NEXT_PRIVATE_SIGNING_GCLOUD_HSM_PUBLIC_CRT_FILE_CONTENTS`     | The base64-encoded Google Cloud HSM public certificate for the gcloud-hsm transport.                |

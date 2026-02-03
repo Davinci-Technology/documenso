@@ -2,11 +2,11 @@ import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
 
 export const appMetaTags = (title?: string) => {
   const description =
-    'Davinci ESign - Professional electronic signature solution by Davinci AI Solutions. Fast, secure, and easy document signing for businesses. Streamline your workflow with our powerful e-signature platform.';
+    'Davinci Sign - Professional electronic signature solution by Davinci AI Solutions. Fast, secure, and easy document signing for businesses. Streamline your workflow with our powerful e-signature platform.';
 
   return [
     {
-      title: title ? `${title} - Davinci ESign` : 'Davinci ESign',
+      title: title ? `${title} - Davinci Sign` : 'Davinci Sign',
     },
     {
       name: 'description',
@@ -15,7 +15,7 @@ export const appMetaTags = (title?: string) => {
     {
       name: 'keywords',
       content:
-        'Davinci ESign, electronic signature, document signing, e-signature, digital signature, Davinci AI Solutions, secure signing, business documents',
+        'Davinci Sign, electronic signature, document signing, e-signature, digital signature, Davinci AI Solutions, secure signing, business documents',
     },
     {
       name: 'author',
@@ -27,7 +27,7 @@ export const appMetaTags = (title?: string) => {
     },
     {
       property: 'og:title',
-      content: 'Davinci ESign - Professional Electronic Signature Solution',
+      content: 'Davinci Sign - Professional Electronic Signature Solution',
     },
     {
       property: 'og:description',

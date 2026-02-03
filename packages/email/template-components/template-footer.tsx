@@ -17,7 +17,7 @@ export const TemplateFooter = ({ isDocument = true }: TemplateFooterProps) => {
           <Trans>
             This document was sent using{' '}
             <Link className="text-[#1A98CF]" href="https://davincisolutions.ai">
-              Davinci ESign
+              Davinci Sign
             </Link>
             .
           </Trans>
@@ -38,9 +38,7 @@ export const TemplateFooter = ({ isDocument = true }: TemplateFooterProps) => {
       )}
 
       {!branding.brandingEnabled && (
-        <Text className="my-8 text-sm text-slate-400">
-          Davinci AI Solutions
-        </Text>
+        <Text className="my-8 text-sm text-slate-400">Davinci AI Solutions</Text>
       )}
     </Section>
   );

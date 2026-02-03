@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Trans } from '@lingui/react/macro';
 import { EnvelopeType } from '@prisma/client';
-import { Bird } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useParams, useSearchParams } from 'react-router';
 
 import { FolderType } from '@documenso/lib/types/folder-type';
@@ -78,7 +78,7 @@ export default function TemplatesPage() {
           <div className="mt-8">
             {data && data.count === 0 ? (
               <div className="flex h-96 flex-col items-center justify-center gap-y-4 text-muted-foreground/60">
-                <Bird className="h-12 w-12" strokeWidth={1.5} />
+                <FileText className="h-12 w-12" strokeWidth={1.5} />
 
                 <div className="text-center">
                   <h3 className="text-lg font-semibold">

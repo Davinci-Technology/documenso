@@ -1,4 +1,4 @@
-name: davinci-esign-development
+name: davinci-sign-development
 
 services:
   database:

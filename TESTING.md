@@ -1,6 +1,6 @@
-# Davinci ESign Testing Guide
+# Davinci Sign Testing Guide
 
-This document outlines the testing approach and procedures for the Davinci ESign application.
+This document outlines the testing approach and procedures for the Davinci Sign application.
 
 ## Test Framework
 
@@ -58,10 +58,10 @@ npm run test:e2e
 ### Production Build Testing
 ```bash
 # Build the Docker image locally
-docker build -f docker/Dockerfile -t davinci-esign:local .
+docker build -f docker/Dockerfile -t davinci-sign:local .
 
 # Run the local image
-docker run -p 3000:3000 davinci-esign:local
+docker run -p 3000:3000 davinci-sign:local
 ```
 
 ## Environment Variables for Testing
@@ -86,10 +86,10 @@ After making branding changes, verify the following:
 - [ ] Opengraph image shows correctly when sharing links
 
 ### Text Elements
-- [ ] Page titles show "Davinci ESign"
+- [ ] Page titles show "Davinci Sign"
 - [ ] API documentation shows correct branding
-- [ ] Email sender name shows "Davinci ESign"
-- [ ] 2FA app shows "Davinci ESign" as issuer
+- [ ] Email sender name shows "Davinci Sign"
+- [ ] 2FA app shows "Davinci Sign" as issuer
 
 ### Color Theme
 - [ ] Primary buttons use Davinci blue (#1A98CF)

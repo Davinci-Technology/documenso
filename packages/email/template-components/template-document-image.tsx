@@ -16,7 +16,11 @@ export const TemplateDocumentImage = ({ assetBaseUrl, className }: TemplateDocum
         <Column />
 
         <Column>
-          <Img className="h-42 mx-auto" src={getAssetUrl('/static/document.png')} alt="Davinci ESign" />
+          <Img
+            className="h-42 mx-auto"
+            src={getAssetUrl('/static/document.png')}
+            alt="Davinci Sign"
+          />
         </Column>
 
         <Column />

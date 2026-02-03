@@ -2,12 +2,12 @@ import type { DocsThemeConfig } from 'nextra-theme-docs';
 import { useConfig } from 'nextra-theme-docs';
 
 const themeConfig: DocsThemeConfig = {
-  logo: <span>Davinci ESign</span>,
+  logo: <span>Davinci Sign</span>,
   head: function useHead() {
     const config = useConfig();
 
-    const title = `${config.frontMatter.title} | Davinci ESign Docs` || 'Davinci ESign Docs';
-    const description = config.frontMatter.description || 'The official Davinci ESign documentation';
+    const title = `${config.frontMatter.title} | Davinci Sign Docs` || 'Davinci Sign Docs';
+    const description = config.frontMatter.description || 'The official Davinci Sign documentation';
 
     return (
       <>
