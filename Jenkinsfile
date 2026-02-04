@@ -1,6 +1,3 @@
-// Mirror registry for base images (avoids Docker Hub rate limits)
-def MIRROR_REGISTRY = 'davinciai.azurecr.io/mirror'
-
 pipeline {
     agent none  // Use per-stage pod agents for K8s dynamic scaling
 
@@ -26,9 +23,6 @@ pipeline {
 
         // Kubeconfig credential
         KUBECONFIG_CREDENTIAL_ID = 'cd3307d1-f27a-45b4-ad79-ee227bd802c6'
-
-        // Mirror registry
-        MIRROR_REGISTRY = 'davinciai.azurecr.io/mirror'
     }
 
     stages {
@@ -41,7 +35,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: ${MIRROR_REGISTRY}/jenkins-inbound-agent:3345.v03dee9b_f88fc-6
+    image: jenkins/inbound-agent:3345.v03dee9b_f88fc-6
     resources:
       requests:
         memory: "256Mi"
@@ -83,7 +77,7 @@ kind: Pod
 spec:
   containers:
   - name: node
-    image: ${MIRROR_REGISTRY}/node:22-alpine
+    image: node:22-alpine
     command: ['sleep', '9999']
     resources:
       requests:
@@ -116,7 +110,7 @@ kind: Pod
 spec:
   containers:
   - name: node
-    image: ${MIRROR_REGISTRY}/node:22-alpine
+    image: node:22-alpine
     command: ['sleep', '9999']
     env:
     - name: NEXT_PRIVATE_ENCRYPTION_KEY
@@ -218,7 +212,7 @@ kind: Pod
 spec:
   containers:
   - name: kubectl
-    image: ${MIRROR_REGISTRY}/alpine-k8s:1.32.11
+    image: alpine/k8s:1.32.1
     command: [cat]
     tty: true
     resources:
