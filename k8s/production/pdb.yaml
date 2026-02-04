@@ -1,0 +1,27 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: davinci-sign-pdb
+  namespace: davinci-sign-production
+  labels:
+    app: davinci-sign
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: davinci-sign
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: minio-pdb
+  namespace: davinci-sign-production
+  labels:
+    app: minio
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: minio

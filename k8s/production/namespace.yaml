@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: davinci-sign-production
+  labels:
+    name: davinci-sign-production
+    environment: production
+    app: davinci-sign

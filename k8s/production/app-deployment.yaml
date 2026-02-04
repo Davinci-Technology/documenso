@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-production
+  labels:
+    app: davinci-sign
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: davinci-sign
+  template:
+    metadata:
+      labels:
+        app: davinci-sign
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 30
+
+      # Init container to create MinIO bucket
+      initContainers:
+        - name: create-bucket
+          image: minio/mc:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MinIO to be ready..."
+              until mc alias set myminio http://minio:9000 davinci-sign $MINIO_ROOT_PASSWORD 2>/dev/null; do
+                echo "MinIO not ready, retrying..."
+                sleep 5
+              done
+              echo "Creating bucket..."
+              mc mb myminio/davinci-sign --ignore-existing
+              echo "Bucket ready!"
+          env:
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: MINIO_ROOT_PASSWORD
+
+        # Init container to run database migrations
+        - name: migrate
+          image: davinciai.azurecr.io/davinci-sign:production
+          command:
+            - npm
+            - run
+            - prisma:migrate-deploy
+          envFrom:
+            - configMapRef:
+                name: davinci-sign-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: POSTGRES_PASSWORD
+            - name: NEXT_PRIVATE_DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(POSTGRES_DB)?sslmode=$(DB_SSLMODE)"
+            - name: NEXT_PRIVATE_DIRECT_DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(POSTGRES_DB)?sslmode=$(DB_SSLMODE)"
+
+      containers:
+        - name: app
+          image: davinciai.azurecr.io/davinci-sign:production
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: davinci-sign-config
+
+          env:
+            # Database URL constructed from parts
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: POSTGRES_PASSWORD
+            - name: NEXT_PRIVATE_DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(POSTGRES_DB)?sslmode=$(DB_SSLMODE)"
+            - name: NEXT_PRIVATE_DIRECT_DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(POSTGRES_DB)?sslmode=$(DB_SSLMODE)"
+
+            # Secrets from davinci-sign-secrets
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: NEXTAUTH_SECRET
+            - name: NEXT_PRIVATE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: NEXT_PRIVATE_ENCRYPTION_KEY
+            - name: NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY
+            - name: NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY
+            - name: NEXT_PRIVATE_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: NEXT_PRIVATE_SMTP_PASSWORD
+            - name: NEXT_PRIVATE_SIGNING_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: NEXT_PRIVATE_SIGNING_PASSPHRASE
+
+          volumeMounts:
+            - name: certificate
+              mountPath: /opt/davinci-sign
+              readOnly: true
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 90
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+
+      volumes:
+        - name: certificate
+          secret:
+            secretName: davinci-sign-certificate
+            items:
+              - key: cert.p12
+                path: cert.p12
+            defaultMode: 0400
+
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsUser: 1000
+
+      imagePullSecrets:
+        - name: acr-pull-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-production
+  labels:
+    app: davinci-sign
+    environment: production
+spec:
+  selector:
+    app: davinci-sign
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  type: ClusterIP
