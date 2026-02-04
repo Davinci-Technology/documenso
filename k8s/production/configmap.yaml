@@ -16,11 +16,11 @@ data:
   NEXT_PUBLIC_WEBAPP_URL: "https://sign.davincisolutions.ai"
   NEXT_PRIVATE_INTERNAL_WEBAPP_URL: "http://davinci-sign:3000"
 
-  # Database (Azure PostgreSQL Flexible Server - shared with CRM)
+  # Database (Dedicated Azure PostgreSQL Flexible Server)
   # Password comes from secret, URL constructed in deployment
-  POSTGRES_USER: "davinci_crm_admin"
+  POSTGRES_USER: "davinci_sign_admin"
   POSTGRES_DB: "davinci_sign"
-  DB_HOST: "davinci-crm-postgres-prod.postgres.database.azure.com"
+  DB_HOST: "davinci-sign-postgres-prod.postgres.database.azure.com"
   DB_PORT: "5432"
   DB_SSLMODE: "require"
 
