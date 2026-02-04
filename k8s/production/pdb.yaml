@@ -7,7 +7,7 @@ metadata:
     app: davinci-sign
     environment: production
 spec:
-  minAvailable: 1
+  minAvailable: 0
   selector:
     matchLabels:
       app: davinci-sign
@@ -21,7 +21,7 @@ metadata:
     app: minio
     environment: production
 spec:
-  minAvailable: 1
+  minAvailable: 0
   selector:
     matchLabels:
       app: minio
