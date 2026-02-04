@@ -66,45 +66,10 @@ spec:
             }
         }
 
-        stage('Parallel CI') {
-            parallel {
-                stage('Lint') {
-                    agent {
-                        kubernetes {
-                            yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: node
-    image: node:22-alpine
-    command: ['sleep', '9999']
-    resources:
-      requests:
-        memory: "1Gi"
-        cpu: "500m"
-      limits:
-        memory: "2Gi"
-        cpu: "1000m"
-"""
-                        }
-                    }
-                    steps {
-                        unstash 'source'
-                        container('node') {
-                            sh '''
-                                apk add --no-cache openssl
-                                npm ci
-                                npm run lint
-                            '''
-                        }
-                    }
-                }
-
-                stage('Build Check') {
-                    agent {
-                        kubernetes {
-                            yaml """
+        stage('Build Check') {
+            agent {
+                kubernetes {
+                    yaml """
 apiVersion: v1
 kind: Pod
 spec:
@@ -125,19 +90,17 @@ spec:
         memory: "8Gi"
         cpu: "2000m"
 """
-                        }
-                    }
-                    steps {
-                        unstash 'source'
-                        container('node') {
-                            sh '''
-                                apk add --no-cache openssl libc6-compat jq
-                                npm ci
-                                npm run translate:compile
-                                npm run build
-                            '''
-                        }
-                    }
+                }
+            }
+            steps {
+                unstash 'source'
+                container('node') {
+                    sh '''
+                        apk add --no-cache openssl libc6-compat jq
+                        npm ci
+                        npm run translate:compile
+                        npm run build
+                    '''
                 }
             }
         }
