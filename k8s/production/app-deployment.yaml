@@ -37,14 +37,22 @@ spec:
             - -c
             - |
               echo "Waiting for MinIO to be ready..."
-              until mc alias set myminio http://minio:9000 davinci-sign $MINIO_ROOT_PASSWORD 2>/dev/null; do
-                echo "MinIO not ready, retrying..."
+              for i in $(seq 1 60); do
+                echo "Attempt $i: Connecting to http://minio:9000..."
+                if mc alias set myminio http://minio:9000 davinci-sign "$MINIO_ROOT_PASSWORD"; then
+                  echo "MinIO ready! Creating bucket..."
+                  mc mb myminio/davinci-sign --ignore-existing
+                  echo "Bucket ready!"
+                  exit 0
+                fi
+                echo "MinIO not ready, retrying in 5s..."
                 sleep 5
               done
-              echo "Creating bucket..."
-              mc mb myminio/davinci-sign --ignore-existing
-              echo "Bucket ready!"
+              echo "Failed to connect to MinIO after 60 attempts"
+              exit 1
           env:
+            - name: MC_CONFIG_DIR
+              value: "/tmp/.mc"
             - name: MINIO_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -55,9 +63,12 @@ spec:
         - name: migrate
           image: davinciai.azurecr.io/davinci-sign:production
           command:
-            - npm
-            - run
-            - prisma:migrate-deploy
+            - npx
+            - prisma
+            - migrate
+            - deploy
+            - --schema
+            - /app/packages/prisma/schema.prisma
           envFrom:
             - configMapRef:
                 name: davinci-sign-config
