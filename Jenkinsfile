@@ -121,11 +121,11 @@ spec:
     command: ['sleep', '9999']
     resources:
       requests:
+        memory: "4Gi"
+        cpu: "1000m"
+      limits:
         memory: "8Gi"
         cpu: "2000m"
-      limits:
-        memory: "16Gi"
-        cpu: "4000m"
 '''
                 }
             }
@@ -149,6 +149,7 @@ spec:
 }
 EOF
                             # Build and push Davinci Sign image
+                            # --single-snapshot reduces memory usage by taking one final snapshot
                             /kaniko/executor \
                                 --context=. \
                                 --dockerfile=./docker/Dockerfile \
@@ -156,7 +157,8 @@ EOF
                                 --destination=${REGISTRY_HOSTNAME}/${IMAGE_NAME}:production \
                                 --cache=true \
                                 --cache-ttl=168h \
-                                --cache-repo=${REGISTRY_HOSTNAME}/${IMAGE_NAME}-cache
+                                --cache-repo=${REGISTRY_HOSTNAME}/${IMAGE_NAME}-cache \
+                                --single-snapshot
                         '''
                     }
                 }
