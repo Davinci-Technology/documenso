@@ -121,11 +121,11 @@ spec:
     command: ['sleep', '9999']
     resources:
       requests:
-        memory: "4Gi"
-        cpu: "1000m"
-      limits:
         memory: "8Gi"
         cpu: "2000m"
+      limits:
+        memory: "16Gi"
+        cpu: "4000m"
 '''
                 }
             }
