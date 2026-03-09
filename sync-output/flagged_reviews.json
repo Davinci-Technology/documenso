@@ -1,0 +1,7 @@
+[
+  {
+    "path": "apps/remix/app/components/general/envelope-editor/envelope-editor-settings-dialog.tsx",
+    "line": 666,
+    "body": "**Flagged for manual review**\n\nThe conflict involves a fundamental change in how document distribution methods are handled. Upstream moved to a constant-driven enumeration (DOCUMENT_DISTRIBUTION_METHODS), while our version seems to have a custom email selection logic plus a 'Davinci Sign' hardcoded option. Additionally, upstream added 'envelopeExpirationPeriod'. Merging these requires understanding if the email distribution logic in our fork is still required alongside the new upstream features."
+  }
+]
