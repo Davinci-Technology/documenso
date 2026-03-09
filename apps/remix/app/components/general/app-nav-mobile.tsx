@@ -124,7 +124,8 @@ export const AppNavMobile = ({ isMenuOpen, onMenuOpenChange }: AppNavMobileProps
           </div>
 
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Davinci AI Solutions <br /> All rights reserved.
+            © {new Date().getFullYear()} Davinci AI Solutions <br />
+            <Trans>All rights reserved.</Trans>
           </p>
         </div>
       </SheetContent>
