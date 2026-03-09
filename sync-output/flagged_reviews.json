@@ -1,0 +1,7 @@
+[
+  {
+    "path": "apps/remix/app/components/general/envelope-editor/envelope-editor-settings-dialog.tsx",
+    "line": 666,
+    "body": "**Flagged for manual review**\n\nThere is a functional conflict in the document distribution method selection. Our version includes a custom email selection logic with a \"Davinci Sign\" fallback, while upstream has introduced a standardized DOCUMENT_DISTRIBUTION_METHODS constant and added envelope expiration periods to the schema. Merging these requires careful integration of our custom logic into their new structure."
+  }
+]
