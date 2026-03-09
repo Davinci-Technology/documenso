@@ -1,0 +1,7 @@
+[
+  {
+    "path": "apps/remix/app/components/general/envelope-editor/envelope-editor-settings-dialog.tsx",
+    "line": 666,
+    "body": "**Flagged for manual review**\n\nThere is a conflict in how document distribution methods are managed. Upstream transitioned to using a predefined constant mapping (DOCUMENT_DISTRIBUTION_METHODS), whereas our fork seems to have a customized 'emails' map and a hardcoded 'Davinci Sign' fallback. Automatic merging might break functional intent or branding logic here."
+  }
+]
