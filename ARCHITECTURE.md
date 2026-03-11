@@ -98,6 +98,28 @@ documenso/
 └── .github/workflows/      # GitHub Actions CI/CD
 ```
 
+## Request Flow
+
+```
+Browser
+   │
+   ▼
+Hono Server (apps/remix/server/)
+   │
+   ├──▶ /api/v1/* ──▶ ts-rest handlers (packages/api/)
+   │
+   ├──▶ /api/v2/* ──▶ tRPC OpenAPI handlers (packages/trpc/)
+   │
+   ├──▶ /api/trpc/* ──▶ tRPC handlers (packages/trpc/)
+   │
+   ├──▶ /api/jobs/* ──▶ Job handlers (packages/lib/jobs/)
+   │
+   └──▶ /* ──▶ React Router (apps/remix/app/routes/)
+                    │
+                    ▼
+              React Components (packages/ui/)
+```
+
 ---
 
 ## Local Development
@@ -134,18 +156,6 @@ npm run translate:compile
 npm run dev
 ```
 
-### Available Commands
-| Command | Description |
-|---------|-------------|
-| `npm run d` | Full dev setup (dx + compile + dev) |
-| `npm run dx` | Docker services + migrate + seed |
-| `npm run dev` | Start development server |
-| `npm run build` | Production build |
-| `npm run lint` | Run ESLint |
-| `npm run prisma:studio` | Open Prisma Studio GUI |
-| `npm run prisma:migrate-dev` | Create/apply migrations |
-| `npm run translate` | Extract + compile i18n |
-
 ---
 
 ## CI/CD Pipeline
@@ -179,14 +189,8 @@ Developer Push → GitHub Actions CI
         ┌─────────────┴─────────────┐
         ▼                           ▼
    DockerHub                      GHCR
-   documenso/documenso     ghcr.io/documenso/documenso
+   davinci/davinci-sign        ghcr.io/davinci/davinci-sign
 ```
-
-### Docker Image Tags
-- `latest` - Stable releases (vX.Y.Z)
-- `rc` - Release candidates (vX.Y.Z-rc.N)
-- `vX.Y.Z` - Version tags
-- `<git-sha>` - Commit-specific builds
 
 ---
 
@@ -205,11 +209,8 @@ runner      → Production runtime (non-root user)
 
 ### Deployment Options
 1. **Docker Compose** - Single host deployment
-2. **Railway** - One-click deploy template
-3. **Render** - One-click deploy template
-4. **Koyeb** - Container deployment
-5. **Elestio** - Managed hosting
-6. **Manual** - systemd service
+2. **Koyeb / Railway / Render** - Container deployment
+3. **Manual** - systemd service
 
 ### Production Services Required
 | Service | Requirement | Notes |
@@ -217,7 +218,7 @@ runner      → Production runtime (non-root user)
 | PostgreSQL | Required | 15+ recommended |
 | SMTP Server | Required | Multiple transport options |
 | S3 Storage | Optional | Default stores in database |
-| PDF Certificate | Required | .p12 file for signing |
+| PDF Certificate | Required | /opt/davinci-sign/cert.p12 for signing |
 
 ---
 
@@ -234,7 +235,6 @@ runner      → Production runtime (non-root user)
 | `NEXT_PRIVATE_SIGNING_PASSPHRASE` | Certificate password |
 | `NEXT_PRIVATE_DATABASE_URL` | PostgreSQL connection |
 | `NEXT_PRIVATE_SMTP_PASSWORD` | SMTP auth |
-| `NEXT_PRIVATE_STRIPE_API_KEY` | Billing (optional) |
 
 **Public Configuration:**
 | Variable | Purpose |
@@ -242,176 +242,6 @@ runner      → Production runtime (non-root user)
 | `NEXT_PUBLIC_WEBAPP_URL` | Application base URL |
 | `NEXT_PUBLIC_UPLOAD_TRANSPORT` | `database` or `s3` |
 | `NEXT_PUBLIC_DISABLE_SIGNUP` | Disable public registration |
-| `NEXT_PUBLIC_FEATURE_BILLING_ENABLED` | Enable Stripe billing |
-
-**Full list:** See `.env.example` (185 lines of documentation)
-
----
-
-## Key Components
-
-### Apps
-
-#### `apps/remix` (Main Application)
-- **Framework:** React Router 7 with Hono server
-- **Entry:** `app/routes/` (file-based routing with flat-routes)
-- **Server:** Custom Hono server in `server/main.ts`
-- **Build:** Rollup for server, Vite for client
-
-#### `apps/documentation`
-- **Framework:** Nextra (Next.js documentation)
-- **Purpose:** Developer documentation site
-
-#### `apps/openpage-api`
-- **Purpose:** Public REST API service
-
-### Core Packages
-
-#### `packages/prisma`
-**VERIFIED:** 150+ migrations, comprehensive schema.
-
-Key models:
-- `User` - Account with roles, 2FA, passkeys
-- `Organisation` - Multi-tenant container
-- `Team` - Workspace within organisation
-- `Envelope` - Document container
-- `Document` - PDF document with metadata
-- `Recipient` - Signing participant
-- `Field` - Signature/form field placement
-- `Webhook` - Event notification
-
-#### `packages/lib`
-Business logic organized by:
-- `server-only/` - Server-side operations
-- `client-only/` - Browser utilities
-- `constants/` - Application constants
-- `jobs/` - Background job definitions (Inngest/local)
-- `utils/` - Shared utilities
-
-#### `packages/signing`
-Two transport modes:
-1. **Local** - File-based .p12 certificate
-2. **GCloud HSM** - Google Cloud HSM key management
-
-#### `packages/trpc`
-- tRPC router with OpenAPI generation
-- Organized by domain (auth, documents, teams, etc.)
-
-#### `packages/email`
-- react-email template components
-- Templates for: confirmation, signing requests, completion, etc.
-
----
-
-## Data Stores
-
-### PostgreSQL (Primary)
-**VERIFIED:** Prisma schema at `packages/prisma/schema.prisma`
-
-Key entity relationships:
-```
-User (1) ──< OrganisationMember >── (1) Organisation
-                                           │
-                                           ▼
-                                    Team (workspace)
-                                           │
-                    ┌──────────────────────┼──────────────────────┐
-                    ▼                      ▼                      ▼
-               Envelope               Template               Webhook
-                    │                      │
-                    ▼                      ▼
-               Document               Document
-                    │
-        ┌───────────┼───────────┐
-        ▼           ▼           ▼
-   Recipient     Field    DocumentData
-```
-
-### File Storage
-- **Default:** `database` - Documents stored as base64 in PostgreSQL
-- **Optional:** `s3` - S3-compatible object storage (MinIO, AWS S3, etc.)
-
----
-
-## API Surface
-
-### tRPC API (Internal)
-- Server: `/api/trpc/*`
-- Used by: Remix app for data fetching
-- Transport: SuperJSON
-
-### REST API v2
-- Endpoint: `/api/v2/*`
-- OpenAPI: `/api/v2/openapi`
-- Authentication: API tokens
-
-### Webhook Events
-| Event | Trigger |
-|-------|---------|
-| `DOCUMENT_CREATED` | New document created |
-| `DOCUMENT_SENT` | Document sent for signing |
-| `DOCUMENT_OPENED` | Recipient opened document |
-| `DOCUMENT_SIGNED` | Recipient signed |
-| `DOCUMENT_COMPLETED` | All signatures collected |
-| `DOCUMENT_REJECTED` | Recipient rejected |
-| `DOCUMENT_CANCELLED` | Owner cancelled |
-
----
-
-## Auth Flow
-
-**VERIFIED:** Custom session-based authentication with multiple providers.
-
-### Authentication Methods
-1. **Email/Password** - Traditional login with email verification
-2. **Google OAuth** - Via `NEXT_PRIVATE_GOOGLE_CLIENT_*`
-3. **OIDC** - Generic OpenID Connect provider
-4. **Passkeys** - WebAuthn/FIDO2 (SimpleWebAuthn)
-
-### Session Management
-- Session tokens stored in database
-- 2FA support (TOTP + backup codes)
-- Security audit logging
-
-### Authorization
-- **Roles:** `ADMIN`, `USER`
-- **Organisation Roles:** Owner, Admin, Manager, Member
-- **Team Roles:** Owner, Manager, Member
-
----
-
-## Background Jobs
-
-**VERIFIED:** Pluggable job provider system.
-
-### Providers
-- **Local** (default) - In-process execution
-- **Inngest** - Serverless job orchestration
-
-### Job Types
-| Job | Purpose |
-|-----|---------|
-| `seal-document` | Apply signatures and seal PDF |
-| `send-signing-email` | Email signing requests |
-| `send-confirmation-email` | Email confirmations |
-| `execute-webhook` | Trigger webhook deliveries |
-| `bulk-send-template` | Mass template sending |
-
----
-
-## Observability
-
-### Logging
-- Pino logger with pretty-print in development
-- Optional file output via `NEXT_PRIVATE_LOGGER_FILE_PATH`
-
-### Analytics
-- PostHog integration (optional)
-- Anonymous telemetry (opt-out available)
-
-### Health Checks
-- `GET /api/health` - Database + certificate status
-- `GET /api/certificate-status` - Detailed cert info
 
 ---
 
