@@ -123,7 +123,7 @@ export const AppNavMobile = ({ isMenuOpen, onMenuOpenChange }: AppNavMobileProps
             <ThemeSwitcher />
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             © {new Date().getFullYear()} Davinci AI Solutions <br /> All rights reserved.
           </p>
         </div>
