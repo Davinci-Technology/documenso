@@ -168,27 +168,28 @@ export default function PublicProfilePage({ loaderData }: Route.ComponentProps) 
               {templates.map((template) => (
                 <TableRow key={template.id}>
                   <TableCell className="flex flex-col justify-between overflow-hidden text-sm text-muted-foreground sm:flex-row">
-                    <div className="flex flex-1 items-start justify-start gap-2">
-                      <FileIcon
-                        className="h-8 w-8 flex-shrink-0 text-muted-foreground/40"
-                        strokeWidth={1.5}
-                      />
-
-                      <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold leading-none text-foreground">
-                            {template.publicTitle}
-                          </p>
-                          <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal text-xs text-muted-foreground">
-                            {template.publicDescription}
-                          </p>
+                    <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
+                      <div className="flex flex-1 flex-row items-start gap-4 overflow-hidden">
+                        <div className="bg-muted flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
+                          <FileIcon className="text-muted-foreground h-6 w-6" />
                         </div>
 
-                        <Button asChild className="w-fit">
-                          <Link to={formatDirectTemplatePath(template.directLink.token)}>
-                            <Trans>Sign</Trans>
-                          </Link>
-                        </Button>
+                        <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <p className="text-foreground text-sm font-semibold leading-none break-all">
+                              {template.publicTitle}
+                            </p>
+                            <p className="text-muted-foreground mt-1 line-clamp-3 max-w-[70ch] whitespace-normal text-xs break-all">
+                              {template.publicDescription}
+                            </p>
+                          </div>
+
+                          <Button asChild className="shrink-0" size="sm">
+                            <Link to={formatDirectTemplatePath(template.id)} target="_blank">
+                              <Trans>Use document</Trans>
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
