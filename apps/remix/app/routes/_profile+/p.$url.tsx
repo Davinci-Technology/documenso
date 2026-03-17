@@ -168,25 +168,40 @@ export default function PublicProfilePage({ loaderData }: Route.ComponentProps) 
               {templates.map((template) => (
                 <TableRow key={template.id}>
                   <TableCell className="flex flex-col justify-between overflow-hidden text-sm text-muted-foreground sm:flex-row">
-                    <div className="flex flex-1 items-start justify-start gap-2">
-                      <FileIcon
-                        className="h-8 w-8 flex-shrink-0 text-muted-foreground/40"
-                        strokeWidth={1.5}
-                      />
+                    <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="break-all text-sm font-semibold leading-none text-foreground">
+                          {template.publicTitle}
+                        </p>
+                        <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal break-all text-xs text-muted-foreground">
+                          {template.publicDescription}
+                        </p>
+                      </div>
 
-                      <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold leading-none text-foreground">
-                            {template.publicTitle}
-                          </p>
-                          <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal text-xs text-muted-foreground">
-                            {template.publicDescription}
-                          </p>
-                        </div>
+                      <div className="hidden shrink-0 flex-row gap-4 md:flex">
+                        <Button
+                          className="h-8 py-0"
+                          variant="secondary"
+                          size="sm"
+                          asChild
+                          data-testid="use-template-button"
+                        >
+                          <Link to={formatDirectTemplatePath(template.id, template.publicTitle)}>
+                            <Trans>Use template</Trans>
+                          </Link>
+                        </Button>
+                      </div>
 
-                        <Button asChild className="w-fit">
-                          <Link to={formatDirectTemplatePath(template.directLink.token)}>
-                            <Trans>Sign</Trans>
+                      <div className="md:hidden">
+                        <Button
+                          className="h-9 py-0"
+                          variant="secondary"
+                          size="sm"
+                          asChild
+                          data-testid="use-template-button-mobile"
+                        >
+                          <Link to={formatDirectTemplatePath(template.id, template.publicTitle)}>
+                            <Trans>Use template</Trans>
                           </Link>
                         </Button>
                       </div>
