@@ -176,10 +176,10 @@ export default function PublicProfilePage({ loaderData }: Route.ComponentProps) 
 
                       <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
                         <div>
-                          <p className="text-sm font-semibold leading-none text-foreground">
+                          <p className="break-all text-sm font-semibold leading-none text-foreground">
                             {template.publicTitle}
                           </p>
-                          <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal text-xs text-muted-foreground">
+                          <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal break-all text-xs text-muted-foreground">
                             {template.publicDescription}
                           </p>
                         </div>
