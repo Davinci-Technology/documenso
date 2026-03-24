@@ -6,7 +6,7 @@ import { Link, redirect } from 'react-router';
 import { useOptionalSession } from '@documenso/lib/client-only/providers/session';
 import { getPublicProfileByUrl } from '@documenso/lib/server-only/profile/get-public-profile-by-url';
 import { formatAvatarUrl } from '@documenso/lib/utils/avatars';
-import { extractInitials } from '@documenso/lib/utils/recipient-formatter';
+import { extract_initials } from '@documenso/lib/utils/recipient-formatter';
 import { formatDirectTemplatePath } from '@documenso/lib/utils/templates';
 import { Avatar, AvatarFallback, AvatarImage } from '@documenso/ui/primitives/avatar';
 import { Button } from '@documenso/ui/primitives/button';
@@ -70,7 +70,7 @@ export default function PublicProfilePage({ loaderData }: Route.ComponentProps) 
           )}
 
           <AvatarFallback className="text-sm text-gray-400">
-            {extractInitials(publicProfile.name)}
+            {extract_initials(publicProfile.name)}
           </AvatarFallback>
         </Avatar>
 
@@ -168,25 +168,21 @@ export default function PublicProfilePage({ loaderData }: Route.ComponentProps) 
               {templates.map((template) => (
                 <TableRow key={template.id}>
                   <TableCell className="flex flex-col justify-between overflow-hidden text-sm text-muted-foreground sm:flex-row">
-                    <div className="flex flex-1 items-start justify-start gap-2">
-                      <FileIcon
-                        className="h-8 w-8 flex-shrink-0 text-muted-foreground/40"
-                        strokeWidth={1.5}
-                      />
+                    <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="break-all text-sm font-semibold leading-none text-foreground">
+                          {template.publicTitle}
+                        </p>
+                        <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal break-all text-xs text-muted-foreground">
+                          {template.publicDescription}
+                        </p>
+                      </div>
 
-                      <div className="flex flex-1 flex-col gap-4 overflow-hidden md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold leading-none text-foreground">
-                            {template.publicTitle}
-                          </p>
-                          <p className="mt-1 line-clamp-3 max-w-[70ch] whitespace-normal text-xs text-muted-foreground">
-                            {template.publicDescription}
-                          </p>
-                        </div>
-
-                        <Button asChild className="w-fit">
-                          <Link to={formatDirectTemplatePath(template.directLink.token)}>
-                            <Trans>Sign</Trans>
+                      <div className="mx-0 flex flex-shrink-0 items-center justify-start py-0 md:mx-4 md:justify-center">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={formatDirectTemplatePath(template.id, true)}>
+                            <FileIcon className="mr-2 h-4 w-4" />
+                            <Trans>View document</Trans>
                           </Link>
                         </Button>
                       </div>
