@@ -1,12 +1,18 @@
+import { type MessageDescriptor, i18n } from '@lingui/core';
+
 import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
 
-export const appMetaTags = (title?: string) => {
+export const appMetaTags = (title?: MessageDescriptor) => {
   const description =
     'Davinci Sign - Professional electronic signature solution by Davinci AI Solutions. Fast, secure, and easy document signing for businesses. Streamline your workflow with our powerful e-signature platform.';
 
   return [
     {
+<<<<<<< HEAD
       title: title ? `${title} - Davinci Sign` : 'Davinci Sign',
+=======
+      title: title ? `${i18n._(title)} - Documenso` : 'Documenso',
+>>>>>>> upstream/main
     },
     {
       name: 'description',

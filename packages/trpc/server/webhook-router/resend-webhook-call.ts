@@ -1,8 +1,6 @@
-import { Prisma, WebhookCallStatus, WebhookTriggerEvents } from '@prisma/client';
-
 import { TEAM_MEMBER_ROLE_PERMISSIONS_MAP } from '@documenso/lib/constants/teams';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
-import type { FindResultResponse } from '@documenso/lib/types/search-params';
+import { jobs } from '@documenso/lib/jobs/client';
 import { buildTeamWhereQuery } from '@documenso/lib/utils/teams';
 import { prisma } from '@documenso/prisma';
 
@@ -35,15 +33,13 @@ export const resendWebhookCallRoute = authenticatedProcedure
           }),
         },
       },
-      include: {
-        webhook: true,
-      },
     });
 
     if (!webhookCall) {
       throw new AppError(AppErrorCode.NOT_FOUND);
     }
 
+<<<<<<< HEAD
     const { webhook } = webhookCall;
 
     // Note: This is duplicated in `execute-webhook.handler.ts`.
@@ -75,6 +71,14 @@ export const resendWebhookCallRoute = authenticatedProcedure
         responseCode: response.status,
         responseBody,
         responseHeaders: Object.fromEntries(response.headers.entries()),
+=======
+    await jobs.triggerJob({
+      name: 'internal.execute-webhook',
+      payload: {
+        event: webhookCall.event,
+        webhookId,
+        data: webhookCall.requestBody,
+>>>>>>> upstream/main
       },
     });
   });
