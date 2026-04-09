@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { msg } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { BookIcon, HelpCircleIcon, Link2Icon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
@@ -13,7 +14,7 @@ import { SupportTicketForm } from '~/components/forms/support-ticket-form';
 import { appMetaTags } from '~/utils/meta';
 
 export function meta() {
-  return appMetaTags('Support');
+  return appMetaTags(msg`Support`);
 }
 
 export default function SupportPage() {
@@ -61,7 +62,11 @@ export default function SupportPage() {
               </Link>
             </h2>
             <p className="mt-1 text-muted-foreground">
+<<<<<<< HEAD
               <Trans>Read our documentation to get started with Davinci Sign.</Trans>
+=======
+              <Trans>Read our documentation to get started with Documenso.</Trans>
+>>>>>>> upstream/main
             </p>
           </div>
           <div className="rounded-lg border p-4">

@@ -149,6 +149,139 @@ Jobs handle async operations like email sending, document sealing, and webhooks.
                         └───────────────────────────────────────┘
 ```
 
+<<<<<<< HEAD
+=======
+### Location
+
+- `packages/lib/jobs/client/` - Provider implementations
+- `packages/lib/jobs/definitions/` - Job definitions
+
+### Job Types
+
+**Email Jobs**:
+
+- `send.signing.requested.email` - Signing invitation
+- `send-confirmation-email` - Email verification
+- `send-recipient-signed-email` - Notify on signature
+- `send-rejection-emails` - Rejection notifications
+- `send-document-cancelled-emails` - Cancellation notices
+
+**Internal Jobs**:
+
+- `internal.seal-document` - Finalize signed documents
+- `internal.bulk-send-template` - Bulk document sending
+- `internal.execute-webhook` - External webhook calls
+
+## Swappable Providers
+
+The codebase uses a **strategy pattern** with `ts-pattern` for provider selection via environment variables.
+
+### Storage Provider
+
+Handles file uploads and downloads.
+
+| Provider | Description                          | Env Value  |
+| -------- | ------------------------------------ | ---------- |
+| Database | Store files as Base64 in DB          | `database` |
+| S3       | S3-compatible storage (+ CloudFront) | `s3`       |
+
+**Config**: `NEXT_PUBLIC_UPLOAD_TRANSPORT`
+
+**Location**: `packages/lib/universal/upload/`
+
+### PDF Signing Provider
+
+Cryptographically signs PDF documents.
+
+| Provider         | Description          | Env Value    |
+| ---------------- | -------------------- | ------------ |
+| Local            | P12 certificate file | `local`      |
+| Google Cloud HSM | Google Cloud KMS     | `gcloud-hsm` |
+
+**Config**: `NEXT_PRIVATE_SIGNING_TRANSPORT`
+
+**Location**: `packages/signing/`
+
+### Email Provider
+
+Sends transactional emails.
+
+| Provider     | Description                    | Env Value      |
+| ------------ | ------------------------------ | -------------- |
+| SMTP Auth    | Standard SMTP with credentials | `smtp-auth`    |
+| SMTP API     | SMTP with API key              | `smtp-api`     |
+| Resend       | Resend API                     | `resend`       |
+| MailChannels | MailChannels API               | `mailchannels` |
+
+**Config**: `NEXT_PRIVATE_SMTP_TRANSPORT`
+
+**Location**: `packages/email/mailer.ts`
+
+### Background Jobs Provider
+
+Processes async jobs.
+
+| Provider | Description           | Env Value         |
+| -------- | --------------------- | ----------------- |
+| Local    | Database-backed queue | `local` (default) |
+| BullMQ   | Redis-backed queue    | `bullmq`          |
+| Inngest  | Managed cloud service | `inngest`         |
+
+**Config**: `NEXT_PRIVATE_JOBS_PROVIDER`
+
+**Location**: `packages/lib/jobs/client/`
+
+## Request Flow
+
+### Web Application Request
+
+```
+Browser
+   │
+   ▼
+Hono Server (apps/remix/server/)
+   │
+   ├──▶ /api/v1/* ──▶ ts-rest handlers (packages/api/)
+   │
+   ├──▶ /api/v2/* ──▶ tRPC OpenAPI handlers (packages/trpc/)
+   │
+   ├──▶ /api/trpc/* ──▶ tRPC handlers (packages/trpc/)
+   │
+   ├──▶ /api/jobs/* ──▶ Job handlers (packages/lib/jobs/)
+   │
+   └──▶ /* ──▶ React Router (apps/remix/app/routes/)
+                    │
+                    ▼
+              React Components (packages/ui/)
+```
+
+### Document Signing Flow
+
+```
+1. Upload Document ──▶ Storage Provider (DB/S3)
+                                  │
+2. Add Recipients ────────────────┤
+                                  │
+3. Add Fields ────────────────────┤
+                                  │
+4. Send Document ─────────────────┤
+       │                          │
+       ▼                          │
+   Email Job ──▶ Email Provider   |
+       │                          |
+5. Recipient Signs ───────────────┤
+       │                          │
+       ▼                          │
+   seal-document Job              │
+       │                          │
+       ▼                          │
+   Signing Provider ◀─────────────┘
+       │
+       ▼
+   Signed PDF ──▶ Storage Provider
+```
+
+>>>>>>> upstream/main
 ## Key Directories
 
 ```
