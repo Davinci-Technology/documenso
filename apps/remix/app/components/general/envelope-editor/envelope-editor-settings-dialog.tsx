@@ -39,7 +39,7 @@ import {
   ZDocumentAccessAuthTypesSchema,
   ZDocumentActionAuthTypesSchema,
 } from '@documenso/lib/types/document-auth';
-import { ZDocumentEmailSettingsSchema } from '@documenso/lib/types/document-email';
+import { DocumentEmailEvents, ZDocumentEmailSettingsSchema } from '@documenso/lib/types/document-email';
 import {
   type TDocumentMetaDateFormat,
   ZDocumentMetaDateFormatSchema,
@@ -76,6 +76,7 @@ import {
   TemplateTypeTooltip,
 } from '@documenso/ui/components/template/template-type-select';
 import { cn } from '@documenso/ui/lib/utils';
+import { Alert, AlertDescription } from '@documenso/ui/primitives/alert';
 import { Button } from '@documenso/ui/primitives/button';
 import { CardDescription, CardHeader, CardTitle } from '@documenso/ui/primitives/card';
 import { Combobox } from '@documenso/ui/primitives/combobox';
@@ -144,782 +145,720 @@ export const ZAddSettingsFormSchema = z.object({
     emailReplyTo: z.preprocess((val) => (val === '' ? undefined : val), zEmail().optional()),
     emailSettings: ZDocumentEmailSettingsSchema,
     signatureTypes: z.array(z.nativeEnum(DocumentSignatureType)).min(1, {
-      message: msg`At least one signature type must be enabled`.id,
+      message: 'At least one signature type must be enabled.',
     }),
-    envelopeExpirationPeriod: ZEnvelopeExpirationPeriod.optional(),
-    reminderSettings: ZEnvelopeReminderSettings.optional(),
+    envelopeExpirationPeriod: ZEnvelopeExpirationPeriod.nullable(),
+    reminderSettings: ZEnvelopeReminderSettings.nullable(),
   }),
 });
 
+type EnvelopeEditorSettingsTabType = 'general' | 'reminders' | 'notifications' | 'security';
+
+const tabs = [
+  {
+    id: 'general',
+    title: msg`General`,
+    icon: SettingsIcon,
+    description: msg`Configure document settings and options before sending.`,
+  },
+  {
+    id: 'reminders',
+    title: msg`Reminders`,
+    icon: BellRingIcon,
+    description: msg`Configure signing reminder settings for the document.`,
+  },
+  {
+    id: 'notifications',
+    title: msg`Notifications`,
+    icon: MailIcon,
+    description: msg`Configure notification settings for the document.`,
+  },
+  {
+    id: 'security',
+    title: msg`Security`,
+    icon: ShieldIcon,
+    description: msg`Configure security settings for the document.`,
+  },
+] as const;
+
+// Recipient-facing notification events. These are suppressed at send time
+// when distributionMethod is not EMAIL (see extractDerivedDocumentEmailSettings),
+// so the UI mirrors that by disabling the matching checkboxes.
+const RECIPIENT_EMAIL_EVENTS = [
+  DocumentEmailEvents.RecipientSigningRequest,
+  DocumentEmailEvents.RecipientRemoved,
+  DocumentEmailEvents.RecipientSigned,
+  DocumentEmailEvents.DocumentPending,
+  DocumentEmailEvents.DocumentCompleted,
+  DocumentEmailEvents.DocumentDeleted,
+] as const;
+
 export type TAddSettingsFormSchema = z.infer<typeof ZAddSettingsFormSchema>;
 
-export type EnvelopeEditorSettingsDialogProps = {
-  children: React.ReactNode;
-  initialSettings?: Partial<TAddSettingsFormSchema>;
-  disabled?: boolean;
-  team?: {
-    teamEmails: { id: string; email: string }[];
-    teamEmailSettings: TAddSettingsFormSchema['meta']['emailSettings'];
-  };
-  trigger?: React.ComponentPropsWithoutRef<typeof DialogTrigger>;
-} & Omit<React.ComponentPropsWithoutRef<typeof DialogContent>, 'children'>;
+type EnvelopeEditorSettingsDialogProps = {
+  trigger?: React.ReactNode;
+} & Omit<DialogPrimitive.DialogProps, 'children'>;
 
 export const EnvelopeEditorSettingsDialog = ({
-  children,
-  initialSettings,
-  disabled,
-  team,
   trigger,
   ...props
 }: EnvelopeEditorSettingsDialogProps) => {
-  const [open, setOpen] = useState(false);
-
+  const { t } = useLingui();
   const { toast } = useToast();
-  const { _ } = useLingui();
-
-  const { document, recipients, setDocument, setMeta } = useCurrentEnvelopeEditor();
-  const organisation = useCurrentOrganisation();
-  const currentTeam = useCurrentTeam();
 
   const {
-    data: emails = [],
-    isLoading: isLoadingEmails,
-    error: emailsError,
-  } = trpc.profile.findUserEmails.useQuery(
-    {},
-    {
-      enabled: open && organisation?.organisationClaim?.flags?.emailDomains,
-    },
-  );
+    envelope,
+    updateEnvelopeAsync,
+    editorConfig,
+    isEmbedded,
+    organisationEmails,
+  } = useCurrentEnvelopeEditor();
 
-  const envelopeHasBeenSent = document.status !== SendStatus.DRAFT;
+  const { settings } = editorConfig;
 
-  const documentAccessAuthMethods = extractDocumentAuthMethods({
-    documentAuth: document.authOptions,
+  const team = useCurrentTeam();
+  const organisation = useCurrentOrganisation();
+
+  const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<EnvelopeEditorSettingsTabType>('general');
+
+  const { documentAuthOption } = extractDocumentAuthMethods({
+    documentAuth: envelope.authOptions,
   });
 
-  const teamSignatureSettings = extractTeamSignatureSettings({
-    documentAuthOptions: document.authOptions,
-    team: currentTeam,
-  });
+  const createDefaultValues = () => {
+    return {
+      templateType: envelope.templateType || TemplateType.PRIVATE,
+      externalId: envelope.externalId || '',
+      visibility: envelope.visibility || '',
+      globalAccessAuth: documentAuthOption?.globalAccessAuth || [],
+      globalActionAuth: documentAuthOption?.globalActionAuth || [],
+      meta: {
+        subject: envelope.documentMeta.subject ?? '',
+        message: envelope.documentMeta.message ?? '',
+        timezone: envelope.documentMeta.timezone ?? DEFAULT_DOCUMENT_TIME_ZONE,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        dateFormat: (envelope.documentMeta.dateFormat ??
+          DEFAULT_DOCUMENT_DATE_FORMAT) as TDocumentMetaDateFormat,
+        distributionMethod:
+          envelope.documentMeta.distributionMethod || DocumentDistributionMethod.EMAIL,
+        redirectUrl: envelope.documentMeta.redirectUrl ?? '',
+        language: envelope.documentMeta.language ?? 'en',
+        emailId: envelope.documentMeta.emailId ?? null,
+        emailReplyTo: envelope.documentMeta.emailReplyTo ?? undefined,
+        emailSettings: ZDocumentEmailSettingsSchema.parse(envelope.documentMeta.emailSettings),
+        signatureTypes: extractTeamSignatureSettings(envelope.documentMeta),
+        envelopeExpirationPeriod: envelope.documentMeta?.envelopeExpirationPeriod ?? null,
+        reminderSettings: envelope.documentMeta?.reminderSettings ?? null,
+      },
+    };
+  };
 
   const form = useForm<TAddSettingsFormSchema>({
     resolver: zodResolver(ZAddSettingsFormSchema),
-    defaultValues: {
-      externalId: document.externalId ?? '',
-      templateType: document.templateType ?? undefined,
-      visibility: document.visibility,
-      globalAccessAuth: documentAccessAuthMethods,
-      globalActionAuth: document.authOptions?.globalActionAuth ?? [],
-      meta: {
-        subject: document.documentMeta?.subject ?? '',
-        message: document.documentMeta?.message ?? '',
-        timezone: document.documentMeta?.timezone ?? DEFAULT_DOCUMENT_TIME_ZONE,
-        dateFormat: (document.documentMeta?.dateFormat as TDocumentMetaDateFormat) ??
-          DEFAULT_DOCUMENT_DATE_FORMAT,
-        redirectUrl: document.documentMeta?.redirectUrl ?? '',
-        distributionMethod:
-          document.documentMeta?.distributionMethod ?? DocumentDistributionMethod.EMAIL,
-        language: isValidLanguageCode(document.documentMeta?.language)
-          ? document.documentMeta?.language
-          : 'en',
-        emailId: document.documentMeta?.emailId ?? null,
-        emailReplyTo: document.documentMeta?.emailReplyTo ?? '',
-        emailSettings: {
-          ...(team?.teamEmailSettings ?? {}),
-          ...document.documentMeta?.emailSettings,
-        },
-        signatureTypes: teamSignatureSettings,
-        envelopeExpirationPeriod: document.envelopeExpirationPeriod ?? undefined,
-        reminderSettings: document.reminderSettings ?? undefined,
-      },
-      ...initialSettings,
-    },
+    defaultValues: createDefaultValues(),
   });
 
+  const emailSettings = form.watch('meta.emailSettings');
   const distributionMethod = form.watch('meta.distributionMethod');
-  const templateType = form.watch('templateType');
-  const globalAccessAuth = form.watch('globalAccessAuth');
-  const globalActionAuth = form.watch('globalActionAuth');
-  const signatureTypes = form.watch('meta.signatureTypes');
-  const visibility = form.watch('visibility');
+  const isEmailDistribution = distributionMethod === DocumentDistributionMethod.EMAIL;
 
-  const isTemplate = templateType === TemplateType.PUBLIC;
-  const isDocumentActionAuthEnabled = globalActionAuth && globalActionAuth.length > 0;
-
-  const isRecipientActionAuthEnabled = recipients.some((recipient) => {
-    return recipient.authOptions && Object.keys(recipient.authOptions).length > 0;
-  });
-
-  const isDocumentAccessAuthRequired = globalAccessAuth && globalAccessAuth.length > 0;
+  const { data: emails = [], isLoading: isLoadingEmails } = trpc.team.getTeamEmails.useQuery(
+    {
+      teamId: team?.id ?? '',
+    },
+    {
+      enabled:
+        !!team &&
+        organisation.organisationClaim.flags.emailDomains &&
+        settings.allowConfigureEmailSender,
+      trpc: {
+        context: DO_NOT_INVALIDATE_QUERY_ON_MUTATION,
+      },
+    },
+  );
 
   useEffect(() => {
-    if (!open) {
-      return;
+    if (open) {
+      form.reset(createDefaultValues());
+      setActiveTab('general');
     }
+  }, [open]);
 
-    const subscription = form.watch(() => {
-      const formValues = form.getValues();
-
-      setMeta(formValues.meta);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [open, form, setMeta]);
-
-  const onFormSubmit = async ({ meta, ...settings }: TAddSettingsFormSchema) => {
+  const onFormSubmit = async (values: TAddSettingsFormSchema) => {
     try {
-      setDocument({
-        ...settings,
-        documentMeta: {
-          subject: meta.subject,
-          message: meta.message,
-          timezone: meta.timezone,
-          dateFormat: meta.dateFormat,
-          language: meta.language,
-          redirectUrl: meta.redirectUrl,
-          distributionMethod: meta.distributionMethod,
-          emailId: meta.emailId,
-          emailReplyTo: meta.emailReplyTo,
-          emailSettings: meta.emailSettings,
-        },
-        envelopeExpirationPeriod: meta.envelopeExpirationPeriod,
-        reminderSettings: meta.reminderSettings,
+      await updateEnvelopeAsync({
+        templateType: values.templateType,
+        externalId: values.externalId,
+        visibility: values.visibility,
+        documentMeta: values.meta,
+        envelopeExpirationPeriod: values.meta.envelopeExpirationPeriod,
+        reminderSettings: values.meta.reminderSettings,
+        globalAccessAuth: values.globalAccessAuth,
+        globalActionAuth: values.globalActionAuth,
       });
 
       toast({
-        title: _(msg`Success`),
-        description: _(msg`Document settings updated`),
-        duration: 5000,
+        title: t(msg`Settings updated`),
+        description: t(msg`Current document settings have been updated.`),
       });
 
       setOpen(false);
-    } catch (err) {
-      console.error(err);
-
-      const error = AppError.parseError(err);
+    } catch (e) {
+      const message = e instanceof AppError ? e.message : t(msg`Something went wrong`);
 
       toast({
-        title: error.code,
-        description: error.message,
+        title: t(msg`Error`),
+        description: message,
         variant: 'destructive',
-        duration: 10000,
       });
     }
   };
 
-  const activeTabMatcher = (): string => {
-    const selectedTab = match({ distributionMethod, isTemplate })
-      .with({ distributionMethod: DocumentDistributionMethod.EMAIL }, () => 'email' as const)
-      .with({ distributionMethod: DocumentDistributionMethod.SINGLE_LINK }, () => 'link' as const)
-      .otherwise(() => 'general' as const);
-
-    return selectedTab;
-  };
-
-  const settings = {
-    allowConfigureSigningOrder: true,
-    allowConfigureTimezone: true,
-    allowConfigureDateFormat: true,
-    allowConfigureExternalId: !envelopeHasBeenSent,
-    allowConfigureEmailNotification: !isTemplate,
-    allowConfigureRedirectUrl: !isTemplate,
-    allowConfigureGlobalAccessAuth: true,
-    allowConfigureGlobalActionAuth: true,
-    allowConfigureVisibility: true,
-    allowConfigureTemplateType: true,
-    allowConfigureEmailSender: !isTemplate,
-    allowConfigureEmailReplyTo: !isTemplate,
-    allowConfigureDistribution: !envelopeHasBeenSent && !isTemplate,
-    allowConfigureExpirationPeriod: !envelopeHasBeenSent,
-    allowConfigureReminders: !envelopeHasBeenSent,
-    allowConfigureSignatureSettings: true,
-    allowConfigureLanguage: true,
-  };
-
-  const activeTab = activeTabMatcher();
-
-  const MAX_FILE_SIZE_IN_MB = 50;
-
-  if (emailsError) {
-    toast({
-      title: _(msg`Unable to load emails`),
-      description: _(
-        msg`We were unable to load your verified email addresses. Please refresh and try again.`,
-      ),
-      variant: 'destructive',
-      duration: 10000,
-    });
-  }
+  const selectedTab = tabs.find((tab) => tab.id === activeTab);
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => !disabled && setOpen(value)}
-    >
-      <DialogTrigger disabled={disabled} {...trigger}>
-        {children}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen} {...props}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
-      <DialogContent className="max-w-xl" {...props}>
-        <DialogHeader>
-          <DialogTitle>
-            <Trans>Settings</Trans>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl p-0">
+        <div className="grid grid-cols-12 gap-y-4">
+          <DialogHeader className="col-span-12 px-6 py-6 md:col-span-9 md:col-start-4">
+            <DialogTitle>
+              <Trans>Settings</Trans>
+            </DialogTitle>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onFormSubmit)}>
-            <fieldset
-              className="flex h-full flex-col space-y-4"
-              disabled={form.formState.isSubmitting}
-            >
-              <div className="custom-scrollbar -mx-1 max-h-[60vh] flex-1 overflow-y-auto px-1">
-                <div className="grid grid-cols-3 gap-4 border-b pb-4">
-                  {[
-                    { key: 'general', icon: SettingsIcon, label: _(msg`General`) },
-                    { key: 'email', icon: MailIcon, label: _(msg`Email`) },
-                    { key: 'reminders', icon: BellRingIcon, label: _(msg`Reminders`) },
-                  ].map((tab) => (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      className={cn(
-                        'flex flex-col items-center justify-center rounded-lg border p-3 text-sm font-medium transition-colors',
-                        activeTab === tab.key
-                          ? 'border-documenso bg-documenso/10 text-documenso-foreground'
-                          : 'border-border text-muted-foreground hover:bg-muted',
-                      )}
-                      onClick={() => {
-                        if (tab.key === 'email') {
-                          form.setValue('meta.distributionMethod', DocumentDistributionMethod.EMAIL);
-                        } else if (tab.key === 'link') {
-                          form.setValue('meta.distributionMethod', DocumentDistributionMethod.SINGLE_LINK);
-                        }
-                      }}
-                    >
-                      <tab.icon className="mb-2 h-5 w-5" />
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+          <nav className="col-span-12 mb-8 flex flex-wrap items-center justify-start gap-x-2 gap-y-4 px-4 md:col-span-3 md:w-full md:flex-col md:items-start md:gap-y-2">
+            {tabs.map((tab) => {
+              if (tab.id === 'notifications' && !settings.allowConfigureDistribution) {
+                return null;
+              }
 
-                <div className="mt-4 space-y-4">
-                  {match({ activeTab, settings })
-                    .with({ activeTab: 'general' }, () => (
-                      <>
-                        {settings.allowConfigureTemplateType && (
-                          <FormField
-                            control={form.control}
-                            name="templateType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>Template Type</Trans>
-                                  <TemplateTypeTooltip />
-                                </FormLabel>
+              if (tab.id === 'reminders' && !settings.allowConfigureReminders) {
+                return null;
+              }
 
-                                <FormControl>
-                                  <TemplateTypeSelect
-                                    {...field}
-                                    onValueChange={(value) =>
-                                      field.onChange(value === 'none' ? undefined : value)
-                                    }
-                                    value={field.value ?? 'none'}
-                                  />
-                                </FormControl>
+              return (
+                <Button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  variant="ghost"
+                  className={cn('w-full justify-start', {
+                    'bg-secondary': activeTab === tab.id,
+                  })}
+                >
+                  <tab.icon className="mr-2 h-5 w-5" />
+                  {t(tab.title)}
+                </Button>
+              );
+            })}
+          </nav>
+        </div>
 
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
+        {/* Content. */}
+        <div className="flex w-full flex-col">
+          <CardHeader className="border-b pb-4">
+            <CardTitle>{selectedTab ? t(selectedTab.title) : ''}</CardTitle>
+            <CardDescription>{selectedTab ? t(selectedTab.description) : ''}</CardDescription>
+          </CardHeader>
 
-                        {settings.allowConfigureExternalId && (
-                          <FormField
-                            control={form.control}
-                            name="externalId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>External ID</Trans>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureVisibility && (
-                          <FormField
-                            control={form.control}
-                            name="visibility"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>Visibility</Trans>
-                                  <DocumentVisibilityTooltip />
-                                </FormLabel>
-
-                                <FormControl>
-                                  <DocumentVisibilitySelect {...field} />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureGlobalAccessAuth && (
-                          <FormField
-                            control={form.control}
-                            name="globalAccessAuth"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>Access Authentication</Trans>
-                                  <DocumentGlobalAuthAccessTooltip />
-                                </FormLabel>
-
-                                <FormControl>
-                                  <DocumentGlobalAuthAccessSelect
-                                    disabled={
-                                      isRecipientActionAuthEnabled ||
-                                      visibility === DocumentVisibility.MANAGER_AND_ABOVE ||
-                                      visibility === DocumentVisibility.ADMIN
-                                    }
-                                    {...field}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureGlobalActionAuth && (
-                          <FormField
-                            control={form.control}
-                            name="globalActionAuth"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>Action Authentication</Trans>
-                                  <DocumentGlobalAuthActionTooltip />
-                                </FormLabel>
-
-                                <FormControl>
-                                  <DocumentGlobalAuthActionSelect
-                                    disabled={isRecipientActionAuthEnabled}
-                                    {...field}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureSignatureSettings && (
-                          <FormField
-                            control={form.control}
-                            name="meta.signatureTypes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>Signature Settings</Trans>
-                                  <DocumentSignatureSettingsTooltip />
-                                </FormLabel>
-
-                                <FormControl>
-                                  <MultiSelectCombobox
-                                    options={DOCUMENT_SIGNATURE_TYPES.map((item) => ({
-                                      label: item.title,
-                                      value: item.value,
-                                    }))}
-                                    placeholder={_(msg`Select signature settings`)}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    disabled={isDocumentActionAuthEnabled}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureLanguage && (
-                          <FormField
-                            control={form.control}
-                            name="meta.language"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>Language</Trans>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Combobox
-                                    options={SUPPORTED_LANGUAGES}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureTimezone && (
-                          <FormField
-                            control={form.control}
-                            name="meta.timezone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>Timezone</Trans>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Combobox
-                                    options={TIME_ZONES}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureDateFormat && (
-                          <FormField
-                            control={form.control}
-                            name="meta.dateFormat"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>Date Format</Trans>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Combobox
-                                    options={DATE_FORMATS}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureRedirectUrl && (
-                          <FormField
-                            control={form.control}
-                            name="meta.redirectUrl"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>Redirect URL</Trans>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureDistribution && (
-                          <FormField
-                            control={form.control}
-                            name="meta.distributionMethod"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>Distribution Method</Trans>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Select {...field} onValueChange={field.onChange}>
-                                    <SelectTrigger className="bg-background">
-                                      <SelectValue />
-                                    </SelectTrigger>
-
-                                    <SelectContent>
-                                      {DOCUMENT_DISTRIBUTION_METHODS.map(({ value, description }) => (
-                                        <SelectItem key={value} value={value}>
-                                          {_(description)}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
-                        {settings.allowConfigureExpirationPeriod && (
-                          <FormField
-                            control={form.control}
-                            name="meta.envelopeExpirationPeriod"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>Expiration</Trans>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <InfoIcon className="mx-2 h-4 w-4" />
-                                    </TooltipTrigger>
-
-                                    <TooltipContent className="max-w-xs text-muted-foreground">
-                                      <Trans>
-                                        How long recipients have to complete this document after it is
-                                        sent. Uses the team default when set to inherit.
-                                      </Trans>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <ExpirationPeriodPicker
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    disabled={envelopeHasBeenSent}
-                                  />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                      </>
-                    ))
-                    .with(
-                      { activeTab: 'reminders', settings: { allowConfigureReminders: true } },
-                      () => (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onFormSubmit)}>
+              <fieldset
+                className="flex h-[45rem] max-h-[calc(100vh-14rem)] w-full flex-col space-y-6 overflow-y-auto px-6 py-6"
+                disabled={form.formState.isSubmitting}
+                key={activeTab}
+              >
+                {match({ activeTab, settings })
+                  .with({ activeTab: 'general' }, () => (
+                    <>
+                      {settings.allowConfigureLanguage && (
                         <FormField
                           control={form.control}
-                          name="meta.reminderSettings"
+                          name="meta.language"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex flex-row items-center">
-                                <Trans>Signing Reminders</Trans>
+                              <FormLabel className="inline-flex items-center">
+                                <Trans>Language</Trans>
                                 <Tooltip>
                                   <TooltipTrigger>
                                     <InfoIcon className="mx-2 h-4 w-4" />
                                   </TooltipTrigger>
 
-                                  <TooltipContent className="max-w-xs text-muted-foreground">
+                                  <TooltipContent className="max-w-md space-y-2 p-4 text-foreground">
                                     <Trans>
-                                      Configure when and how often reminder emails are sent to
-                                      recipients who have not yet completed signing. Uses the team
-                                      default when set to inherit.
+                                      Controls the language for the document, including the language to be used for
+                                      email notifications, and the final certificate that is generated and attached to
+                                      the document.
                                     </Trans>
                                   </TooltipContent>
                                 </Tooltip>
                               </FormLabel>
 
                               <FormControl>
-                                <ReminderSettingsPicker
+                                <Select
                                   value={field.value}
-                                  onChange={field.onChange}
-                                />
+                                  disabled={field.disabled}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+
+                                  <SelectContent>
+                                    {Object.entries(SUPPORTED_LANGUAGES).map(([code, language]) => (
+                                      <SelectItem key={code} value={code}>
+                                        {t(language.full)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {settings.allowConfigureDistribution && (
+                        <FormField
+                          control={form.control}
+                          name="meta.distributionMethod"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                <Trans>Distribution Method</Trans>
+                              </FormLabel>
+
+                              <FormControl>
+                                <Select
+                                  value={field.value}
+                                  disabled={field.disabled}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+
+                                  <SelectContent>
+                                    {DOCUMENT_DISTRIBUTION_METHODS.map((method) => (
+                                      <SelectItem key={method} value={method}>
+                                        {method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </FormControl>
 
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      ),
-                    )
-                    .with(
-                      { activeTab: 'email', settings: { allowConfigureDistribution: true } },
-                      () => (
-                        <>
-                          {settings.allowConfigureEmailSender &&
-                            organisation.organisationClaim.flags.emailDomains && (
-                              <FormField
-                                control={form.control}
-                                name="meta.emailId"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>
-                                      <Trans>Email Sender</Trans>
-                                    </FormLabel>
+                      )}
 
-                                    <FormControl>
-                                      <Select
-                                        {...field}
-                                        value={field.value === null ? '-1' : field.value}
-                                        onValueChange={(value) =>
-                                          field.onChange(value === '-1' ? null : value)
-                                        }
-                                      >
-                                        <SelectTrigger
-                                          loading={isLoadingEmails}
-                                          className="bg-background"
-                                        >
-                                          <SelectValue />
-                                        </SelectTrigger>
+                      {settings.allowConfigureVisibility && (
+                        <FormField
+                          control={form.control}
+                          name="visibility"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex flex-row items-center">
+                                <Trans>Document Visibility</Trans>
+                                <DocumentVisibilityTooltip />
+                              </FormLabel>
 
-                                        <SelectContent>
-                                          {emails.map((email) => (
-                                            <SelectItem key={email.id} value={email.id}>
-                                              {email.email}
-                                            </SelectItem>
-                                          ))}
+                              <FormControl>
+                                <DocumentVisibilitySelect
+                                  value={field.value}
+                                  disabled={field.disabled}
+                                  onValueChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
 
-                                          <SelectItem value={'-1'}>Davinci Sign</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </FormControl>
+                      {settings.allowConfigureTemplateType && (
+                        <FormField
+                          control={form.control}
+                          name="templateType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex flex-row items-center">
+                                <Trans>Template Type</Trans>
+                                <TemplateTypeTooltip />
+                              </FormLabel>
 
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
+                              <FormControl>
+                                <TemplateTypeSelect
+                                  value={field.value}
+                                  disabled={field.disabled}
+                                  onValueChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="meta.timezone"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>
+                                <Trans>Time Zone</Trans>
+                              </FormLabel>
+
+                              <Combobox
+                                className="bg-background"
+                                options={TIME_ZONES.map((timezone) => ({
+                                  label: timezone,
+                                  value: timezone,
+                                }))}
+                                {...field}
+                                value={field.value ?? DEFAULT_DOCUMENT_TIME_ZONE}
+                                disabled={field.disabled}
+                                onSelect={field.onChange}
                               />
-                            )}
 
-                          {settings.allowConfigureEmailReplyTo && (
-                            <FormField
-                              control={form.control}
-                              name="meta.emailReplyTo"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    <Trans>
-                                      Reply To Email{' '}
-                                      <span className="text-muted-foreground">(Optional)</span>
-                                    </Trans>
-                                  </FormLabel>
-
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                              <FormMessage />
+                            </FormItem>
                           )}
+                        />
 
-                          <FormField
-                            control={form.control}
-                            name="meta.subject"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  <Trans>
-                                    Subject <span className="text-muted-foreground">(Optional)</span>
-                                  </Trans>
-                                </FormLabel>
+                        <FormField
+                          control={form.control}
+                          name="meta.dateFormat"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                <Trans>Date Format</Trans>
+                              </FormLabel>
 
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
+                              <FormControl>
+                                <Select
+                                  value={field.value}
+                                  disabled={field.disabled}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
 
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                  <SelectContent>
+                                    {DATE_FORMATS.map((format) => (
+                                      <SelectItem key={format} value={format}>
+                                        {format}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
 
-                          <FormField
-                            control={form.control}
-                            name="meta.message"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex flex-row items-center">
-                                  <Trans>
-                                    Message <span className="text-muted-foreground">(Optional)</span>
-                                  </Trans>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <InfoIcon className="mx-2 h-4 w-4" />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="p-4 text-muted-foreground">
-                                      <DocumentSendEmailMessageHelper />
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </FormLabel>
-
-                                <FormControl>
-                                  <Textarea className="h-16 resize-none bg-background" {...field} />
-                                </FormControl>
-
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          {settings.allowConfigureEmailNotification && (
-                            <FormField
-                              control={form.control}
-                              name="meta.emailSettings"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    <Trans>Email Settings</Trans>
-                                  </FormLabel>
-
-                                  <FormControl>
-                                    <DocumentEmailCheckboxes {...field} />
-                                  </FormControl>
-
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                              <FormMessage />
+                            </FormItem>
                           )}
-                        </>
-                      ),
-                    )
-                    .otherwise(() => null)}
-                </div>
-              </div>
+                        />
+                      </div>
 
-              <div className="mt-4 flex flex-row-reverse space-x-4 space-x-reverse">
-                <Button
-                  type="submit"
-                  loading={form.formState.isSubmitting}
-                  disabled={!form.formState.isDirty}
-                >
-                  <Trans>Save</Trans>
-                </Button>
+                      <FormField
+                        control={form.control}
+                        name="meta.signatureTypes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex flex-row items-center gap-x-2">
+                              <Trans>Signature settings</Trans>
+                              <DocumentSignatureSettingsTooltip />
+                            </FormLabel>
 
+                            <FormControl>
+                              <MultiSelectCombobox
+                                disabled={field.disabled}
+                                options={DOCUMENT_SIGNATURE_TYPES.map((type) => ({
+                                  label: t(type.label),
+                                  value: type.value,
+                                }))}
+                                selectedValues={field.value}
+                                onSelectedValuesChange={field.onChange}
+                              />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="meta.redirectUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              <Trans>
+                                Redirect URL <span className="text-muted-foreground">(Optional)</span>
+                              </Trans>
+                            </FormLabel>
+
+                            <FormControl>
+                              <Input
+                                placeholder="https://example.com"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ))
+                  .with({ activeTab: 'reminders', settings: { allowConfigureReminders: true } }, () => (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="meta.envelopeExpirationPeriod"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              <Trans>Envelope expiration</Trans>
+                            </FormLabel>
+
+                            <FormControl>
+                              <ExpirationPeriodPicker
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="meta.reminderSettings"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              <Trans>Signing Reminders</Trans>
+                            </FormLabel>
+
+                            <FormControl>
+                              <ReminderSettingsPicker
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ))
+                  .with({ activeTab: 'notifications', settings: { allowConfigureDistribution: true } }, () => (
+                    <>
+                      {settings.allowConfigureEmailSender && organisation.organisationClaim.flags.emailDomains && (
+                        <FormField
+                          control={form.control}
+                          name="meta.emailId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                <Trans>Email Sender</Trans>
+                              </FormLabel>
+
+                              <FormControl>
+                                <Select
+                                  {...field}
+                                  value={field.value === null ? '-1' : field.value}
+                                  onValueChange={(value) => field.onChange(value === '-1' ? null : value)}
+                                  disabled={!isEmailDistribution}
+                                >
+                                  <SelectTrigger loading={isLoadingEmails} className="bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+
+                                  <SelectContent>
+                                    {emails.map((email) => (
+                                      <SelectItem key={email.id} value={email.id}>
+                                        {email.email}
+                                      </SelectItem>
+                                    ))}
+
+                                    <SelectItem value={'-1'}>Davinci Sign</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {settings.allowConfigureEmailReplyTo && (
+                        <FormField
+                          control={form.control}
+                          name="meta.emailReplyTo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                <Trans>
+                                  Reply To Email <span className="text-muted-foreground">(Optional)</span>
+                                </Trans>
+                              </FormLabel>
+
+                              <FormControl>
+                                <Input {...field} disabled={!isEmailDistribution} />
+                              </FormControl>
+
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      <FormField
+                        control={form.control}
+                        name="meta.subject"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              <Trans>
+                                Subject <span className="text-muted-foreground">(Optional)</span>
+                              </Trans>
+                            </FormLabel>
+
+                            <FormControl>
+                              <Input {...field} disabled={!isEmailDistribution} />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="meta.message"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex flex-row items-center">
+                              <Trans>
+                                Message <span className="text-muted-foreground">(Optional)</span>
+                              </Trans>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <InfoIcon className="mx-2 h-4 w-4" />
+                                </TooltipTrigger>
+                                <TooltipContent className="p-4 text-muted-foreground">
+                                  <DocumentSendEmailMessageHelper />
+                                </TooltipContent>
+                              </Tooltip>
+                            </FormLabel>
+
+                            <FormControl>
+                              <Textarea
+                                className="h-16 resize-none bg-background"
+                                {...field}
+                                disabled={!isEmailDistribution}
+                              />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <DocumentEmailCheckboxes
+                        value={emailSettings}
+                        onChange={(value) => form.setValue('meta.emailSettings', value)}
+                        hiddenEvents={isEmailDistribution ? undefined : RECIPIENT_EMAIL_EVENTS}
+                      />
+
+                      {!isEmailDistribution && (
+                        <Alert variant="warning">
+                          <AlertDescription>
+                            <Trans>
+                              Email distribution needs to be enabled in the general settings tab to configure recipient
+                              email related settings.
+                            </Trans>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </>
+                  ))
+                  .with({ activeTab: 'security' }, () => (
+                    <>
+                      {organisation.organisationClaim.flags.cfr21 && (
+                        <FormField
+                          control={form.control}
+                          name="globalActionAuth"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex flex-row items-center">
+                                <Trans>Recipient action authentication</Trans>
+                                <DocumentGlobalAuthActionTooltip />
+                              </FormLabel>
+
+                              <FormControl>
+                                <DocumentGlobalAuthActionSelect
+                                  value={field.value}
+                                  disabled={field.disabled}
+                                  onValueChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      <FormField
+                        control={form.control}
+                        name="globalAccessAuth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex flex-row items-center">
+                              <Trans>Document access</Trans>
+                              <DocumentGlobalAuthAccessTooltip />
+                            </FormLabel>
+
+                            <FormControl>
+                              <DocumentGlobalAuthAccessSelect
+                                value={field.value}
+                                disabled={field.disabled}
+                                onValueChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ))
+                  .otherwise(() => null)}
+              </fieldset>
+
+              <div className="flex border-t px-6 py-4">
                 <DialogClose asChild>
-                  <Button type="button" variant="secondary">
+                  <Button type="button" variant="ghost">
                     <Trans>Cancel</Trans>
                   </Button>
                 </DialogClose>
+
+                <Button
+                  className="ml-auto min-w-[5rem]"
+                  type="submit"
+                  loading={form.formState.isSubmitting}
+                >
+                  <Trans>Save</Trans>
+                </Button>
               </div>
-            </fieldset>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
