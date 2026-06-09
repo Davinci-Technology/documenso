@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react';
 
 import { Body, Container, Head, Html, Img, Preview, Section } from '../components';
 import { useBranding } from '../providers/branding';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import type { TemplateDocumentSelfSignedProps } from '../template-components/template-document-self-signed';
 import { TemplateDocumentSelfSigned } from '../template-components/template-document-self-signed';
 import { TemplateFooter } from '../template-components/template-footer';
@@ -34,11 +35,7 @@ export const DocumentSelfSignedEmailTemplate = ({
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
               ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci Sign Logo"
-                  className="mb-4 h-6"
-                />
+                <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
               )}
 
               <TemplateDocumentSelfSigned documentName={documentName} assetBaseUrl={assetBaseUrl} />

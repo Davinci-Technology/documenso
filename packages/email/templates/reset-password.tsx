@@ -2,8 +2,8 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 
-import { Body, Container, Head, Hr, Html, Img, Link, Preview, Section, Text } from '../components';
-import { useBranding } from '../providers/branding';
+import { Body, Container, Head, Hr, Html, Link, Preview, Section, Text } from '../components';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import { TemplateFooter } from '../template-components/template-footer';
 import type { TemplateResetPasswordProps } from '../template-components/template-reset-password';
 import { TemplateResetPassword } from '../template-components/template-reset-password';
@@ -12,17 +12,12 @@ export type ResetPasswordTemplateProps = Partial<TemplateResetPasswordProps>;
 
 export const ResetPasswordTemplate = ({
   userName = 'Lucas Smith',
-  userEmail = 'lucas@documenso.com',
+  userEmail = 'lucas@davincisolutions.ai',
   assetBaseUrl = 'http://localhost:3002',
 }: ResetPasswordTemplateProps) => {
   const { _ } = useLingui();
-  const branding = useBranding();
 
   const previewText = msg`Password Reset Successful`;
-
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
 
   return (
     <Html>
@@ -33,15 +28,7 @@ export const ResetPasswordTemplate = ({
         <Section>
           <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-slate-200 p-4 backdrop-blur-sm">
             <Section>
-              {branding.brandingEnabled && branding.brandingLogo ? (
-                <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
-              ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci Sign Logo"
-                  className="mb-4 h-6"
-                />
-              )}
+              <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
 
               <TemplateResetPassword
                 userName={userName}
@@ -72,7 +59,7 @@ export const ResetPasswordTemplate = ({
                 <Trans>
                   Didn't request a password change? We are here to help you secure your account,
                   just{' '}
-                  <Link className="font-normal text-documenso-700" href="mailto:hi@documenso.com">
+                  <Link className="font-normal text-documenso-700" href="mailto:support@davincisolutions.ai">
                     contact us
                   </Link>
                   .
