@@ -4,6 +4,7 @@ import { useLingui } from '@lingui/react';
 import { Body, Container, Head, Html, Img, Preview, Section } from '../components';
 import { useBranding } from '../providers/branding';
 import { TemplateAccessAuth2FA } from '../template-components/template-access-auth-2fa';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import { TemplateFooter } from '../template-components/template-footer';
 
 export type AccessAuth2FAEmailTemplateProps = {
@@ -45,11 +46,7 @@ export const AccessAuth2FAEmailTemplate = ({
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
               ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci Sign Logo"
-                  className="mb-4 h-6"
-                />
+                <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
               )}
 
               <TemplateAccessAuth2FA

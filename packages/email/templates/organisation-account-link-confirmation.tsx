@@ -15,6 +15,7 @@ import {
   Text,
 } from '../components';
 import { useBranding } from '../providers/branding';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import { TemplateFooter } from '../template-components/template-footer';
 import TemplateImage from '../template-components/template-image';
 
@@ -49,11 +50,7 @@ export const OrganisationAccountLinkConfirmationTemplate = ({
             {branding.brandingEnabled && branding.brandingLogo ? (
               <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6 p-2" />
             ) : (
-              <TemplateImage
-                assetBaseUrl={assetBaseUrl}
-                className="mb-4 h-6 p-2"
-                staticAsset="logo.png"
-              />
+              <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6 p-2" />
             )}
 
             <Section>
@@ -86,35 +83,6 @@ export const OrganisationAccountLinkConfirmationTemplate = ({
                   </Trans>
                 )}
               </Text>
-
-              {/* Placeholder text if we want to have the warning in the email as well. */}
-              {/* <Section className="mt-6">
-                <Text className="my-0 text-sm">
-                  <Trans>
-                    By accepting this request, you will be granting{' '}
-                    <strong>{organisationName}</strong> full access to:
-                  </Trans>
-                </Text>
-
-                <ul className="mb-0 mt-2">
-                  <li className="text-sm">
-                    <Trans>Your account, and everything associated with it</Trans>
-                  </li>
-                  <li className="mt-1 text-sm">
-                    <Trans>Something something something</Trans>
-                  </li>
-                  <li className="mt-1 text-sm">
-                    <Trans>Something something something</Trans>
-                  </li>
-                </ul>
-
-                <Text className="mt-2 text-sm">
-                  <Trans>
-                    You can unlink your account at any time in your security settings on Davinci Sign{' '}
-                    <Link href={`${assetBaseUrl}/settings/security/linked-accounts`}>here.</Link>
-                  </Trans>
-                </Text>
-              </Section> */}
 
               <Section className="mb-6 mt-8 text-center">
                 <Button

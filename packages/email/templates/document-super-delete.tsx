@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react';
 
 import { Body, Container, Head, Hr, Html, Img, Preview, Section } from '../components';
 import { useBranding } from '../providers/branding';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import {
   TemplateDocumentDelete,
   type TemplateDocumentDeleteProps,
@@ -37,11 +38,7 @@ export const DocumentSuperDeleteEmailTemplate = ({
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
               ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci Sign Logo"
-                  className="mb-4 h-6"
-                />
+                <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
               )}
 
               <TemplateDocumentDelete

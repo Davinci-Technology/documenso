@@ -7,6 +7,7 @@ import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-
 
 import { Body, Button, Container, Head, Html, Img, Preview, Section, Text } from '../components';
 import { useBranding } from '../providers/branding';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import TemplateDocumentImage from '../template-components/template-document-image';
 import { TemplateFooter } from '../template-components/template-footer';
 
@@ -48,11 +49,7 @@ export const DocumentCreatedFromDirectTemplateEmailTemplate = ({
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
               ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci Sign Logo"
-                  className="mb-4 h-6"
-                />
+                <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
               )}
 
               <TemplateDocumentImage className="mt-6" assetBaseUrl={assetBaseUrl} />

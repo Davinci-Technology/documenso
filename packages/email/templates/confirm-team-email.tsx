@@ -1,8 +1,7 @@
+import { formatTeamUrl } from '@documenso/lib/utils/teams';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
-
-import { formatTeamUrl } from '@documenso/lib/utils/teams';
 
 import {
   Body,
@@ -18,6 +17,7 @@ import {
   Text,
 } from '../components';
 import { useBranding } from '../providers/branding';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import { TemplateFooter } from '../template-components/template-footer';
 import TemplateImage from '../template-components/template-image';
 
@@ -31,7 +31,7 @@ export type ConfirmTeamEmailProps = {
 
 export const ConfirmTeamEmailTemplate = ({
   assetBaseUrl = 'http://localhost:3002',
-  baseUrl = 'https://documenso.com',
+  baseUrl = 'https://davincisolutions.ai',
   teamName = 'Team Name',
   teamUrl = 'demo',
   token = '',
@@ -52,11 +52,7 @@ export const ConfirmTeamEmailTemplate = ({
             {branding.brandingEnabled && branding.brandingLogo ? (
               <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6 p-2" />
             ) : (
-              <TemplateImage
-                assetBaseUrl={assetBaseUrl}
-                className="mb-4 h-6 p-2"
-                staticAsset="logo.png"
-              />
+              <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6 p-2" />
             )}
 
             <Section>

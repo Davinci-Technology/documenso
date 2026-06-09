@@ -3,6 +3,7 @@ import { useLingui } from '@lingui/react';
 
 import { Body, Container, Head, Html, Img, Preview, Section } from '../components';
 import { useBranding } from '../providers/branding';
+import { TemplateBrandingLogo } from '../template-components/template-branding-logo';
 import { TemplateDocumentRecipientSigned } from '../template-components/template-document-recipient-signed';
 import { TemplateFooter } from '../template-components/template-footer';
 
@@ -16,7 +17,7 @@ export interface DocumentRecipientSignedEmailTemplateProps {
 export const DocumentRecipientSignedEmailTemplate = ({
   documentName = 'Open Source Pledge.pdf',
   recipientName = 'John Doe',
-  recipientEmail = 'lucas@documenso.com',
+  recipientEmail = 'lucas@davincisolutions.ai',
   assetBaseUrl = 'http://localhost:3002',
 }: DocumentRecipientSignedEmailTemplateProps) => {
   const { _ } = useLingui();
@@ -42,11 +43,7 @@ export const DocumentRecipientSignedEmailTemplate = ({
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
               ) : (
-                <Img
-                  src={getAssetUrl('/static/logo.png')}
-                  alt="Davinci Sign Logo"
-                  className="mb-4 h-6"
-                />
+                <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6" />
               )}
 
               <TemplateDocumentRecipientSigned

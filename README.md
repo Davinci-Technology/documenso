@@ -130,7 +130,7 @@ git clone https://github.com/<your-username>/documenso
 
 ## Docker
 
-Docker containers are available for running Davinci Sign. We support official Docker images from the upstream project on [DockerHub](https://hub.docker.com/r/davinci/davinci-sign) and [GitHub Container Registry](https://ghcr.io/davinci/davinci-sign).
+Docker containers are available for running Davinci Sign. We support official Docker images for Davinci Sign on [DockerHub](https://hub.docker.com/r/davinci/davinci-sign) and [GitHub Container Registry](https://ghcr.io/davinci/davinci-sign).
 
 For setup instructions, see the [Docker Deployment](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker) and [Docker Compose](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker-compose) guides.
 
@@ -143,6 +143,34 @@ For local docker run:
 ```bash
 docker run -it davinci/davinci-sign:latest npm run start -- -H ::
 ```
+
+### One-Click Deploys
+
+#### Railway
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/DjrRRX?referralCode=EZR3s0&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
+#### Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/documenso/documenso)
+
+#### Koyeb
+
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/documenso/documenso&branch=main&name=documenso-app&builder=dockerfile&dockerfile=/docker/Dockerfile)
+
+#### Elestio
+
+[![Deploy on Elestio](https://elest.io/images/logos/deploy-to-elestio-btn.png)](https://elest.io/open-source/documenso)
+
+## Troubleshooting
+
+For troubleshooting self-hosted deployments, see the [Troubleshooting guide](https://docs.davincisolutions.ai/docs/self-hosting/maintenance/troubleshooting) and [Tips & Common Pitfalls](https://docs.davincisolutions.ai/docs/self-hosting/getting-started/tips).
+
+### I'm not receiving any emails when using the developer quickstart.
+
+When using the developer quickstart, an [Inbucket](https://inbucket.org/) server will be spun up in a docker container that will store all outgoing emails locally for you to view.
+
+The Web UI can be found at http://localhost:9000, while the SMTP port will be on localhost:2500.
 
 ### I can't see environment variables in my package scripts.
 
