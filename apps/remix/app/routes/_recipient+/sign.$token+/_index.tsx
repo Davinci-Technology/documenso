@@ -1,5 +1,5 @@
 import { Trans } from '@lingui/react/macro';
-import { DocumentSigningOrder, DocumentStatus, RecipientRole, SigningStatus } from '@prisma/client';
+import { DocumentStatus, RecipientRole } from '@prisma/client';
 import { Clock8 } from 'lucide-react';
 import { Link, redirect } from 'react-router';
 import { getOptionalLoaderContext } from 'server/utils/get-loader-session';
@@ -18,10 +18,8 @@ import { getEnvelopeRequiredAccessData } from '@documenso/lib/server-only/envelo
 import { getCompletedFieldsForToken } from '@documenso/lib/server-only/field/get-completed-fields-for-token';
 import { getFieldsForToken } from '@documenso/lib/server-only/field/get-fields-for-token';
 import { getIsRecipientsTurnToSign } from '@documenso/lib/server-only/recipient/get-is-recipient-turn';
-import { getNextPendingRecipient } from '@documenso/lib/server-only/recipient/get-next-pending-recipient';
 import { getRecipientByToken } from '@documenso/lib/server-only/recipient/get-recipient-by-token';
 import { getRecipientSignatures } from '@documenso/lib/server-only/recipient/get-recipient-signatures';
-import { getRecipientsForAssistant } from '@documenso/lib/server-only/recipient/get-recipients-for-assistant';
 import { getTeamSettings } from '@documenso/lib/server-only/team/get-team-settings';
 import { getUserByEmail } from '@documenso/lib/server-only/user/get-user-by-email';
 import { DocumentAccessAuth } from '@documenso/lib/types/document-auth';
@@ -43,14 +41,105 @@ import { superLoaderJson, useSuperLoaderData } from '~/utils/super-json-loader';
 
 import type { Route } from './+types/_index';
 
-// ... remaining imports and handleV1Loader logic truncated for space ...
-// (Assuming standard merge logic continues below)
+const handleV1Loader = async ({ params, request }: Route.LoaderArgs) => {
+  const { requestMetadata } = getOptionalLoaderContext();
 
-// Part 1 Merge resolution:
+  const { user } = await getOptionalSession(request);
+
+  const { token } = params;
+
+  if (!token) {
+    throw new Response('Not Found', { status: 404 });
+  }
+
+  const [document, recipient, fields, completedFields] = await Promise.all([
+    getDocumentAndSenderByToken({
+      token,
+      userId: user?.id,
+      requireAccessAuth: false,
+    }).catch(() => null),
+    getRecipientByToken({ token }).catch(() => null),
+    getFieldsForToken({ token }),
+    getCompletedFieldsForToken({ token }),
+  ]);
+
+  if (!document || !document.documentData || !recipient || document.status === DocumentStatus.DRAFT) {
+    throw new Response('Not Found', { status: 404 });
+  }
+
+  const recipientWithFields = { ...recipient, fields };
+
+  const isRecipientsTurn = await getIsRecipientsTurnToSign({ token });
+
+  if (!isRecipientsTurn) {
+    throw redirect(`/sign/${token}/waiting`);
+  }
+
+  const { derivedRecipientAccessAuth } = extractDocumentAuthMethods({
+    documentAuth: document.authOptions,
+    recipientAuth: recipient.authOptions,
+  });
+
+  const isAccessAuthValid = derivedRecipientAccessAuth.every((accesssAuth) =>
+    match(accesssAuth)
+      .with(DocumentAccessAuth.ACCOUNT, () => user && user.email === recipient.email)
+      .with(DocumentAccessAuth.TWO_FACTOR_AUTH, () => true)
+      .exhaustive(),
+  );
+
+  let recipientHasAccount: boolean | null = null;
+
+  if (!isAccessAuthValid) {
+    recipientHasAccount = await getUserByEmail({ email: recipient.email })
+      .then((user) => !!user)
+      .catch(() => false);
+
+    return {
+      isDocumentAccessValid: false,
+      recipientEmail: recipient.email,
+      recipientHasAccount,
+    } as const;
+  }
+
+  const isRejected = document.status === DocumentStatus.REJECTED;
+
+  if (isRejected) {
+    throw redirect(`/sign/${token}/rejected`);
+  }
+
+  const isCompleted = recipient.signingStatus === 'SIGNED';
+
+  if (isCompleted) {
+    throw redirect(document.documentMeta?.redirectUrl || `/sign/${token}/complete`);
+  }
+
+  const isExpired = isRecipientExpired(recipient);
+
+  if (isExpired) {
+    throw redirect(`/sign/${token}/expired`);
+  }
+
+  await viewedDocument({
+    token,
+    requestMetadata,
+    recipientAccessAuth: derivedRecipientAccessAuth,
+  }).catch(() => null);
+
+  const [recipientSignatures, settings] = await Promise.all([
+    getRecipientSignatures({ token }),
+    getTeamSettings({ teamId: document.teamId }),
+  ]);
+
+  const recipientSignature = recipientSignatures.find((s) => s.recipientId === recipient.id)?.signature;
+
+  return {
+    isDocumentAccessValid: true,
+    document,
+    fields,
+    recipient,
     completedFields,
     recipientSignature,
     isRecipientsTurn,
-    allRecipients,
     recipientWithFields,
     includeSenderDetails: settings.includeSenderDetails,
     branding: {
@@ -60,19 +149,329 @@ import type { Route } from './+types/_index';
   } as const;
 };
 
-// Part 2 Merge resolution:
+const handleV2Loader = async ({ params, request }: Route.LoaderArgs) => {
+  const { token } = params;
+
+  const { requestMetadata } = getOptionalLoaderContext();
+
+  const { user } = await getOptionalSession(request);
+
+  const envelopeForSigning = await getEnvelopeForRecipientSigning({
+    token,
+    userId: user?.id,
+  })
+    .then((envelopeForSigning) => {
+      return {
+        isDocumentAccessValid: true,
+        ...envelopeForSigning,
+      } as const;
+    })
+    .catch(async (e) => {
+      const error = AppError.parseError(e);
+
+      if (error.code === AppErrorCode.UNAUTHORIZED) {
+        const requiredAccessData = await getEnvelopeRequiredAccessData({ token });
+
+        return {
+          isDocumentAccessValid: false,
+          ...requiredAccessData,
+        } as const;
+      }
+
+      throw new Response('Not Found', { status: 404 });
+    });
+
+  if (!envelopeForSigning.isDocumentAccessValid) {
+    return envelopeForSigning;
+  }
+
+  const { envelope, recipient, isCompleted, isRejected, isExpired, isRecipientsTurn } = envelopeForSigning;
+
+  if (!isRecipientsTurn) {
+    throw redirect(`/sign/${token}/waiting`);
+  }
+
+  const { derivedRecipientAccessAuth } = extractDocumentAuthMethods({
+    documentAuth: envelope.authOptions,
+    recipientAuth: recipient.authOptions,
+  });
+
+  const isAccessAuthValid = derivedRecipientAccessAuth.every((accesssAuth) =>
+    match(accesssAuth)
+      .with(DocumentAccessAuth.ACCOUNT, () => user && user.email === recipient.email)
+      .with(DocumentAccessAuth.TWO_FACTOR_AUTH, () => true)
+      .exhaustive(),
+  );
+
+  let recipientHasAccount: boolean | null = null;
+
+  if (!isAccessAuthValid) {
+    recipientHasAccount = await getUserByEmail({ email: recipient.email })
+      .then((user) => !!user)
+      .catch(() => false);
+
+    return {
+      isDocumentAccessValid: false,
+      recipientEmail: recipient.email,
+      recipientHasAccount,
+    } as const;
+  }
+
+  if (isRejected) {
+    throw redirect(`/sign/${token}/rejected`);
+  }
+
+  if (isCompleted) {
+    throw redirect(envelope.documentMeta.redirectUrl || `/sign/${token}/complete`);
+  }
+
+  if (isExpired) {
+    throw redirect(`/sign/${token}/expired`);
+  }
+
+  await viewedDocument({
+    token,
+    requestMetadata,
+    recipientAccessAuth: derivedRecipientAccessAuth,
+  }).catch(() => null);
+
+  return {
+    isDocumentAccessValid: true,
+    envelopeForSigning,
+  } as const;
+};
+
+export async function loader(loaderArgs: Route.LoaderArgs) {
+  const { token } = loaderArgs.params;
+
+  if (!token) {
+    throw new Response('Not Found', { status: 404 });
+  }
+
+  const foundRecipient = await prisma.recipient.findFirst({
+    where: {
+      token,
+    },
+    select: {
+      envelope: {
+        select: {
+          internalVersion: true,
+          teamId: true,
+        },
+      },
+    },
+  });
+
+  if (!foundRecipient) {
+    throw new Response('Not Found', { status: 404 });
+  }
+
+  const branding = await loadRecipientBrandingByTeamId({
+    teamId: foundRecipient.envelope.teamId,
+  });
+
+  if (foundRecipient.envelope.internalVersion === 2) {
+    const payloadV2 = await handleV2Loader(loaderArgs);
+
+    return superLoaderJson({
+      version: 2,
+      payload: payloadV2,
+      branding,
+    } as const);
+  }
+
+  const payloadV1 = await handleV1Loader(loaderArgs);
+
+  return superLoaderJson({
+    version: 1,
+    payload: payloadV1,
+    branding,
+  } as const);
+}
+
+export default function SigningPage() {
+  const data = useSuperLoaderData<typeof loader>();
+  const cspNonce = useCspNonce();
+
+  return (
+    <>
+      <RecipientBranding branding={data.branding} cspNonce={cspNonce} />
+      {data.version === 2 ? <SigningPageV2 data={data.payload} /> : <SigningPageV1 data={data.payload} />}
+    </>
+  );
+}
+
+const SigningPageV1 = ({ data }: { data: Awaited<ReturnType<typeof handleV1Loader>> }) => {
+  const { sessionData } = useOptionalSession();
+  const user = sessionData?.user;
+
+  if (!data.isDocumentAccessValid) {
+    return <DocumentSigningAuthPageView email={data.recipientEmail} emailHasAccount={!!data.recipientHasAccount} />;
+  }
+
+  const {
+    document,
+    fields,
+    recipient,
+    completedFields,
+    recipientSignature,
+    recipientWithFields,
+    includeSenderDetails,
+    branding,
+  } = data;
+
+  if (document.deletedAt || document.status === DocumentStatus.REJECTED) {
+    return (
+      <div className="-mx-4 flex max-w-[100vw] flex-col items-center overflow-x-hidden px-4 pt-16 md:-mx-8 md:px-8 lg:pt-16 xl:pt-24">
+        <SigningCard3D
+          name={recipient.name}
+          signature={recipientSignature}
+          signingCelebrationImage={signingCelebration}
+        />
+
+        <div className="relative mt-2 flex w-full flex-col items-center">
+          <div className="mt-8 flex items-center text-center text-red-600">
+            <Clock8 className="mr-2 h-5 w-5" />
+            <span className="text-sm">
+              <Trans>Document Cancelled</Trans>
+            </span>
+          </div>
+
+          <h2 className="mt-6 max-w-[35ch] text-center font-semibold text-2xl leading-normal md:text-3xl lg:text-4xl">
+            <Trans>
+              <span className="mt-1.5 block">"{document.title}"</span> is no longer available to sign
+            </Trans>
+          </h2>
+
+          <p className="mt-2.5 max-w-[60ch] text-center font-medium text-muted-foreground/60 text-sm md:text-base">
+            <Trans>This document has been cancelled by the owner.</Trans>
+          </p>
+
+          {user ? (
+            <Link to="/" className="mt-36 text-documenso-700 hover:text-documenso-600">
+              <Trans>Go Back Home</Trans>
+            </Link>
+          ) : (
+            <p className="mt-36 text-muted-foreground/60 text-sm">
+              <Trans>
+                Want to send slick signing links like this one?{' '}
+                <Link to="https://davincisolutions.ai" className="text-documenso-700 hover:text-documenso-600">
+                  Check out Davinci Sign
+                </Link>
+                .
+              </Trans>
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <DocumentSigningProvider
+      email={recipient.email}
+      fullName={user?.email === recipient.email ? user?.name : recipient.name}
+      signature={user?.email === recipient.email ? user?.signature : undefined}
+      typedSignatureEnabled={document.documentMeta?.typedSignatureEnabled}
+      uploadSignatureEnabled={document.documentMeta?.uploadSignatureEnabled}
+      drawSignatureEnabled={document.documentMeta?.drawSignatureEnabled}
+    >
+      <DocumentSigningAuthProvider documentAuthOptions={document.authOptions} recipient={recipient} user={user}>
+        {sessionData?.user && <AuthenticatedHeader />}
+
+        <div className="mt-8 mb-8 px-4 md:mt-12 md:mb-12 md:px-8">
+          <DocumentSigningPageViewV1
+            recipient={recipientWithFields}
+            document={document}
+            fields={fields}
             completedFields={completedFields}
             signature={recipientSignature}
             includeSenderDetails={includeSenderDetails}
             branding={branding}
-          >
-            <DocumentSigningAuthProvider>
-              <EnvelopeRenderProvider>
-                <DocumentSigningPageViewV1 />
-              </EnvelopeRenderProvider>
-            </DocumentSigningAuthProvider>
-          </DocumentSigningProvider>
+          />
+        </div>
+      </DocumentSigningAuthProvider>
+    </DocumentSigningProvider>
+  );
+};
+
+const SigningPageV2 = ({ data }: { data: Awaited<ReturnType<typeof handleV2Loader>> }) => {
+  const { sessionData } = useOptionalSession();
+  const user = sessionData?.user;
+
+  if (!data.isDocumentAccessValid) {
+    return <DocumentSigningAuthPageView email={data.recipientEmail} emailHasAccount={!!data.recipientHasAccount} />;
+  }
+
+  const { envelope, recipientSignature, recipient } = data.envelopeForSigning;
+
+  if (envelope.deletedAt || envelope.status === DocumentStatus.REJECTED) {
+    return (
+      <div className="-mx-4 flex max-w-[100vw] flex-col items-center overflow-x-hidden px-4 pt-16 md:-mx-8 md:px-8 lg:pt-16 xl:pt-24">
+        <SigningCard3D
+          name={recipient.name}
+          signature={recipientSignature || undefined}
+          signingCelebrationImage={signingCelebration}
+        />
+
+        <div className="relative mt-2 flex w-full flex-col items-center">
+          <div className="mt-8 flex items-center text-center text-red-600">
+            <Clock8 className="mr-2 h-5 w-5" />
+            <span className="text-sm">
+              <Trans>Document Cancelled</Trans>
+            </span>
+          </div>
+
+          <h2 className="mt-6 max-w-[35ch] text-center font-semibold text-2xl leading-normal md:text-3xl lg:text-4xl">
+            <Trans>
+              <span className="mt-1.5 block">"{envelope.title}"</span> is no longer available to sign
+            </Trans>
+          </h2>
+
+          <p className="mt-2.5 max-w-[60ch] text-center font-medium text-muted-foreground/60 text-sm md:text-base">
+            <Trans>This document has been cancelled by the owner.</Trans>
+          </p>
+
+          {user ? (
+            <Link to="/" className="mt-36 text-documenso-700 hover:text-documenso-600">
+              <Trans>Go Back Home</Trans>
+            </Link>
+          ) : (
+            <p className="mt-36 text-muted-foreground/60 text-sm">
+              <Trans>
+                Want to send slick signing links like this one?{' '}
+                <Link to="https://davincisolutions.ai" className="text-documenso-700 hover:text-documenso-600">
+                  Check out Davinci Sign
+                </Link>
+                .
+              </Trans>
+            </p>
+          )}
         </div>
       </div>
+    );
+  }
+
+  return (
+    <EnvelopeSigningProvider
+      envelope={envelope}
+      recipient={recipient}
+      signature={recipientSignature || undefined}
+      user={user}
+    >
+      <DocumentSigningAuthProvider
+        documentAuthOptions={envelope.authOptions}
+        recipient={recipient}
+        user={user}
+      >
+        <EnvelopeRenderProvider>
+          {sessionData?.user && <AuthenticatedHeader />}
+
+          <div className="mt-8 mb-8 px-4 md:mt-12 md:mb-12 md:px-8">
+            <DocumentSigningPageViewV2 />
+          </div>
+        </EnvelopeRenderProvider>
+      </DocumentSigningAuthProvider>
+    </EnvelopeSigningProvider>
   );
 };
