@@ -12,6 +12,7 @@ import { EmailDomainStatus, type OrganisationClaim, type OrganisationGlobalSetti
 import type { Transporter } from 'nodemailer';
 import { match, P } from 'ts-pattern';
 
+import { IS_BILLING_ENABLED } from '../../constants/app';
 import { DAVINCI_INTERNAL_EMAIL } from '../../constants/email';
 import { AppError, AppErrorCode } from '../../errors/app-error';
 import { logger } from '../../utils/logger';
@@ -57,8 +58,7 @@ type RecipientGetEmailContextOptions = BaseGetEmailContextOptions & {
   emailType: 'RECIPIENT';
 
   /**
-   * Force meta options as a typesafe way to ensure developers don't forget to
-   * pass it in if it is available.
+   * Force meta options as a typesafe way to ensure developers don't pass in if it is available.
    */
   meta: EmailMetaOption | null | undefined;
 };
@@ -184,55 +184,56 @@ export const getEmailContext = async (options: GetEmailContextOptions): Promise<
   };
 };
 
-const handleOrganisationEmailContext = async (organisationId: string) => {
-  const organisation = await prisma.organisation.findFirst({
+const handleOrganisationEmailContext = async (
+  organisationId: string,
+): Promise<Omit<EmailContextResponse, 'senderEmail' | 'replyToEmail' | 'emailLanguage' | 'emailTransport'>> => {
+  const organisation = await prisma.organisation.findUnique({
     where: {
       id: organisationId,
     },
     include: {
-      owner: {
-        select: {
-          disabled: true,
-        },
-      },
-      organisationClaim: true,
       organisationGlobalSettings: true,
-      emailDomains: {
-        omit: {
-          privateKey: true,
-        },
+      organisationClaims: true,
+      organisationEmails: {
         include: {
-          emails: true,
+          emailDomain: true,
         },
       },
+      owner: true,
     },
   });
 
   if (!organisation) {
-    throw new AppError(AppErrorCode.NOT_FOUND);
+    throw new AppError(AppErrorCode.NOT_FOUND, 'Organisation not found');
   }
-
-  const claims = organisation.organisationClaim;
 
   const allowedEmails = getAllowedEmails(organisation);
 
+  const settings = organisation.organisationGlobalSettings;
+
+  const branding = organisationGlobalSettingsToBranding(settings, allowBrandedEmailColors);
+
+  const allowBrandedEmailColors = !IS_BILLING_ENABLED() || organisation.organisationClaims?.flags.embedSigningWhiteLabel === true;
+
+  if (!allowBrandedEmailColors) {
+    branding.brandingColors = undefined;
+  }
+
   return {
     allowedEmails,
-    branding: organisationGlobalSettingsToBranding(
-      organisation.organisationGlobalSettings,
-      organisation.id,
-      claims.flags.hidePoweredBy ?? false,
-    ),
-    settings: organisation.organisationGlobalSettings,
-    claims,
-    emailsDisabled: organisation.owner.disabled || claims.flags.emailsDisabled === true,
+    branding,
+    settings: settings,
+    claims: organisation.organisationClaims ?? {},
+    emailsDisabled: organisation.owner.disabled || organisation.organisationClaims?.flags.emailsDisabled === true,
     organisationId: organisation.id,
     organisationType: organisation.type,
   };
 };
 
-const handleTeamEmailContext = async (teamId: number) => {
-  const team = await prisma.team.findFirst({
+const handleTeamEmailContext = async (
+  teamId: number,
+): Promise<Omit<EmailContextResponse, 'senderEmail' | 'replyToEmail' | 'emailLanguage' | 'emailTransport'>> => {
+  const team = await prisma.team.findUnique({
     where: {
       id: teamId,
     },
@@ -240,51 +241,47 @@ const handleTeamEmailContext = async (teamId: number) => {
       teamGlobalSettings: true,
       organisation: {
         include: {
-          owner: {
-            select: {
-              id: true,
-              disabled: true,
-            },
-          },
-          organisationClaim: true,
           organisationGlobalSettings: true,
-          emailDomains: {
-            omit: {
-              privateKey: true,
-            },
+          organisationClaims: true,
+          organisationEmails: {
             include: {
-              emails: true,
+              emailDomain: true,
             },
           },
+          owner: true,
         },
       },
     },
   });
 
   if (!team) {
-    throw new AppError(AppErrorCode.NOT_FOUND);
+    throw new AppError(AppErrorCode.NOT_FOUND, 'Team not found');
   }
 
-  const { organisation, teamGlobalSettings } = team;
+  const { organisation } = team;
 
-  const claims = organisation.organisationClaim;
+  if (!organisation) {
+    throw new AppError(AppErrorCode.UNKNOWN_ERROR, 'Team must have an organisation');
+  }
 
-  const settings = extractDerivedTeamSettings({
-    teamGlobalSettings,
-    organisationGlobalSettings: organisation.organisationGlobalSettings,
-  });
+  const claims = organisation.organisationClaims ?? {};
 
   const allowedEmails = getAllowedEmails(organisation);
 
+  const teamSettings = extractDerivedTeamSettings(organisation.organisationGlobalSettings, team.teamGlobalSettings);
+
+  const branding = teamGlobalSettingsToBranding(teamSettings, teamId, claims.flags.hidePoweredBy ?? false);
+
+  const allowBrandedEmailColors = !IS_BILLING_ENABLED() || claims.flags.embedSigningWhiteLabel === true;
+
+  if (!allowBrandedEmailColors) {
+    branding.brandingColors = undefined;
+  }
+
   return {
     allowedEmails,
-    branding: teamGlobalSettingsToBranding(
-      teamGlobalSettings,
-      organisation.organisationGlobalSettings,
-      team.id,
-      claims.flags.hidePoweredBy ?? false,
-    ),
-    settings,
+    branding,
+    settings: teamSettings,
     claims,
     emailsDisabled: organisation.owner.disabled || claims.flags.emailsDisabled === true,
     organisationId: organisation.id,
@@ -292,14 +289,6 @@ const handleTeamEmailContext = async (teamId: number) => {
   };
 };
 
-const getAllowedEmails = (
-  organisation: Organisation & {
-    emailDomains: (EmailDomain & {
-      emails: OrganisationEmail[];
-    })[];
-  },
-) => {
-  return organisation.emailDomains
-    .filter((domain) => domain.status === EmailDomainStatus.VERIFIED)
-    .flatMap((domain) => domain.emails);
+const getAllowedEmails = (organisation: Organisation & { organisationEmails: (OrganisationEmail & { emailDomain: EmailDomain })[] }): OrganisationEmail[] => {
+  return organisation.organisationEmails.filter((email) => email.emailDomain.status === EmailDomainStatus.VERIFIED);
 };

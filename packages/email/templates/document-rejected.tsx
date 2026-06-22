@@ -27,10 +27,6 @@ export function DocumentRejectedEmail({
 
   const previewText = _(msg`${recipientName} has rejected the document '${documentName}'`);
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

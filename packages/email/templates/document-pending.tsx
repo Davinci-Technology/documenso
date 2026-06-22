@@ -19,10 +19,6 @@ export const DocumentPendingEmailTemplate = ({
 
   const previewText = msg`Pending Document`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

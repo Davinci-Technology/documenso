@@ -27,10 +27,6 @@ export const DocumentRecipientSignedEmailTemplate = ({
 
   const previewText = msg`${recipientReference} has signed ${documentName}`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />
