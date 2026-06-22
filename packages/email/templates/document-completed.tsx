@@ -25,10 +25,6 @@ export const DocumentCompletedEmailTemplate = ({
 
   const previewText = msg`Completed Document`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

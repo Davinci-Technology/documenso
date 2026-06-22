@@ -1,10 +1,9 @@
+import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Trans } from '@lingui/react/macro';
 import type { RecipientRole } from '@prisma/client';
 import { OrganisationType } from '@prisma/client';
-
-import { RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
 
 import { Body, Container, Head, Hr, Html, Img, Link, Preview, Section, Text } from '../components';
 import { useBranding } from '../providers/branding';
@@ -55,10 +54,6 @@ export const DocumentInviteEmailTemplate = ({
   if (selfSigner) {
     previewText = msg`Please ${action} your document ${documentName}`;
   }
-
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
 
   return (
     <Html>

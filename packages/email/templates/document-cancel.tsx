@@ -22,10 +22,6 @@ export const DocumentCancelTemplate = ({
 
   const previewText = msg`${inviterName} has cancelled the document ${documentName}, you don't need to sign it anymore.`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

@@ -19,10 +19,6 @@ export const ForgotPasswordTemplate = ({
 
   const previewText = msg`Password Reset Requested`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

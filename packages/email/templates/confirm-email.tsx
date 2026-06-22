@@ -17,10 +17,6 @@ export const ConfirmEmailTemplate = ({
 
   const previewText = msg`Please confirm your email address`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

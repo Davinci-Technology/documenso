@@ -30,10 +30,6 @@ export const AccessAuth2FAEmailTemplate = ({
 
   const previewText = msg`Your verification code is ${code}`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />

@@ -22,10 +22,6 @@ export const DocumentSuperDeleteEmailTemplate = ({
 
   const previewText = msg`An admin has deleted your document "${documentName}".`;
 
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Html>
       <Head />
