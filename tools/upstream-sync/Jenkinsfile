@@ -33,7 +33,7 @@ pipeline {
         string(name: 'UPSTREAM_REF', defaultValue: '', description: 'Specific upstream ref to sync (tag, SHA, or branch). Leave empty for upstream/main HEAD.')
         booleanParam(name: 'FORCE_CLAUDE', defaultValue: false, description: 'Force AI resolution even when merge is clean (useful for branding drift detection)')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Run the full pipeline without pushing or creating PRs')
-        booleanParam(name: 'ENABLE_TSC', defaultValue: false, description: 'Enable TypeScript validation via Docker (requires Docker on agent)')
+        booleanParam(name: 'ENABLE_TSC', defaultValue: true, description: 'Enable in-resolver tsc self-heal (cost optimisation). The mandatory Build Gate runs regardless of this flag.')
     }
 
     environment {
@@ -283,6 +283,62 @@ for t in touched:
             }
         }
 
+        stage('Post-Merge Gates') {
+            // Runs on EVERY sync (even clean merges) — clean merges still need the
+            // brand sweep and the build gate. This stage produces the blocker files
+            // that the merge decision aggregates.
+            when {
+                expression { env.SKIP_SYNC != 'true' }
+            }
+            steps {
+                script {
+                    // B3 (all-files brand sweep) + B4a (regression marker guard).
+                    // The sweep rewrites symbol-safe brand leaks that reached main via
+                    // clean merges (e.g. an upstream file newly importing
+                    // DOCUMENSO_INTERNAL_EMAIL); the guard fails if a sync reverted a
+                    // Davinci customization. Writes branding_leaks.txt + regression_violations.txt.
+                    sh '''
+                        . .venv/bin/activate
+                        PYTHONPATH=tools/upstream-sync python3 -m branding_resolver.gates \
+                            --repo . \
+                            --changed-files sync-output/changed_files.txt || true
+                    '''
+
+                    // Fold any sweep rewrites into the sync branch.
+                    sh '''
+                        git add -A -- . ":!.venv" ":!sync-output"
+                        git commit --no-edit -m "chore: post-merge symbol-safe brand sweep" 2>/dev/null || true
+                    '''
+
+                    // B1 — MANDATORY build gate. Typecheck + build the FINAL merged tree
+                    // via the testing Dockerfile (runs `turbo run build --filter=@documenso/remix...`,
+                    // which includes `tsc --noEmit`). Unconditional and fail-closed: the
+                    // absence of this gate is exactly what let ~2 weeks of non-compiling
+                    // syncs auto-merge to main.
+                    def buildRc = sh(script: '''
+                        docker compose -f docker/testing/compose.yml build davinci-sign > sync-output/build_gate.log 2>&1
+                    ''', returnStatus: true)
+
+                    if (buildRc != 0) {
+                        sh '''
+                            {
+                                echo "Build gate FAILED — the merged tree does not compile.";
+                                grep -E "error TS[0-9]+|Lifecycle script .* failed|failed to solve|did not complete successfully" sync-output/build_gate.log | head -n 60;
+                            } > sync-output/build_gate_failures.txt 2>/dev/null || true
+                            # Guarantee the blocker file is non-empty even if grep matched nothing.
+                            test -s sync-output/build_gate_failures.txt || echo "Build failed; see sync-output/build_gate.log" > sync-output/build_gate_failures.txt
+                        '''
+                        echo "Build gate FAILED — auto-merge will be blocked (draft PR)."
+                    } else {
+                        // Required gate ran and passed: write an EMPTY blocker so the
+                        // fail-closed merge_gate sees it present-and-clean.
+                        sh ': > sync-output/build_gate_failures.txt'
+                        echo "Build gate passed."
+                    }
+                }
+            }
+        }
+
         stage('Create PR and Merge') {
             when {
                 allOf {
@@ -312,9 +368,21 @@ for t in touched:
                     // Close any existing PR for this sync branch.
                     sh(script: "gh pr close ${env.SYNC_BRANCH} --repo ${FORK_REPO} 2>/dev/null || true", returnStatus: true)
 
-                    if (unresolvable.isEmpty()) {
-                        // All files resolved — create PR and auto-merge.
-                        echo "All files resolved. Creating PR and auto-merging."
+                    // Fail-closed merge gate: aggregate EVERY blocker — unresolvable
+                    // conflicts, build-gate failure, leaked brand symbols, and reverted
+                    // Davinci customizations. Auto-merge ONLY when every gate is green.
+                    sh(script: '''
+                        . .venv/bin/activate
+                        PYTHONPATH=tools/upstream-sync python3 -m branding_resolver.merge_gate \
+                            --sync-output sync-output > sync-output/merge_gate.txt 2>&1 || true
+                    ''', returnStatus: true)
+                    def gateReport = fileExists('sync-output/merge_gate.txt') ? readFile('sync-output/merge_gate.txt').trim() : 'MERGE BLOCKED — gate did not run'
+                    def blocked = !gateReport.contains('MERGE CLEAR')
+                    echo "Merge gate:\n${gateReport}"
+
+                    if (!blocked) {
+                        // All gates green — create PR and auto-merge.
+                        echo "All gates green. Creating PR and auto-merging."
 
                         def prBody = ''
                         if (fileExists('sync-output/pr_body.md')) {
@@ -360,16 +428,16 @@ for t in touched:
                         }
 
                     } else {
-                        // Some files unresolvable — create draft PR for review.
-                        echo "Unresolvable files detected. Creating draft PR for review."
-                        echo "Unresolvable: ${unresolvable}"
+                        // One or more gates blocked auto-merge — create a draft PR for review.
+                        echo "Merge gate blocked auto-merge. Creating draft PR for review."
 
                         def prBody = ''
                         if (fileExists('sync-output/pr_body.md')) {
                             prBody = readFile('sync-output/pr_body.md')
                         } else {
-                            prBody = "Automated upstream sync from ${env.UPSTREAM_REF}.\n\nCommits: ${env.COMMIT_COUNT}\n\n**Unresolvable files:**\n${unresolvable}"
+                            prBody = "Automated upstream sync from ${env.UPSTREAM_REF}.\n\nCommits: ${env.COMMIT_COUNT}"
                         }
+                        prBody = prBody + "\n\n---\n## Merge gate blocked auto-merge\n\nThis sync did not pass every gate, so it was **not** auto-merged. Review and fix before merging.\n\n```\n" + gateReport + "\n```\n"
 
                         writeFile file: 'sync-output/gh_pr_body.md', text: prBody
 
@@ -400,7 +468,7 @@ for t in touched:
                         }
 
                         notifyTeams("Upstream Sync PR Created (Draft — Needs Review)",
-                            "Branch **${env.SYNC_BRANCH}** has unresolvable files.\\n\\nCommits: ${env.COMMIT_COUNT}\\n[Review PR](${prUrl})",
+                            "Branch **${env.SYNC_BRANCH}** did not pass all merge gates (build / brand sweep / regression / conflicts).\\n\\nCommits: ${env.COMMIT_COUNT}\\n[Review PR](${prUrl})",
                             "FFA500")
                     }
                 }
