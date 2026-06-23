@@ -310,30 +310,34 @@ for t in touched:
                         git commit --no-edit -m "chore: post-merge symbol-safe brand sweep" 2>/dev/null || true
                     '''
 
-                    // B1 — MANDATORY build gate. Typecheck + build the FINAL merged tree
-                    // via the testing Dockerfile (runs `turbo run build --filter=@documenso/remix...`,
-                    // which includes `tsc --noEmit`). Unconditional and fail-closed: the
-                    // absence of this gate is exactly what let ~2 weeks of non-compiling
-                    // syncs auto-merge to main.
-                    def buildRc = sh(script: '''
-                        docker compose -f docker/testing/compose.yml build davinci-sign > sync-output/build_gate.log 2>&1
-                    ''', returnStatus: true)
+                    // B1 — MANDATORY build gate with a bounded agent self-heal loop.
+                    // Builds the FINAL merged tree via the testing Dockerfile (runs
+                    // `turbo run build`, incl. `tsc --noEmit`). On failure it feeds the
+                    // per-file errors back to the repair LLM, rebuilds, up to 2 rounds,
+                    // then writes build_gate_failures.txt (empty = pass). Fail-closed and
+                    // unconditional — the absence of this gate is exactly what let ~2
+                    // weeks of non-compiling syncs auto-merge to main. The build_gate
+                    // module owns the blocker file; `|| true` keeps the stage green so the
+                    // merge_gate (not a stage failure) drives the auto-merge decision.
+                    sh '''
+                        . .venv/bin/activate
+                        PYTHONPATH=tools/upstream-sync python3 -m branding_resolver.build_gate \
+                            --repo . --max-rounds 2 || true
+                    '''
 
-                    if (buildRc != 0) {
-                        sh '''
-                            {
-                                echo "Build gate FAILED — the merged tree does not compile.";
-                                grep -E "error TS[0-9]+|Lifecycle script .* failed|failed to solve|did not complete successfully" sync-output/build_gate.log | head -n 60;
-                            } > sync-output/build_gate_failures.txt 2>/dev/null || true
-                            # Guarantee the blocker file is non-empty even if grep matched nothing.
-                            test -s sync-output/build_gate_failures.txt || echo "Build failed; see sync-output/build_gate.log" > sync-output/build_gate_failures.txt
-                        '''
+                    // Fold any self-heal edits into the sync branch.
+                    sh '''
+                        git add -A -- . ":!.venv" ":!sync-output"
+                        git commit --no-edit -m "fix: build-gate self-heal" 2>/dev/null || true
+                    '''
+
+                    if (fileExists('sync-output/build_gate_failures.txt') &&
+                        readFile('sync-output/build_gate_failures.txt').trim()) {
                         echo "Build gate FAILED — auto-merge will be blocked (draft PR)."
-                    } else {
-                        // Required gate ran and passed: write an EMPTY blocker so the
-                        // fail-closed merge_gate sees it present-and-clean.
-                        sh ': > sync-output/build_gate_failures.txt'
+                    } else if (fileExists('sync-output/build_gate_failures.txt')) {
                         echo "Build gate passed."
+                    } else {
+                        echo "Build gate did not produce a result — fail-closed (merge blocked)."
                     }
                 }
             }

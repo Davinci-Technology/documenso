@@ -13,7 +13,7 @@ Each gate writes a blocker file to `sync-output/`; `merge_gate` aggregates them.
 
 | Gate | Module | Blocker file | Catches |
 |------|--------|--------------|---------|
-| **Build** (B1) | Jenkins `Post-Merge Gates` stage | `build_gate_failures.txt` | Any non-compiling merge — `docker compose build` runs `turbo run build` (incl. `tsc --noEmit`) on the final tree. The load-bearing gate. |
+| **Build** (B1) | `build_gate.py` (Jenkins `Post-Merge Gates` stage) | `build_gate_failures.txt` | Any non-compiling merge — builds the final tree (`turbo run build`, incl. `tsc --noEmit`). The load-bearing gate. **Self-heals**: on failure it feeds per-file errors to the repair LLM, rebuilds, up to 2 rounds; if a round changes nothing or errors aren't attributable to a single file (cross-file reconciliation), it escalates to a human draft PR. |
 | **Brand sweep** (B3) | `sweep.py` / `gates.py` | `branding_leaks.txt` | Brand symbols that reached main via a **clean** merge (e.g. an upstream file newly importing `DOCUMENSO_INTERNAL_EMAIL`). Rewrites the safe subset in place; flags the rest. |
 | **Regression guard** (B4a) | `regression_guard.py` + `critical_markers.yaml` | `regression_violations.txt` | A sync **reverting** a Davinci customization (the proven `get-email-context.ts` case). |
 | **Conflicts** (existing) | `resolver.py` | `unresolvable_files.txt` | Conflicts the resolver couldn't resolve. |
@@ -50,6 +50,17 @@ Jenkins logic has a bug. Configure on `Davinci-Technology/documenso`:
   the post-merge state.
 - **Do not** add the sync bot/app as a bypass actor — otherwise auto-merge sails
   past the gate (the likely current hole).
+
+## Self-heal vs. detect-only
+
+- **Build gate** loops failures back to the agent (bounded, 2 rounds) before
+  escalating — fixes cheap cases (a missed rename, a one-file type error)
+  automatically. The in-resolver `tsc` self-heal is a fast pre-pass; anything it
+  can't fix is recorded to `build_gate_failures.txt` so it can't silently pass.
+- **Brand sweep** self-heals deterministically (no LLM).
+- **Regression guard** is **detect-only by design** — re-applying a *lost*
+  customization from just a marker name invites a plausible-but-wrong fabrication,
+  so it flags for a human instead.
 
 ## Not yet implemented (follow-ups)
 
