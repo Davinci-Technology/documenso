@@ -1,0 +1,22 @@
+# Normalize line endings. Source and shell scripts are always LF so that
+# Docker builds (Alpine `sh`) and CI behave identically regardless of the
+# contributor's OS. Without this, a Windows checkout (core.autocrlf=true)
+# rewrites *.sh to CRLF and breaks `sh ./.bin/build.sh` inside the image.
+* text=auto eol=lf
+
+# Shell scripts must be LF — they run under POSIX sh in the container.
+*.sh text eol=lf
+
+# Binary assets: never normalize or diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.p12 binary
+*.pdf binary

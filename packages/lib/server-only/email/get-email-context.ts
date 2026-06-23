@@ -193,10 +193,13 @@ const handleOrganisationEmailContext = async (
     },
     include: {
       organisationGlobalSettings: true,
-      organisationClaims: true,
-      organisationEmails: {
+      organisationClaim: true,
+      emailDomains: {
+        omit: {
+          privateKey: true,
+        },
         include: {
-          emailDomain: true,
+          emails: true,
         },
       },
       owner: true,
@@ -204,16 +207,23 @@ const handleOrganisationEmailContext = async (
   });
 
   if (!organisation) {
-    throw new AppError(AppErrorCode.NOT_FOUND, 'Organisation not found');
+    throw new AppError(AppErrorCode.NOT_FOUND, { message: 'Organisation not found' });
   }
+
+  const claims = organisation.organisationClaim;
 
   const allowedEmails = getAllowedEmails(organisation);
 
   const settings = organisation.organisationGlobalSettings;
 
-  const branding = organisationGlobalSettingsToBranding(settings, allowBrandedEmailColors);
+  const allowBrandedEmailColors =
+    !IS_BILLING_ENABLED() || claims.flags.embedSigningWhiteLabel === true;
 
-  const allowBrandedEmailColors = !IS_BILLING_ENABLED() || organisation.organisationClaims?.flags.embedSigningWhiteLabel === true;
+  const branding = organisationGlobalSettingsToBranding(
+    settings,
+    organisation.id,
+    claims.flags.hidePoweredBy ?? false,
+  );
 
   if (!allowBrandedEmailColors) {
     branding.brandingColors = undefined;
@@ -222,9 +232,9 @@ const handleOrganisationEmailContext = async (
   return {
     allowedEmails,
     branding,
-    settings: settings,
-    claims: organisation.organisationClaims ?? {},
-    emailsDisabled: organisation.owner.disabled || organisation.organisationClaims?.flags.emailsDisabled === true,
+    settings,
+    claims,
+    emailsDisabled: organisation.owner.disabled || claims.flags.disableEmails === true,
     organisationId: organisation.id,
     organisationType: organisation.type,
   };
@@ -242,10 +252,13 @@ const handleTeamEmailContext = async (
       organisation: {
         include: {
           organisationGlobalSettings: true,
-          organisationClaims: true,
-          organisationEmails: {
+          organisationClaim: true,
+          emailDomains: {
+            omit: {
+              privateKey: true,
+            },
             include: {
-              emailDomain: true,
+              emails: true,
             },
           },
           owner: true,
@@ -255,16 +268,16 @@ const handleTeamEmailContext = async (
   });
 
   if (!team) {
-    throw new AppError(AppErrorCode.NOT_FOUND, 'Team not found');
+    throw new AppError(AppErrorCode.NOT_FOUND, { message: 'Team not found' });
   }
 
   const { organisation } = team;
 
   if (!organisation) {
-    throw new AppError(AppErrorCode.UNKNOWN_ERROR, 'Team must have an organisation');
+    throw new AppError(AppErrorCode.UNKNOWN_ERROR, { message: 'Team must have an organisation' });
   }
 
-  const claims = organisation.organisationClaims ?? {};
+  const claims = organisation.organisationClaim;
 
   const allowedEmails = getAllowedEmails(organisation);
 
@@ -283,12 +296,23 @@ const handleTeamEmailContext = async (
     branding,
     settings: teamSettings,
     claims,
-    emailsDisabled: organisation.owner.disabled || claims.flags.emailsDisabled === true,
+    emailsDisabled: organisation.owner.disabled || claims.flags.disableEmails === true,
     organisationId: organisation.id,
     organisationType: organisation.type,
   };
 };
 
-const getAllowedEmails = (organisation: Organisation & { organisationEmails: (OrganisationEmail & { emailDomain: EmailDomain })[] }): OrganisationEmail[] => {
-  return organisation.organisationEmails.filter((email) => email.emailDomain.status === EmailDomainStatus.VERIFIED);
+const getAllowedEmails = (
+  organisation: Organisation & {
+    emailDomains: (Pick<EmailDomain, 'status'> & { emails: OrganisationEmail[] })[];
+    organisationClaim: OrganisationClaim;
+  },
+): OrganisationEmail[] => {
+  if (!organisation.organisationClaim.flags.emailDomains) {
+    return [];
+  }
+
+  return organisation.emailDomains
+    .filter((emailDomain) => emailDomain.status === EmailDomainStatus.ACTIVE)
+    .flatMap((emailDomain) => emailDomain.emails);
 };

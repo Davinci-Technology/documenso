@@ -1,12 +1,3 @@
-import { useMemo, useState } from 'react';
-
-import { msg } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
-import { EnvelopeType, OrganisationType } from '@prisma/client';
-import { FileText } from 'lucide-react';
-import { parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useParams, useSearchParams } from 'react-router';
-
 import { useSessionStorage } from '@documenso/lib/client-only/hooks/use-session-storage';
 import { useCurrentOrganisation } from '@documenso/lib/client-only/providers/organisation';
 import { FolderType } from '@documenso/lib/types/folder-type';
@@ -16,6 +7,13 @@ import { trpc } from '@documenso/trpc/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@documenso/ui/primitives/avatar';
 import type { RowSelectionState } from '@documenso/ui/primitives/data-table';
 import { Tabs, TabsList, TabsTrigger } from '@documenso/ui/primitives/tabs';
+import { msg } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { EnvelopeType, OrganisationType } from '@prisma/client';
+import { Bird } from 'lucide-react';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
+import { useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router';
 
 import { EnvelopesBulkDeleteDialog } from '~/components/dialogs/envelopes-bulk-delete-dialog';
 import { EnvelopesBulkMoveDialog } from '~/components/dialogs/envelopes-bulk-move-dialog';
@@ -134,7 +132,7 @@ export default function TemplatesPage() {
           <div className="mt-8">
             {activeQuery.data && activeQuery.data.count === 0 ? (
               <div className="flex h-96 flex-col items-center justify-center gap-y-4 text-muted-foreground/60">
-                <FileText className="h-12 w-12" strokeWidth={1.5} />
+                <Bird className="h-12 w-12" strokeWidth={1.5} />
 
                 <div className="text-center">
                   <h3 className="font-semibold text-lg">
@@ -149,58 +147,48 @@ export default function TemplatesPage() {
                     )}
                   </p>
                 </div>
-
-                <div className="flex flex-row items-center gap-x-4">
-                  {/* Omitted for brevity in this diff display */}
-                </div>
               </div>
             ) : (
               <TemplatesTable
-                // @ts-expect-error - typing is overridden
-                data={activeQuery.data?.data}
-                perPage={perPage}
-                page={page}
-                totalCount={activeQuery.data?.count ?? 0}
-                isOrganisation={isOrgView}
+                data={activeQuery.data}
                 isLoading={activeQuery.isLoading}
-                rowSelection={rowSelection}
-                setRowSelection={setRowSelection}
+                isLoadingError={activeQuery.isLoadingError}
+                documentRootPath={documentRootPath}
+                templateRootPath={templateRootPath}
+                enableSelection={!isOrgView}
+                rowSelection={isOrgView ? {} : rowSelection}
+                onRowSelectionChange={isOrgView ? undefined : setRowSelection}
               />
             )}
           </div>
-
-          {selectedEnvelopeIds.length > 0 && (
-            <EnvelopesTableBulkActionBar
-              selectedEnvelopeIds={selectedEnvelopeIds}
-              onBulkDeleteClick={() => setIsBulkDeleteDialogOpen(true)}
-              onBulkMoveClick={() => setIsBulkMoveDialogOpen(true)}
-              hideFolderOptions={isOrgView}
-            />
-          )}
         </div>
 
-        {isBulkMoveDialogOpen && (
-          <EnvelopesBulkMoveDialog
-            envelopeIds={selectedEnvelopeIds}
-            documentRootPath={documentRootPath}
-            templateRootPath={templateRootPath}
-            open={isBulkMoveDialogOpen}
-            onOpenChange={() => {
-              setIsBulkMoveDialogOpen(false);
-              setRowSelection({});
-            }}
-          />
-        )}
+        {!isOrgView && (
+          <>
+            <EnvelopesTableBulkActionBar
+              selectedCount={selectedEnvelopeIds.length}
+              onMoveClick={() => setIsBulkMoveDialogOpen(true)}
+              onDeleteClick={() => setIsBulkDeleteDialogOpen(true)}
+              onClearSelection={() => setRowSelection({})}
+            />
 
-        {isBulkDeleteDialogOpen && (
-          <EnvelopesBulkDeleteDialog
-            envelopeIds={selectedEnvelopeIds}
-            open={isBulkDeleteDialogOpen}
-            onOpenChange={() => {
-              setIsBulkDeleteDialogOpen(false);
-              setRowSelection({});
-            }}
-          />
+            <EnvelopesBulkMoveDialog
+              envelopeIds={selectedEnvelopeIds}
+              envelopeType={EnvelopeType.TEMPLATE}
+              open={isBulkMoveDialogOpen}
+              currentFolderId={folderId}
+              onOpenChange={setIsBulkMoveDialogOpen}
+              onSuccess={() => setRowSelection({})}
+            />
+
+            <EnvelopesBulkDeleteDialog
+              envelopeIds={selectedEnvelopeIds}
+              envelopeType={EnvelopeType.TEMPLATE}
+              open={isBulkDeleteDialogOpen}
+              onOpenChange={setIsBulkDeleteDialogOpen}
+              onSuccess={() => setRowSelection({})}
+            />
+          </>
         )}
       </div>
     </EnvelopeDropZoneWrapper>
