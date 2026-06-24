@@ -1,10 +1,3 @@
-import { useEffect, useState } from 'react';
-
-import { Trans } from '@lingui/react/macro';
-import { type DocumentData, DocumentStatus, type EnvelopeItem, EnvelopeType } from '@prisma/client';
-import { DownloadIcon } from 'lucide-react';
-import { DateTime } from 'luxon';
-
 import {
   EnvelopeRenderProvider,
   useCurrentEnvelopeRender,
@@ -22,6 +15,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@documenso/ui/primitives/dialog';
+import { Trans } from '@lingui/react/macro';
+import { type DocumentData, DocumentStatus, type EnvelopeItem, EnvelopeType } from '@prisma/client';
+import { DownloadIcon } from 'lucide-react';
+import { DateTime } from 'luxon';
+import { useEffect, useState } from 'react';
 
 import { EnvelopeDownloadDialog } from '~/components/dialogs/envelope-download-dialog';
 import { EnvelopePdfViewer } from '~/components/general/pdf-viewer/envelope-pdf-viewer';
@@ -57,9 +55,7 @@ export const DocumentCertificateQRView = ({
 
   const [isDialogOpen, setIsDialogOpen] = useState(() => !!documentViaUser);
 
-  const formattedDate = completedDate
-    ? DateTime.fromJSDate(completedDate).toLocaleString(DateTime.DATETIME_MED)
-    : '';
+  const formattedDate = completedDate ? DateTime.fromJSDate(completedDate).toLocaleString(DateTime.DATETIME_MED) : '';
 
   useEffect(() => {
     if (documentViaUser) {
@@ -80,8 +76,8 @@ export const DocumentCertificateQRView = ({
 
               <DialogDescription>
                 <Trans>
-                  This document is available in your Davinci Sign account. You can view more
-                  details, recipients, and audit logs there.
+                  This document is available in your Davinci Sign account. You can view more details, recipients, and audit
+                  logs there.
                 </Trans>
               </DialogDescription>
             </DialogHeader>
@@ -176,12 +172,7 @@ type DocumentCertificateQrV2Props = {
   token: string;
 };
 
-const DocumentCertificateQrV2 = ({
-  title,
-  recipientCount,
-  formattedDate,
-  token,
-}: DocumentCertificateQrV2Props) => {
+const DocumentCertificateQrV2 = ({ title, recipientCount, formattedDate, token }: DocumentCertificateQrV2Props) => {
   const { envelopeItems } = useCurrentEnvelopeRender();
 
   return (
@@ -214,26 +205,14 @@ const DocumentCertificateQrV2 = ({
         />
       </div>
 
-      <div className="mt-8 flex w-full flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-hidden transition-all">
-          <EnvelopePdfViewer
-            token={token}
-            key={envelopeItems[0]?.id}
-            scrollParentRef="window"
-            className="h-full border-none p-0 pb-[13dvh]"
-            errorMessage={PDF_VIEWER_ERROR_MESSAGES}
-          />
-        </div>
+      <div className="mt-12 w-full">
+        <EnvelopeRendererFileSelector className="mb-4 p-0" fields={[]} secondaryOverride={''} />
 
-        <div className="fixed bottom-0 left-0 right-0 z-10 w-full overflow-x-auto bg-background/80 py-4 shadow-xl backdrop-blur-sm transition-all duration-300">
-          <div className="mx-auto flex h-full max-w-fit items-center justify-start gap-4 px-4 sm:px-6">
-            <EnvelopeRendererFileSelector />
-
-            <div className="flex flex-nowrap items-center gap-4">
-              <EnvelopeGenericPageRenderer />
-            </div>
-          </div>
-        </div>
+        <EnvelopePdfViewer
+          scrollParentRef="window"
+          customPageRenderer={EnvelopeGenericPageRenderer}
+          errorMessage={PDF_VIEWER_ERROR_MESSAGES.preview}
+        />
       </div>
     </div>
   );

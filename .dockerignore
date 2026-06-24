@@ -29,6 +29,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# python (upstream-sync tooling)
+**/.venv
+**/__pycache__
+**/*.pyc
+
 # turbo
 .turbo
 

@@ -104,7 +104,7 @@ export default function PublicProfilePage({ loaderData }: Route.ComponentProps) 
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     <Trans>
-                      Since {DateTime.fromJSDate(publicProfile.badge.since).toFormat('LLL 'yy')}
+                      Since {DateTime.fromJSDate(publicProfile.badge.since).toFormat('LLL ‘yy')}
                     </Trans>
                   </p>
                 </div>
