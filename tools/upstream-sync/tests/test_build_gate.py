@@ -2,6 +2,7 @@
 
 from branding_resolver.build_gate import (
     group_repo_errors,
+    is_tooling_failure,
     parse_error_lines,
     resolve_repo_path,
     self_heal_build,
@@ -53,6 +54,29 @@ def test_parse_error_lines_falls_back_to_build_failure():
     log = "step 1\nfailed to solve: process did not complete successfully\n"
     lines = parse_error_lines(log)
     assert any("failed to solve" in ln for ln in lines)
+
+
+def test_tooling_failure_detected_from_real_docker_down_log():
+    """The exact message from the live run when Docker Desktop was down."""
+    log = ('error during connect: Get "http://.../dockerDesktopLinuxEngine/...": '
+           "open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.")
+    assert is_tooling_failure(log) is True
+    lines = parse_error_lines(log)
+    assert len(lines) == 1
+    assert "BUILD TOOLING UNAVAILABLE" in lines[0]
+    assert "does NOT mean" in lines[0]  # don't mislead the reviewer
+
+
+def test_tooling_failure_not_triggered_by_real_ts_errors():
+    log = "app/x.tsx(1,1): error TS2304: Cannot find name 'Y'."
+    assert is_tooling_failure(log) is False
+    lines = parse_error_lines(log)
+    assert any("TS2304" in ln for ln in lines)
+
+
+def test_rounds_run_reflects_actual_builds_on_pass(tmp_path):
+    res = self_heal_build(tmp_path, build_fn=lambda r: (True, ""), fix_fn=None, max_rounds=2)
+    assert res.rounds_run == 0  # passed on first build
 
 
 def test_self_heal_passes_first_build(tmp_path):

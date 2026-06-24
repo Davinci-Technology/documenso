@@ -83,11 +83,39 @@ def group_repo_errors(repo_path: Path, log: str) -> dict[str, list[str]]:
     return grouped
 
 
+# Signs that the build could not RUN (tooling/infra), as opposed to the code
+# failing to compile. Still fail-closed (blocks), but labelled so a human
+# reviewer isn't misled into thinking the merged code is broken.
+_TOOLING_FAILURE_MARKERS = (
+    "error during connect",
+    "Cannot connect to the Docker daemon",
+    "dockerDesktopLinuxEngine",
+    "Cannot load builder",
+    "The system cannot find the file specified",
+    "Is the docker daemon running",
+)
+
+
+def is_tooling_failure(log: str) -> bool:
+    """True if the log indicates the build never ran (Docker/infra down)."""
+    return any(m in log for m in _TOOLING_FAILURE_MARKERS)
+
+
 def parse_error_lines(log: str) -> list[str]:
-    """All compiler error lines from a log (for the blocker file)."""
+    """Blocker-file lines describing why the build failed.
+
+    Distinguishes three cases: real TS errors, a tooling/infra failure (build
+    couldn't run), and any other build failure.
+    """
     errs = _parse_tsc_output(log)
     if errs:
         return [f"{e.file_path}({e.line}): {e.code} {e.message}" for e in errs]
+    if is_tooling_failure(log):
+        return [
+            "BUILD TOOLING UNAVAILABLE — the build gate could not run (Docker/infra). "
+            "Blocked fail-closed; this does NOT mean the merged code is broken. "
+            "See build_gate.log."
+        ]
     # Non-tsc build failure — surface the most telling lines.
     tail = [
         ln.strip()
@@ -113,9 +141,11 @@ def self_heal_build(
     """
     files_fixed: list[str] = []
     last_log = ""
+    builds_run = 0
 
     for round_idx in range(max_rounds + 1):
         ok, last_log = build_fn(repo_path)
+        builds_run += 1
         if ok:
             return BuildGateResult(ok=True, rounds_run=round_idx, files_fixed=files_fixed)
 
@@ -150,7 +180,7 @@ def self_heal_build(
 
     return BuildGateResult(
         ok=False,
-        rounds_run=max_rounds,
+        rounds_run=builds_run,
         remaining_errors=parse_error_lines(last_log),
         files_fixed=files_fixed,
     )
