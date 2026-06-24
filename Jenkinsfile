@@ -97,6 +97,11 @@ spec:
                 container('node') {
                     sh '''
                         apk add --no-cache openssl libc6-compat jq
+                        # node:22-alpine ships npm 10.9.8, but this repo requires
+                        # npm >=11.11.0 (see package.json engines). npm 10 mis-resolves
+                        # the apps/docs typescript ^5.9.3 / root 5.6.2 overlap and fails
+                        # `npm ci` with "Missing: typescript@5.9.3 from lock file".
+                        npm install -g npm@11.11.0
                         npm ci
                         npm run translate:compile
                         npm run build
