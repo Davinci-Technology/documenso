@@ -1,0 +1,38 @@
+# Critical-markers manifest for the upstream-sync regression guard.
+#
+# Each entry maps a file to substrings that MUST remain present after a sync.
+# These mark Davinci customizations that an upstream merge could silently
+# revert. If any marker goes missing, the merge gate forces the PR to draft
+# (never auto-merge) so a human can re-apply the lost customization.
+#
+# Keep markers SPECIFIC to a Davinci change (a renamed symbol, a fork-only
+# helper, a brand constant) — not generic tokens that upstream also uses.
+# When you add a durable customization to a file, add its marker here.
+
+markers:
+  # The proven reversion case: a sync reverted this to upstream's shape,
+  # dropping the per-org email-transport feature and the branded sender.
+  packages/lib/server-only/email/get-email-context.ts:
+    - resolveEmailTransport
+    - DAVINCI_INTERNAL_EMAIL
+    - EmailDomainStatus.ACTIVE
+
+  # The fork-only helper the feature above depends on.
+  packages/lib/server-only/email/resolve-email-transport.ts:
+    - resolveEmailTransport
+
+  # Brand constants — upstream uses DOCUMENSO_INTERNAL_EMAIL / its own domain.
+  packages/lib/constants/email.ts:
+    - DAVINCI_INTERNAL_EMAIL
+    - davincisolutions.ai
+
+  # Core brand surfaces.
+  apps/remix/app/utils/meta.ts:
+    - Davinci Sign
+  apps/remix/app/components/general/branding-logo.tsx:
+    - Davinci Sign
+
+  # Fork-only customization on the V1 signing page (custom branding prop fed
+  # from team settings — upstream's caller does not pass it).
+  apps/remix/app/routes/_recipient+/sign.$token+/_index.tsx:
+    - "brandingEnabled: settings.brandingEnabled"

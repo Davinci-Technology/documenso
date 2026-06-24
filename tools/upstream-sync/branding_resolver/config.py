@@ -179,6 +179,33 @@ BRANDING_SUBSTITUTIONS: list[tuple[str, str]] = [
     ("#7AC455", "#1A98CF"),
 ]
 
+# --- High-precision subset for the all-files post-merge sweep ---
+#
+# The full BRANDING_SUBSTITUTIONS list contains the broad bare-word rule
+# ("Documenso" -> "Davinci Sign"). That rule is safe on conflicted/branding
+# files the LLM already reasoned about, but UNSAFE to apply blindly across every
+# cleanly-merged functional file (it can rewrite an identifier, a test fixture,
+# or prose that legitimately references upstream). SYMBOL_SAFE_SUBSTITUTIONS is
+# the subset that is unambiguous wherever it appears — email/domain, docker,
+# cert, container names, code symbols, and the color hex — so it can be swept
+# across ALL files the merge touched (including clean merges) to catch brand
+# symbols that never went through the conflict resolver (e.g. an upstream file
+# that newly imports DOCUMENSO_INTERNAL_EMAIL and merged without a conflict).
+SYMBOL_SAFE_SUBSTITUTIONS: list[tuple[str, str]] = [
+    ("Documenso, Inc.", "Davinci AI Solutions"),
+    ("@documenso.com", "@davincisolutions.ai"),
+    ("documenso.com", "davincisolutions.ai"),
+    ("documenso/documenso", "davinci/davinci-sign"),
+    ("/opt/documenso/cert.p12", "/opt/davinci-sign/cert.p12"),
+    ("documenso-development", "davinci-sign-development"),
+    ("documenso-production", "davinci-sign-production"),
+    ("documenso-test", "davinci-sign-test"),
+    ("DOCUMENSO_INTERNAL_EMAIL", "DAVINCI_INTERNAL_EMAIL"),
+    ("X-Documenso-Secret", "X-Davinci-Secret"),
+    ("#7AC455", "#1A98CF"),
+]
+
+
 # --- Strings that must NEVER be replaced ---
 
 BRANDING_PRESERVATIONS: list[str] = [

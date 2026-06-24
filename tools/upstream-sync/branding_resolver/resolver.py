@@ -26,7 +26,7 @@ from .confidence import ConfidenceLevel, compute_confidence
 from .deterministic import apply_substitutions
 from .differ import FileConflict, build_file_conflict, chunk_file_diffs, reconstruct_from_hunks
 from .model_client import LLMClient, ModelTier, create_client
-from .repair_loop import RepairResult, repair_file
+from .repair_loop import RepairResult, _llm_fix, repair_file
 from .validator import validate_resolved_file
 
 if TYPE_CHECKING:
@@ -341,11 +341,28 @@ class BrandingResolver:
                 tier_used="none",
             ))
 
-        # Step 4: TypeScript validation (optional).
+        # Step 4: TypeScript validation (optional in-resolver self-heal).
+        # This is a fast pre-pass; the MANDATORY build gate (branding_resolver.build_gate)
+        # runs after the merge and is the authoritative, gate-aware check. We still record
+        # anything this pass can't fix into the build-gate blocker so a tsc failure can
+        # never silently auto-merge even if the build gate is skipped.
         if self.enable_tsc and not self.dry_run:
             tsc_failures = self._run_tsc_validation()
             if tsc_failures:
-                self._fix_tsc_errors(tsc_failures, resolutions, llm_categories)
+                unfixed = self._fix_tsc_errors(tsc_failures, resolutions, llm_categories)
+                if unfixed:
+                    blocker = self.repo_path / "sync-output" / "build_gate_failures.txt"
+                    blocker.parent.mkdir(parents=True, exist_ok=True)
+                    lines = [
+                        f"{f}: {e.code} at line {e.line}: {e.message}"
+                        for f in unfixed
+                        for e in tsc_failures.get(f, [])
+                    ] or [f"{f}: unresolved tsc errors" for f in unfixed]
+                    blocker.write_text("\n".join(lines), encoding="utf-8")
+                    logger.warning(
+                        "tsc self-heal left %d file(s) failing — recorded to build-gate blocker",
+                        len(unfixed),
+                    )
 
         return self._build_result(
             resolutions, conflicted_files,
@@ -543,13 +560,20 @@ class BrandingResolver:
         tsc_failures: dict[str, list[TscError]],
         resolutions: list[Resolution],
         categories: dict[str, str],
-    ) -> None:
-        """Attempt to fix tsc errors by re-running repair loop on affected files."""
+    ) -> list[str]:
+        """Attempt to fix tsc errors by sending them to the repair LLM.
+
+        Returns the list of files the self-heal could NOT fix (LLM returned
+        nothing or no change), so the caller can record them as a build-gate
+        blocker — a tsc failure must never silently auto-merge.
+        """
         # Use the highest available tier for tsc fixes.
         if not self._tiers:
-            return
+            return list(tsc_failures.keys())
         best_tier = self._tiers[-1]
         client = self._clients[best_tier.name]
+
+        unfixed: list[str] = []
 
         for file_path, errors in tsc_failures.items():
             # Find the current resolution for this file.
@@ -558,40 +582,48 @@ class BrandingResolver:
                 None,
             )
             if res_idx is None or resolutions[res_idx].content is None:
+                # Not a file the resolver produced (e.g. a clean-merged file with
+                # a type error). The post-merge build gate self-heals those.
+                unfixed.append(file_path)
                 continue
 
-            error_msgs = [f"TS{e.code} at line {e.line}: {e.message}" for e in errors]
+            # Feed the ACTUAL tsc errors to the LLM (the old code computed these
+            # then discarded them, re-running only the branding validator).
+            error_msgs = [f"{e.code} at line {e.line}: {e.message}" for e in errors]
             logger.info(
                 "Fixing %d tsc error(s) in %s via tier %s",
                 len(errors), file_path, best_tier.name,
             )
 
-            # Run repair loop with tsc errors injected as validation errors.
             content = resolutions[res_idx].content
             assert content is not None
-            repair = repair_file(
+            fixed, cost = _llm_fix(
                 file_path=file_path,
                 content=content,
+                errors=error_msgs,
                 config=self.config,
-                repo_path=self.repo_path,
                 llm_client=client,
-                max_rounds=self.max_repair_rounds,
+                round_num=1,
             )
-            self._api_calls += repair.total_repair_calls
-            self._repair_cost_usd += repair.cost_usd
+            self._api_calls += 1
+            self._repair_cost_usd += cost
 
-            if repair.success:
-                self._write_resolution(file_path, repair.content)
+            if fixed and fixed != content:
+                self._write_resolution(file_path, fixed)
                 resolutions[res_idx] = Resolution(
                     file_path=file_path,
                     category=categories.get(file_path, "B"),
                     action="resolve_conflict",
-                    content=repair.content,
+                    content=fixed,
                     explanation=f"Fixed tsc errors via {best_tier.name}",
                     confidence=ConfidenceLevel.HIGH,
                     tier_used=best_tier.name,
-                    repair_round=repair.round_succeeded,
+                    repair_round=1,
                 )
+            else:
+                unfixed.append(file_path)
+
+        return unfixed
 
     # ------------------------------------------------------------------
     # Truncation detection and hunk-based fallback
