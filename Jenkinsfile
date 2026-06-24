@@ -87,7 +87,7 @@ spec:
         memory: "4Gi"
         cpu: "1000m"
       limits:
-        memory: "8Gi"
+        memory: "10Gi"
         cpu: "2000m"
 """
                 }
@@ -97,8 +97,17 @@ spec:
                 container('node') {
                     sh '''
                         apk add --no-cache openssl libc6-compat jq
+                        # node:22-alpine ships npm 10.9.8, but this repo requires
+                        # npm >=11.11.0 (see package.json engines). npm 10 mis-resolves
+                        # the apps/docs typescript ^5.9.3 / root 5.6.2 overlap and fails
+                        # `npm ci` with "Missing: typescript@5.9.3 from lock file".
+                        npm install -g npm@11.11.0
                         npm ci
                         npm run translate:compile
+                        # The monorepo typecheck (tsc) exhausts Node's default heap and
+                        # aborts with "JavaScript heap out of memory" (exit 134). Raise
+                        # the old-space limit; the pod allows up to 10Gi.
+                        export NODE_OPTIONS="--max-old-space-size=8192"
                         npm run build
                     '''
                 }
