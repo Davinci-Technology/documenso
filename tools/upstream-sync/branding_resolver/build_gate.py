@@ -187,6 +187,78 @@ def self_heal_build(
 
 
 # ---------------------------------------------------------------------------
+# Full-repo npm ci lockfile-drift gate
+# ---------------------------------------------------------------------------
+#
+# The Docker build below builds the PRUNED remix app (turbo prune
+# --scope=@documenso/remix), so it never runs a full-workspace `npm ci` and
+# would MISS lockfile/dependency drift in a non-remix workspace. That blind spot
+# shipped real breakage: apps/docs pinned typescript ^5.9.3 while the root used
+# 5.6.2, so a full `npm ci` failed ("Missing: typescript@5.9.3 from lock file")
+# even though the remix build was green. This gate runs a full-repo `npm ci`
+# (with the npm version the repo's engines require) to catch that class.
+
+# npm version the repo's package.json engines require (>=11.11.0). node:22-alpine
+# ships npm 10.x, which mis-resolves cross-workspace version overlaps.
+_REQUIRED_NPM = "11.11.0"
+
+_LOCKFILE_DRIFT_MARKERS = (
+    "can only install packages when your package.json and package-lock.json",
+    "Missing:",
+    "npm error code EUSAGE",
+    "Invalid: lock file",
+    "in sync. Please update your lock file",
+)
+
+
+def is_lockfile_drift(log: str) -> bool:
+    """True if the log indicates package.json / package-lock.json are out of sync."""
+    return any(m in log for m in _LOCKFILE_DRIFT_MARKERS)
+
+
+def _npm_ci_check(repo_path: Path) -> tuple[bool, str]:
+    """Run a full-repo `npm ci` (validate lockfile) in a node container.
+
+    Uses the engines-required npm so a CI npm older than the repo's requirement
+    can't produce a false drift signal. ``--ignore-scripts`` keeps it fast and
+    side-effect-free — we only care that the lockfile resolves.
+    """
+    log_path = repo_path / "sync-output" / "npm_ci_gate.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.run(
+        [
+            "docker", "run", "--rm",
+            "-v", f"{repo_path}:/app", "-w", "/app",
+            "node:22-alpine", "sh", "-c",
+            f"npm install -g npm@{_REQUIRED_NPM} >/dev/null 2>&1 && "
+            "npm ci --ignore-scripts --no-audit --no-fund 2>&1",
+        ],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    log = (proc.stdout or "") + (proc.stderr or "")
+    log_path.write_text(log, encoding="utf-8")
+    return proc.returncode == 0, log
+
+
+def npm_ci_failure_lines(log: str) -> list[str]:
+    """Blocker lines describing an npm ci failure (drift vs tooling vs other)."""
+    if is_lockfile_drift(log):
+        drift = [ln.strip() for ln in log.splitlines()
+                 if any(m in ln for m in ("Missing:", "in sync", "EUSAGE"))]
+        return ["LOCKFILE/DEPENDENCY DRIFT — full-repo `npm ci` failed (package.json "
+                "and package-lock.json are out of sync). A workspace likely changed a "
+                "dependency without regenerating the lockfile."] + drift[:10]
+    if is_tooling_failure(log):
+        return ["BUILD TOOLING UNAVAILABLE — npm ci gate could not run (Docker/infra). "
+                "Blocked fail-closed."]
+    tail = [ln.strip() for ln in log.splitlines() if "npm error" in ln]
+    return tail[-12:] or ["npm ci failed; see npm_ci_gate.log"]
+
+
+# ---------------------------------------------------------------------------
 # Real Docker build + LLM fix wiring (used by the Jenkinsfile)
 # ---------------------------------------------------------------------------
 
@@ -214,12 +286,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", default=".", help="Repository root")
     parser.add_argument("--max-rounds", type=int, default=2, help="Self-heal rounds (default 2)")
     parser.add_argument("--no-self-heal", action="store_true", help="Build only; do not attempt repair")
+    parser.add_argument("--no-npm-ci", action="store_true",
+                        help="Skip the full-repo npm ci lockfile-drift pre-check")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     repo = Path(args.repo).resolve()
     output_dir = repo / "sync-output"
     output_dir.mkdir(parents=True, exist_ok=True)
+    blocker = output_dir / "build_gate_failures.txt"
+
+    # Pre-check: full-repo npm ci (lockfile drift). Cheaper than the build and
+    # catches workspace install drift the pruned remix build would miss. A drift
+    # here is unlikely to be auto-fixable (needs a lockfile regen), so block.
+    if not args.no_npm_ci:
+        ok, log = _npm_ci_check(repo)
+        if not ok:
+            blocker.write_text("\n".join(npm_ci_failure_lines(log)), encoding="utf-8")
+            logger.warning("npm ci gate FAILED — auto-merge blocked (lockfile/dep drift).")
+            return 1
+        logger.info("npm ci gate passed (lockfile in sync).")
 
     fix_fn: FixFn | None = None
     git_add: Callable[[], None] | None = None
@@ -249,7 +335,6 @@ def main(argv: list[str] | None = None) -> int:
         on_fix=git_add,
     )
 
-    blocker = output_dir / "build_gate_failures.txt"
     if result.ok:
         blocker.write_text("", encoding="utf-8")  # required gate ran & passed
         if result.files_fixed:

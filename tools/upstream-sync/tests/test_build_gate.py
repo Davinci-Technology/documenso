@@ -2,11 +2,45 @@
 
 from branding_resolver.build_gate import (
     group_repo_errors,
+    is_lockfile_drift,
     is_tooling_failure,
+    npm_ci_failure_lines,
     parse_error_lines,
     resolve_repo_path,
     self_heal_build,
 )
+
+
+# The exact npm ci failure text from the davinci-sign PR-70 CI run.
+_REAL_NPM_CI_DRIFT = """\
+npm error code EUSAGE
+npm error
+npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
+npm error
+npm error Missing: typescript@5.9.3 from lock file
+npm error
+npm error Clean install a project
+"""
+
+
+def test_is_lockfile_drift_on_real_ci_text():
+    assert is_lockfile_drift(_REAL_NPM_CI_DRIFT) is True
+
+
+def test_npm_ci_failure_lines_labels_drift():
+    lines = npm_ci_failure_lines(_REAL_NPM_CI_DRIFT)
+    assert "LOCKFILE/DEPENDENCY DRIFT" in lines[0]
+    assert any("typescript@5.9.3" in ln for ln in lines)
+
+
+def test_is_lockfile_drift_false_on_normal_output():
+    assert is_lockfile_drift("added 2243 packages in 1s") is False
+
+
+def test_npm_ci_failure_lines_handles_tooling_down():
+    log = "error during connect: ... dockerDesktopLinuxEngine ... cannot find the file specified"
+    lines = npm_ci_failure_lines(log)
+    assert "BUILD TOOLING UNAVAILABLE" in lines[0]
 
 
 def _mk(root, rel):
