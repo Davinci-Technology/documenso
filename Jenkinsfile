@@ -87,7 +87,7 @@ spec:
         memory: "4Gi"
         cpu: "1000m"
       limits:
-        memory: "8Gi"
+        memory: "10Gi"
         cpu: "2000m"
 """
                 }
@@ -104,6 +104,10 @@ spec:
                         npm install -g npm@11.11.0
                         npm ci
                         npm run translate:compile
+                        # The monorepo typecheck (tsc) exhausts Node's default heap and
+                        # aborts with "JavaScript heap out of memory" (exit 134). Raise
+                        # the old-space limit; the pod allows up to 10Gi.
+                        export NODE_OPTIONS="--max-old-space-size=8192"
                         npm run build
                     '''
                 }
