@@ -8,6 +8,7 @@ import { ChevronLeft } from 'lucide-react';
 import { isRouteErrorResponse, Link, Outlet } from 'react-router';
 import { Header as AuthenticatedHeader } from '~/components/general/app-header';
 import { GenericErrorLayout } from '~/components/general/generic-error-layout';
+import { SourceCodeFooter } from '~/components/general/source-code-footer';
 import type { Route } from './+types/_layout';
 
 export function meta() {
@@ -33,7 +34,7 @@ export default function RecipientLayout({ matches }: Route.ComponentProps) {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       {!hideHeader && sessionData?.user && <AuthenticatedHeader />}
 
       <main
@@ -43,6 +44,8 @@ export default function RecipientLayout({ matches }: Route.ComponentProps) {
       >
         <Outlet />
       </main>
+
+      <SourceCodeFooter />
     </div>
   );
 }
