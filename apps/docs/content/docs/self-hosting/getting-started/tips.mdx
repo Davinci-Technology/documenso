@@ -20,12 +20,12 @@ Mount your `.p12` certificate file into the container at the default path:
 
 ```bash
 docker run -d \
-  -v /path/to/your/cert.p12:/opt/documenso/cert.p12:ro \
+  -v /path/to/your/cert.p12:/opt/davinci-sign/cert.p12:ro \
   -e NEXT_PRIVATE_SIGNING_PASSPHRASE="your-certificate-password" \
-  documenso/documenso:latest
+  davinci/davinci-sign:latest
 ```
 
-The default certificate path inside the container is `/opt/documenso/cert.p12`. You can change this with `NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH`.
+The default certificate path inside the container is `/opt/davinci-sign/cert.p12`. You can change this with `NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH`.
 
 ### Base64 Environment Variable
 
@@ -92,10 +92,10 @@ Use a specific version tag in production:
 
 ```bash
 # Good — predictable, reproducible
-docker pull documenso/documenso:<version>
+docker pull davinci/davinci-sign:<version>
 
 # Risky — may pull breaking changes
-docker pull documenso/documenso:latest
+docker pull davinci/davinci-sign:latest
 ```
 
 Check the [GitHub releases](https://github.com/documenso/documenso/releases) page for available versions.
@@ -161,7 +161,7 @@ If you are deploying to an environment that uses only IPv6, set the `HOST` envir
 **Docker:**
 
 ```bash
-docker run -it -e HOST=:: documenso/documenso:latest npm run start
+docker run -it -e HOST=:: davinci/davinci-sign:latest npm run start
 ```
 
 **Kubernetes or Docker Compose:**
@@ -169,7 +169,7 @@ docker run -it -e HOST=:: documenso/documenso:latest npm run start
 ```yaml
 containers:
   - name: documenso
-    image: documenso/documenso:latest
+    image: davinci/davinci-sign:latest
     command:
       - npm
     args:

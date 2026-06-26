@@ -2,7 +2,7 @@
 Contact: https://github.com/documenso/documenso/security/advisories/new
 
 # Alternatively, report critical issues privately by email.
-Contact: mailto:security@documenso.com
+Contact: mailto:security@davincisolutions.ai
 
 # Security policy
 Policy: https://github.com/documenso/documenso/security/policy
@@ -11,4 +11,4 @@ Policy: https://github.com/documenso/documenso/security/policy
 Contact: https://github.com/documenso/documenso/issues/new?assignees=&labels=bug&projects=&template=bug-report.yml
 
 Preferred-Languages: en
-Canonical: https://documenso.com/.well-known/security.txt
+Canonical: https://davincisolutions.ai/.well-known/security.txt

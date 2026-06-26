@@ -2,7 +2,7 @@
 
 > **We are no longer accepting external pull requests.**
 >
-> Aside from a small group of trusted contributors we reach out to directly, we no longer merge external PRs. New pull requests will usually be closed with a request to open an issue instead. This is a security decision, not a judgement on your work. Read [Why We're Pausing External Pull Requests](https://documenso.com/blog/why-we-re-pausing-external-pull-requests) for the full reasoning.
+> Aside from a small group of trusted contributors we reach out to directly, we no longer merge external PRs. New pull requests will usually be closed with a request to open an issue instead. This is a security decision, not a judgement on your work. Read [Why We're Pausing External Pull Requests](https://davincisolutions.ai/blog/why-we-re-pausing-external-pull-requests) for the full reasoning.
 >
 > Documenso stays open source. You can still read, audit, run, and fork the code. The best way to contribute is through detailed issues.
 

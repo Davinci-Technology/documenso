@@ -48,7 +48,7 @@ const createPendingInvite = async (organisationId: string, organisationRole: Org
   return await prisma.organisationMemberInvite.create({
     data: {
       id: generateDatabaseId('member_invite'),
-      email: `invite-${nanoid()}@test.documenso.com`,
+      email: `invite-${nanoid()}@test.davincisolutions.ai`,
       token: nanoid(32),
       organisationId,
       organisationRole,

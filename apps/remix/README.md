@@ -4,8 +4,8 @@ The main Documenso web application. Built with [React Router v7](https://reactro
 
 This package is part of the Documenso monorepo and is not meant to be run standalone. Use the root scripts instead.
 
-- Local development: see the [root README](../../README.md) and the [Local Development docs](https://docs.documenso.com/docs/developers/local-development).
-- Self-hosting and deployment: see the [Self-Hosting docs](https://docs.documenso.com/docs/self-hosting).
+- Local development: see the [root README](../../README.md) and the [Local Development docs](https://docs.davincisolutions.ai/docs/developers/local-development).
+- Self-hosting and deployment: see the [Self-Hosting docs](https://docs.davincisolutions.ai/docs/self-hosting).
 - Architecture overview: see [ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 ```bash

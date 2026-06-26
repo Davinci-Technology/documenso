@@ -3,7 +3,7 @@
 
   Aside from a small group of trusted contributors we reach out to directly,
   new external PRs will usually be closed with a request to open an issue instead.
-  This is a security decision. See https://documenso.com/blog/why-we-re-pausing-external-pull-requests
+  This is a security decision. See https://davincisolutions.ai/blog/why-we-re-pausing-external-pull-requests
 
   If you're a trusted contributor or maintainer, continue below.
   Otherwise, please open a detailed issue: https://github.com/documenso/documenso/issues/new/choose

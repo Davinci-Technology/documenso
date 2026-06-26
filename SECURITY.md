@@ -9,7 +9,7 @@ Report security vulnerabilities privately. Do not open a public issue, discussio
 We accept reports through two channels, in order of preference:
 
 1. **GitHub Security Advisories (preferred)**. Use the [private vulnerability reporting form](https://github.com/documenso/documenso/security/advisories/new). This is our primary channel and lets us triage and work with you on a fix.
-2. **Email**. If you cannot use GitHub Security Advisories, email [security@documenso.com](mailto:security@documenso.com).
+2. **Email**. If you cannot use GitHub Security Advisories, email [security@davincisolutions.ai](mailto:security@davincisolutions.ai).
 
 Include the affected version, a clear description, steps to reproduce, and the potential impact.
 
