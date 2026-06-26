@@ -68,7 +68,7 @@ kubectl get deployment documenso -n documenso -o jsonpath='{.spec.template.spec.
 View available releases on GitHub:
 
 ```bash
-curl -s https://api.github.com/repos/documenso/documenso/releases/latest | grep tag_name
+curl -s https://api.github.com/repos/davinci/davinci-sign/releases/latest | grep tag_name
 ```
 
 Or visit the [releases page](https://github.com/documenso/documenso/releases).
@@ -81,7 +81,7 @@ List available image tags:
 <Tab value="DockerHub">
 
 ```bash
-curl -s https://hub.docker.com/v2/repositories/documenso/documenso/tags | jq -r '.results[].name'
+curl -s https://hub.docker.com/v2/repositories/davinci/davinci-sign/tags | jq -r '.results[].name'
 ```
 
 </Tab>
@@ -165,10 +165,10 @@ See [Backups](/docs/self-hosting/maintenance/backups) for automated backup strat
 ### Pull the new image
 
 ```bash
-docker pull documenso/documenso:1.6.0
+docker pull davinci/davinci-sign:<version>
 ```
 
-Replace `1.6.0` with your target version.
+Replace `<version>` with your target version.
 
 </Step>
 <Step>
@@ -188,8 +188,8 @@ docker run -d \
   --name documenso \
   -p 3000:3000 \
   --env-file .env \
-  -v /path/to/cert.p12:/opt/documenso/cert.p12:ro \
-  documenso/documenso:1.6.0
+  -v /path/to/cert.p12:/opt/davinci-sign/cert.p12:ro \
+  davinci/davinci-sign:<version>
 ```
 
 </Step>
@@ -223,21 +223,21 @@ Edit `compose.yml` or your `.env` file to specify the new version:
 ```yaml
 services:
   documenso:
-    image: documenso/documenso:1.6.0
+    image: davinci/davinci-sign:<version>
 ```
 
 Or if using environment variable substitution:
 
 ```bash
 # In .env
-DOCUMENSO_VERSION=1.6.0
+DOCUMENSO_VERSION=<version>
 ```
 
 ```yaml
 # In compose.yml
 services:
   documenso:
-    image: documenso/documenso:${DOCUMENSO_VERSION:-latest}
+    image: davinci/davinci-sign:${DOCUMENSO_VERSION:-latest}
 ```
 
 </Step>
@@ -283,7 +283,7 @@ Edit the deployment directly:
 
 ```bash
 kubectl set image deployment/documenso \
-  documenso=documenso/documenso:1.6.0 \
+  documenso=davinci/davinci-sign:<version> \
   -n documenso
 ```
 
@@ -295,7 +295,7 @@ spec:
     spec:
       containers:
         - name: documenso
-          image: documenso/documenso:1.6.0
+          image: davinci/davinci-sign:<version>
 ```
 
 Then apply:
@@ -421,12 +421,12 @@ To run migrations manually before upgrading:
 
 ```bash
 # Pull the new image
-docker pull documenso/documenso:1.6.0
+docker pull davinci/davinci-sign:<version>
 
 # Run migrations only
 docker run --rm \
   -e NEXT_PRIVATE_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
-  documenso/documenso:1.6.0 \
+  davinci/davinci-sign:<version> \
   npx prisma migrate deploy
 ```
 
@@ -490,7 +490,7 @@ Compare your current environment with the latest example:
 
 ```bash
 # Download latest example
-curl -O https://raw.githubusercontent.com/documenso/documenso/main/.env.example
+curl -O https://raw.githubusercontent.com/davinci/davinci-sign/main/.env.example
 
 # Compare with your current config
 diff .env .env.example
@@ -515,8 +515,8 @@ docker run -d \
   --name documenso \
   -p 3000:3000 \
   --env-file .env \
-  -v /path/to/cert.p12:/opt/documenso/cert.p12:ro \
-  documenso/documenso:1.5.0
+  -v /path/to/cert.p12:/opt/davinci-sign/cert.p12:ro \
+  davinci/davinci-sign:<previous-version>
 ```
 
 </Tab>
