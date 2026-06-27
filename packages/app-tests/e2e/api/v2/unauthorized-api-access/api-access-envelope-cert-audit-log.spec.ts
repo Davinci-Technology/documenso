@@ -82,7 +82,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - access con
   });
 
   test('should reject audit log download without an API token', async ({ request }) => {
-    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.documenso.com']);
+    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.davincisolutions.ai']);
 
     const res = await downloadAuditLogPdf(request, document.id);
 
@@ -91,7 +91,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - access con
   });
 
   test('should reject certificate download without an API token', async ({ request }) => {
-    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.documenso.com']);
+    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.davincisolutions.ai']);
 
     const res = await downloadCertificatePdf(request, document.id);
 
@@ -100,7 +100,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - access con
   });
 
   test('should reject audit log download from a user in a different team', async ({ request }) => {
-    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.documenso.com']);
+    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.davincisolutions.ai']);
 
     const res = await downloadAuditLogPdf(request, document.id, tokenB);
 
@@ -109,7 +109,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - access con
   });
 
   test('should reject certificate download from a user in a different team', async ({ request }) => {
-    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.documenso.com']);
+    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.davincisolutions.ai']);
 
     const res = await downloadCertificatePdf(request, document.id, tokenB);
 
@@ -118,7 +118,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - access con
   });
 
   test('should reject a disabled user downloading the audit log', async ({ request }) => {
-    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.documenso.com']);
+    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.davincisolutions.ai']);
 
     await prisma.user.update({
       where: { id: userA.id },
@@ -132,7 +132,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - access con
   });
 
   test('should reject a disabled user downloading the certificate', async ({ request }) => {
-    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.documenso.com']);
+    const document = await seedCompletedDocument(userA, teamA.id, ['recipient@test.davincisolutions.ai']);
 
     await prisma.user.update({
       where: { id: userA.id },
@@ -170,7 +170,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - document v
     });
 
     // ADMIN-visibility document owned by the team owner - a member must not see it.
-    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.documenso.com'], {
+    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.davincisolutions.ai'], {
       createDocumentOptions: { visibility: DocumentVisibility.ADMIN },
     });
 
@@ -191,7 +191,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - document v
       tokenName: 'member-certificate-token',
     });
 
-    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.documenso.com'], {
+    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.davincisolutions.ai'], {
       createDocumentOptions: { visibility: DocumentVisibility.ADMIN },
     });
 
@@ -211,7 +211,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - document v
       tokenName: 'member-manager-vis-token',
     });
 
-    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.documenso.com'], {
+    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.davincisolutions.ai'], {
       createDocumentOptions: { visibility: DocumentVisibility.MANAGER_AND_ABOVE },
     });
 
@@ -231,7 +231,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - document v
       tokenName: 'member-manager-vis-cert-token',
     });
 
-    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.documenso.com'], {
+    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.davincisolutions.ai'], {
       createDocumentOptions: { visibility: DocumentVisibility.MANAGER_AND_ABOVE },
     });
 
@@ -251,7 +251,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - document v
       tokenName: 'manager-admin-vis-cert-token',
     });
 
-    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.documenso.com'], {
+    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.davincisolutions.ai'], {
       createDocumentOptions: { visibility: DocumentVisibility.ADMIN },
     });
 
@@ -271,7 +271,7 @@ test.describe('Envelope certificate / audit log PDF download API V2 - document v
       tokenName: 'member-everyone-vis-token',
     });
 
-    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.documenso.com'], {
+    const document = await seedCompletedDocument(owner, team.id, ['recipient@test.davincisolutions.ai'], {
       createDocumentOptions: { visibility: DocumentVisibility.EVERYONE },
     });
 
