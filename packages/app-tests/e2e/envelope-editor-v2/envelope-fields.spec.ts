@@ -29,7 +29,7 @@ type TFieldFlowResult = {
 
 const TEST_FIELD_VALUES = {
   embeddedRecipient: {
-    email: 'embedded-field-recipient@documenso.com',
+    email: 'embedded-field-recipient@davincisolutions.ai',
     name: 'Embedded Field Recipient',
   },
 };
@@ -211,7 +211,7 @@ type TMultiRecipientFlowResult = {
 
 const MULTI_RECIPIENT_VALUES = {
   secondSigner: {
-    email: 'second-signer@test.documenso.com',
+    email: 'second-signer@test.davincisolutions.ai',
     name: 'Second Signer',
   },
 };
