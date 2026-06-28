@@ -32,6 +32,7 @@ export const TemplateDocumentSelfSigned = ({
               <Img
                 src={getAssetUrl("/static/completed.png")}
                 className="-mt-0.5 mr-2 inline h-7 w-7 align-middle"
+                alt=""
               />
               <Trans>Completed</Trans>
             </Text>
@@ -64,6 +65,7 @@ export const TemplateDocumentSelfSigned = ({
             <Img
               src={getAssetUrl("/static/user-plus.png")}
               className="mr-2 mb-0.5 inline h-5 w-5 align-middle"
+              alt=""
             />
             <Trans>Create account</Trans>
           </Button>
@@ -75,6 +77,7 @@ export const TemplateDocumentSelfSigned = ({
             <Img
               src={getAssetUrl("/static/review.png")}
               className="mr-2 mb-0.5 inline h-5 w-5 align-middle"
+              alt=""
             />
             <Trans>View plans</Trans>
           </Button>
