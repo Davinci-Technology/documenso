@@ -91,7 +91,7 @@ export const DocumentInviteEmailTemplate = ({
                 <Text className="my-4 text-base font-semibold">
                   <Trans>
                     {inviterName}{' '}
-                    <Link className="font-normal text-slate-400" href="mailto:{inviterEmail}">
+                    <Link className="font-normal text-slate-400" href={`mailto:${inviterEmail}`}>
                       ({inviterEmail})
                     </Link>
                   </Trans>
