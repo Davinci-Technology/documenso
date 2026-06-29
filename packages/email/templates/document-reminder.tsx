@@ -22,7 +22,7 @@ export type DocumentReminderEmailTemplateProps = {
 export const DocumentReminderEmailTemplate = ({
   recipientName = 'John Doe',
   documentName = 'Open Source Pledge.pdf',
-  signDocumentLink = 'https://documenso.com',
+  signDocumentLink = 'https://davincisolutions.ai',
   assetBaseUrl = 'http://localhost:3002',
   customBody,
   role = RecipientRole.SIGNER,
@@ -37,9 +37,10 @@ export const DocumentReminderEmailTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
 
       <Body className="mx-auto my-auto bg-background font-sans">
+        <Preview>{_(previewText)}</Preview>
+
         <Section>
           <Container className="mx-auto mt-8 mb-2 max-w-xl rounded-lg border border-border border-solid p-4 backdrop-blur-sm">
             <Section>

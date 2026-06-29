@@ -15,7 +15,7 @@ export type TeamDeleteEmailProps = {
 
 export const TeamDeleteEmailTemplate = ({
   assetBaseUrl = 'http://localhost:3002',
-  baseUrl = 'https://documenso.com',
+  baseUrl = 'https://davincisolutions.ai',
   teamUrl = 'demo',
 }: TeamDeleteEmailProps) => {
   const { _ } = useLingui();
@@ -29,9 +29,9 @@ export const TeamDeleteEmailTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
-
       <Body className="mx-auto my-auto font-sans">
+        <Preview>{_(previewText)}</Preview>
+
         <Section className="bg-background text-muted-foreground">
           <Container className="mx-auto mt-8 mb-2 max-w-xl rounded-lg border border-border border-solid p-2 backdrop-blur-sm">
             <TemplateBrandingLogo assetBaseUrl={assetBaseUrl} className="mb-4 h-6 p-2" />
