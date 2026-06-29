@@ -44,11 +44,11 @@ export const ConfirmTeamEmailTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
-
       <Body className="mx-auto my-auto font-sans">
-        <Section className="bg-white">
-          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-slate-200 px-2 pt-2 backdrop-blur-sm">
+        <Preview>{_(previewText)}</Preview>
+
+        <Section className="bg-background">
+          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-border px-2 pt-2 backdrop-blur-sm">
             {branding.brandingEnabled && branding.brandingLogo ? (
               <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6 p-2" />
             ) : (
@@ -63,8 +63,8 @@ export const ConfirmTeamEmailTemplate = ({
               />
             </Section>
 
-            <Section className="p-2 text-slate-500">
-              <Text className="text-center text-lg font-medium text-black">
+            <Section className="p-2 text-muted-foreground">
+              <Text className="text-center text-lg font-medium text-foreground">
                 <Trans>Verify your team email address</Trans>
               </Text>
 
@@ -75,7 +75,7 @@ export const ConfirmTeamEmailTemplate = ({
                 </Trans>
               </Text>
 
-              <div className="mx-auto mt-6 w-fit rounded-lg bg-gray-50 px-4 py-2 text-base font-medium text-slate-600">
+              <div className="mx-auto mt-6 w-fit rounded-lg bg-muted px-4 py-2 text-base font-medium text-muted-foreground">
                 {formatTeamUrl(teamUrl, baseUrl)}
               </div>
 
@@ -117,7 +117,7 @@ export const ConfirmTeamEmailTemplate = ({
               </Section>
             </Section>
 
-            <Text className="text-center text-xs text-slate-500">
+            <Text className="text-center text-xs text-muted-foreground">
               <Trans>Link expires in 1 hour.</Trans>
             </Text>
           </Container>
