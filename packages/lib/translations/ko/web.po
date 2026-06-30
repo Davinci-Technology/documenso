@@ -6265,8 +6265,8 @@ msgid "If there is any issue with your subscription, please contact us at <0>{SU
 msgstr "구독 관련 문제가 있는 경우 <0>{SUPPORT_EMAIL}</0>로 연락해 주세요."
 
 #: apps/remix/app/routes/embed+/v2+/authoring+/_layout.tsx
-msgid "If you are using staging, ensure that you have set the host prop on the embedding component to the staging domain (https://stg-app.documenso.com)"
-msgstr "스테이징 환경을 사용 중인 경우, 임베딩 컴포넌트의 host prop을 스테이징 도메인(https://stg-app.documenso.com)으로 설정했는지 확인하세요."
+msgid "If you are using staging, ensure that you have set the host prop on the embedding component to the staging domain (https://stg-app.davincisolutions.ai)"
+msgstr "스테이징 환경을 사용 중인 경우, 임베딩 컴포넌트의 host prop을 스테이징 도메인(https://stg-app.davincisolutions.ai)으로 설정했는지 확인하세요."
 
 #: apps/remix/app/routes/_recipient+/report.$token.tsx
 msgid "If you did not expect this email or believe it is spam, you can report the sender to our team for review."

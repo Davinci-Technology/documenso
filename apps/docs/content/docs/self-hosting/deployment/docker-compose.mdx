@@ -35,7 +35,7 @@ Download the production Docker Compose file:
 
 ```bash
 mkdir documenso && cd documenso
-curl -O https://raw.githubusercontent.com/documenso/documenso/release/docker/production/compose.yml
+curl -O https://raw.githubusercontent.com/davinci/davinci-sign/release/docker/production/compose.yml
 ```
 
 Alternatively, clone the full repository:
@@ -71,7 +71,7 @@ Add the required configuration (see [Environment Configuration](#environment-con
 The production `compose.yml` includes two services:
 
 ```yaml
-name: documenso-production
+name: davinci-sign-production
 
 services:
   database:
@@ -89,7 +89,7 @@ services:
       - database:/var/lib/postgresql/data
 
   documenso:
-    image: documenso/documenso:latest
+    image: davinci/davinci-sign:latest
     depends_on:
       database:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
     ports:
       - ${PORT:-3000}:${PORT:-3000}
     volumes:
-      - /opt/documenso/cert.p12:/opt/documenso/cert.p12:ro
+      - /opt/davinci-sign/cert.p12:/opt/davinci-sign/cert.p12:ro
 
 volumes:
   database:
@@ -206,9 +206,9 @@ Place the certificate on the host and set permissions so the container can read 
 
 ```bash
 sudo mkdir -p /opt/documenso
-sudo cp /path/to/your/cert.p12 /opt/documenso/cert.p12
-sudo chown 1001:1001 /opt/documenso/cert.p12
-sudo chmod 400 /opt/documenso/cert.p12
+sudo cp /path/to/your/cert.p12 /opt/davinci-sign/cert.p12
+sudo chown 1001:1001 /opt/davinci-sign/cert.p12
+sudo chmod 400 /opt/davinci-sign/cert.p12
 ```
 
 The `compose.yml` mounts this path into the container. Add the passphrase to your `.env` file:
@@ -245,8 +245,8 @@ Expected output:
 
 ```
 NAME                             STATUS              PORTS
-documenso-production-database-1  running (healthy)   5432/tcp
-documenso-production-documenso-1 running             0.0.0.0:3000->3000/tcp
+davinci-sign-production-database-1  running (healthy)   5432/tcp
+davinci-sign-production-documenso-1 running             0.0.0.0:3000->3000/tcp
 ```
 
 Wait for the database to be healthy and for migrations to complete. Check the logs:

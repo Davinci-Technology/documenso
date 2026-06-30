@@ -6265,8 +6265,8 @@ msgid "If there is any issue with your subscription, please contact us at <0>{SU
 msgstr "サブスクリプションに問題がある場合は、<0>{SUPPORT_EMAIL}</0> までお問い合わせください。"
 
 #: apps/remix/app/routes/embed+/v2+/authoring+/_layout.tsx
-msgid "If you are using staging, ensure that you have set the host prop on the embedding component to the staging domain (https://stg-app.documenso.com)"
-msgstr "ステージング環境を使用している場合は、埋め込みコンポーネントの host プロパティをステージングドメイン (https://stg-app.documenso.com) に設定していることを確認してください"
+msgid "If you are using staging, ensure that you have set the host prop on the embedding component to the staging domain (https://stg-app.davincisolutions.ai)"
+msgstr "ステージング環境を使用している場合は、埋め込みコンポーネントの host プロパティをステージングドメイン (https://stg-app.davincisolutions.ai) に設定していることを確認してください"
 
 #: apps/remix/app/routes/_recipient+/report.$token.tsx
 msgid "If you did not expect this email or believe it is spam, you can report the sender to our team for review."

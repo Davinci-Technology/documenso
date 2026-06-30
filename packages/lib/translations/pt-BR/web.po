@@ -6260,7 +6260,7 @@ msgid "If there is any issue with your subscription, please contact us at <0>{SU
 msgstr "Se houver algum problema com sua assinatura, entre em contato conosco em <0>{SUPPORT_EMAIL}</0>."
 
 #: apps/remix/app/routes/embed+/v2+/authoring+/_layout.tsx
-msgid "If you are using staging, ensure that you have set the host prop on the embedding component to the staging domain (https://stg-app.documenso.com)"
+msgid "If you are using staging, ensure that you have set the host prop on the embedding component to the staging domain (https://stg-app.davincisolutions.ai)"
 msgstr ""
 
 #: apps/remix/app/routes/_recipient+/report.$token.tsx
