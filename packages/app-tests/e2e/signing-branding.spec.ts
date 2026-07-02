@@ -65,7 +65,7 @@ test('[SIGNING_BRANDING]: V1 normal signing renders custom logo as a plain image
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['v1-branding-signer@test.documenso.com'],
+    recipients: ['v1-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
   });
 
@@ -84,7 +84,7 @@ test('[SIGNING_BRANDING]: V2 signing renders custom logo as a plain image', asyn
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['v2-branding-signer@test.documenso.com'],
+    recipients: ['v2-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
@@ -109,7 +109,7 @@ test('[SIGNING_BRANDING]: V2 signing keeps internal link for the Documenso fallb
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['v2-fallback-signer@test.documenso.com'],
+    recipients: ['v2-fallback-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
@@ -131,7 +131,7 @@ test('[SIGNING_BRANDING]: embedded signing does not render custom logo Brand Web
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['embed-branding-signer@test.documenso.com'],
+    recipients: ['embed-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
@@ -141,4 +141,39 @@ test('[SIGNING_BRANDING]: embedded signing does not render custom logo Brand Web
 
   await expect(page.locator(`a[href="${BRANDING_URL}"]`)).toHaveCount(0);
   await expect(page.getByRole('link', { name: `${team.name}'s Logo` })).toHaveCount(0);
+});
+
+test('[SIGNING_BRANDING]: custom logo renders when branding is enabled and is hidden when disabled', async ({
+  page,
+}) => {
+  const { user, team, organisation } = await seedUser();
+
+  await enableOrganisationBranding({
+    organisationGlobalSettingsId: organisation.organisationGlobalSettingsId,
+  });
+
+  const { recipients } = await seedPendingDocumentWithFullFields({
+    owner: user,
+    teamId: team.id,
+    recipients: ['enabled-disabled-branding-signer@test.davincisolutions.ai'],
+    fields: [FieldType.SIGNATURE],
+    updateDocumentOptions: { internalVersion: 2 },
+  });
+
+  // Branding enabled → the custom logo is rendered on the signing page.
+  await page.goto(`/sign/${recipients[0].token}`);
+  await expectPlainBrandingLogo(page, `${team.name}'s Logo`);
+
+  // Disable branding while keeping the stored logo (the team inherits this).
+  await prisma.organisationGlobalSettings.update({
+    where: { id: organisation.organisationGlobalSettingsId },
+    data: { brandingEnabled: false },
+  });
+
+  // Branding disabled → the custom logo is gone and the Documenso fallback
+  // (an internal link to "/") is shown instead.
+  await page.goto(`/sign/${recipients[0].token}`);
+
+  await expect(page.getByRole('img', { name: `${team.name}'s Logo` })).toHaveCount(0);
+  await expect(page.locator('a[href="/"]').first()).toBeVisible();
 });
