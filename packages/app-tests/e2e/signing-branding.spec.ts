@@ -65,7 +65,7 @@ test('[SIGNING_BRANDING]: V1 normal signing renders custom logo as a plain image
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['v1-branding-signer@test.documenso.com'],
+    recipients: ['v1-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
   });
 
@@ -84,7 +84,7 @@ test('[SIGNING_BRANDING]: V2 signing renders custom logo as a plain image', asyn
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['v2-branding-signer@test.documenso.com'],
+    recipients: ['v2-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
@@ -109,7 +109,7 @@ test('[SIGNING_BRANDING]: V2 signing keeps internal link for the Documenso fallb
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['v2-fallback-signer@test.documenso.com'],
+    recipients: ['v2-fallback-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
@@ -131,7 +131,7 @@ test('[SIGNING_BRANDING]: embedded signing does not render custom logo Brand Web
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['embed-branding-signer@test.documenso.com'],
+    recipients: ['embed-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
@@ -155,7 +155,7 @@ test('[SIGNING_BRANDING]: custom logo renders when branding is enabled and is hi
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
     teamId: team.id,
-    recipients: ['enabled-disabled-branding-signer@test.documenso.com'],
+    recipients: ['enabled-disabled-branding-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
