@@ -95,18 +95,80 @@ Callback URL: `https://<your-domain>/api/auth/callback/microsoft`
 Before delivering a webhook, Davinci Sign checks whether the target resolves to a
 private or loopback address and blocks it if so. This check is best-effort and
 fails open. Use `NEXT_PRIVATE_WEBHOOK_SSRF_BYPASS_HOSTS` to allow specific
-internal hosts, for example when developing locally with a webhook receiver.
+internal hosts.
 
 ---
 
-## Enterprise Features
+## Enterprise Configuration
 
-These variables require an active [Enterprise Edition](/docs/policies/enterprise-edition) license. Obtain a license key from [license.davincisolutions.ai](https://license.davincisolutions.ai) and set it below to unlock enterprise features such as SSO, embed editor, and 21 CFR Part 11 compliance. See [Apply Your License Key](/docs/self-hosting/configuration/license) for step-by-step setup.
+| Variable                             | Description                                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PRIVATE_DOCUMENSO_LICENSE_KEY` | License key for enterprise features — see [Apply Your License Key](/docs/self-hosting/configuration/license) for how to apply it        |
+| `NEXT_PRIVATE_SSO_PROVIDER_LABEL`    | Label to show on the SSO login button                                                                                                 |
+| `NEXT_PRIVATE_SSO_CLIENT_ID`         | Client ID for enterprise SSO (SAML/OIDC)                                                                                              |
+| `NEXT_PRIVATE_SSO_CLIENT_SECRET`     | Client secret for enterprise SSO                                                                                                       |
+| `NEXT_PRIVATE_SSO_ISSUER_URL`        | Identity provider issuer URL                                                                                                          |
+| `NEXT_PRIVATE_STRIPE_API_KEY`        | Stripe API key for billing                                                                                                            |
+| `NEXT_PRIVATE_STRIPE_WEBHOOK_SECRET` | Stripe webhook secret                                                                                                                 |
+| `NEXT_PRIVATE_SES_ACCESS_KEY_ID`     | AWS SES access key for email domain verification                                                                                      |
+| `NEXT_PRIVATE_SES_SECRET_ACCESS_KEY` | AWS SES secret key                                                                                                                    |
+| `NEXT_PRIVATE_SES_REGION`            | AWS SES region                                                                                                                        |
 
-| Variable                             | Description                                      |
-| ------------------------------------ | ------------------------------------------------ |
-| `NEXT_PRIVATE_LICENSE_KEY`            | Your enterprise license key                      |
-| `NEXT_PRIVATE_SSO_PROVIDER_LABEL`    | Label to show on the SSO login button            |
-| `NEXT_PRIVATE_SSO_CLIENT_ID`         | Client ID for enterprise SSO (SAML/OIDC)         |
-| `NEXT_PRIVATE_SSO_CLIENT_SECRET`     | Client secret for enterprise SSO                 |
-| `NEXT_PRIVATE_SSO_ISSUER_URL`        | Identity provider issuer URL                     |
+---
+
+## Example .env File
+
+A minimal production configuration:
+
+```bash
+# Required
+NEXTAUTH_SECRET="your-random-secret-at-least-32-chars"
+NEXT_PRIVATE_ENCRYPTION_KEY="your-encryption-key-at-least-32-chars"
+NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY="your-secondary-key-at-least-32-chars"
+NEXT_PUBLIC_WEBAPP_URL="https://sign.example.com"
+
+# Database
+NEXT_PRIVATE_DATABASE_URL="postgres://user:password@localhost:5432/davinci-sign"
+NEXT_PRIVATE_DIRECT_DATABASE_URL="postgres://user:password@localhost:5432/davinci-sign"
+
+# Email
+NEXT_PRIVATE_SMTP_TRANSPORT="smtp-auth"
+NEXT_PRIVATE_SMTP_HOST="smtp.example.com"
+NEXT_PRIVATE_SMTP_PORT=587
+NEXT_PRIVATE_SMTP_USERNAME="your-smtp-user"
+NEXT_PRIVATE_SMTP_PASSWORD="your-smtp-password"
+NEXT_PRIVATE_SMTP_FROM_NAME="Davinci Sign"
+NEXT_PRIVATE_SMTP_FROM_ADDRESS="noreply@example.com"
+
+# Signing (certificate must be configured)
+NEXT_PRIVATE_SIGNING_PASSPHRASE="your-certificate-password"
+
+# Signup restrictions (optional)
+# NEXT_PUBLIC_DISABLE_SIGNUP="true"
+# NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_SIGNUP="true"
+# NEXT_PUBLIC_DISABLE_GOOGLE_SIGNUP="true"
+# NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNUP="true"
+# NEXT_PUBLIC_DISABLE_OIDC_SIGNUP="true"
+# NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS="example.com,acme.org"
+
+# Sign-in restrictions (optional)
+# NEXT_PUBLIC_DISABLE_SIGNIN="true"
+# NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_SIGNIN="true"
+# NEXT_PUBLIC_DISABLE_GOOGLE_SIGNIN="true"
+# NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNIN="true"
+# NEXT_PUBLIC_DISABLE_OIDC_SIGNIN="true"
+
+# Opt out of the automatic OIDC redirect when OIDC is the only enabled transport (optional)
+# NEXT_PUBLIC_DISABLE_OIDC_AUTO_REDIRECT="true"
+```
+
+---
+
+## See Also
+
+- [Database Configuration](/docs/self-hosting/configuration/database) - Set up PostgreSQL
+- [Email Configuration](/docs/self-hosting/configuration/email) - Configure email delivery
+- [Storage Configuration](/docs/self-hosting/configuration/storage) - Set up S3 storage
+- [Signing Certificate](/docs/self-hosting/configuration/signing-certificate) - Configure document signing
+- [Organisation Limits](/docs/self-hosting/configuration/organisation-limits) - Set per-organisation document, email, and API limits from the admin panel
+- [Troubleshooting](/docs/self-hosting/maintenance/troubleshooting) - Common configuration issues
