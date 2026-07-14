@@ -61,7 +61,7 @@ export const AdminLicenseCard = ({ licenseData }: AdminLicenseCardProps) => {
               )}
 
               <Link
-                to="https://docs.documenso.com/users/licenses/enterprise-edition"
+                to="https://docs.davincisolutions.ai/users/licenses/enterprise-edition"
                 target="_blank"
                 className="flex flex-row items-center text-muted-foreground text-xs hover:text-muted-foreground/80"
               >
@@ -87,7 +87,7 @@ export const AdminLicenseCard = ({ licenseData }: AdminLicenseCardProps) => {
           <KeyRoundIcon className="h-4 w-4 text-muted-foreground" />
         </div>
 
-        <h3 className="mb-2 flex items-end font-medium text-primary-forground text-sm leading-tight">
+        <h3 className="mb-2 flex items-end font-medium text-foreground text-sm leading-tight">
           <Trans>Documenso License</Trans>
         </h3>
 
