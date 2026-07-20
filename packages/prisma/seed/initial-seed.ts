@@ -38,13 +38,13 @@ export const seedDatabase = async () => {
 
   const exampleUserExists = await prisma.user.findFirst({
     where: {
-      email: 'example@documenso.com',
+      email: 'example@davincisolutions.ai',
     },
   });
 
   const adminUserExists = await prisma.user.findFirst({
     where: {
-      email: 'admin@documenso.com',
+      email: 'admin@davincisolutions.ai',
     },
   });
 
@@ -54,12 +54,12 @@ export const seedDatabase = async () => {
 
   const exampleUser = await seedUser({
     name: 'Example User',
-    email: 'example@documenso.com',
+    email: 'example@davincisolutions.ai',
   });
 
   const adminUser = await seedUser({
     name: 'Admin User',
-    email: 'admin@documenso.com',
+    email: 'admin@davincisolutions.ai',
     isAdmin: true,
   });
 
@@ -361,9 +361,9 @@ export const seedAlignmentTestDocument = async ({
   const { id, recipients, envelopeItems } = createdEnvelope;
 
   if (isDirectTemplate) {
-    const directTemplateRecpient = recipients.find((recipient) => recipient.email === DIRECT_TEMPLATE_RECIPIENT_EMAIL);
+    const directTemplateRecipient = recipients.find((recipient) => recipient.email === DIRECT_TEMPLATE_RECIPIENT_EMAIL);
 
-    if (!directTemplateRecpient) {
+    if (!directTemplateRecipient) {
       throw new Error('Need to create a direct template recipient');
     }
 
@@ -372,7 +372,7 @@ export const seedAlignmentTestDocument = async ({
         envelopeId: id,
         enabled: true,
         token: directTemplateToken ?? Math.random().toString(),
-        directTemplateRecipientId: directTemplateRecpient.id,
+        directTemplateRecipientId: directTemplateRecipient.id,
       },
     });
   }
