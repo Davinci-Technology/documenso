@@ -362,7 +362,7 @@ const createEnvelope = async (
     recipients:
       recipientCount > 0
         ? Array.from({ length: recipientCount }, (_, i) => ({
-            email: `rl-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}@test.documenso.com`,
+            email: `rl-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}@test.davincisolutions.ai`,
             name: `Recipient ${i}`,
             role: RecipientRole.SIGNER,
             signingOrder: i + 1,
