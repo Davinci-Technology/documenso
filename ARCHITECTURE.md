@@ -42,8 +42,8 @@ Davinci Sign is an electronic document signing platform rebranded from the open-
 | Package                    | Description                                              | Port |
 | -------------------------- | -------------------------------------------------------- | ---- |
 | `@documenso/remix`         | Main application - React Router (Remix) with Hono server | 3000 |
-| `@documenso/documentation` | Documentation site (Next.js + Nextra)                    | 3002 |
 | `@documenso/openpage-api`  | Public analytics API                                     | 3003 |
+| `@documenso/docs`          | Documentation site                                       | 3004 |
 
 ### Core Packages (`packages/`)
 
