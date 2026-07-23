@@ -13,7 +13,7 @@ export const createAttachmentRoute = authenticatedProcedure
       path: '/document/attachment/create',
       summary: 'Create attachment',
       description:
-        'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Create a new attachment for a document',
+        'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Create a new attachment for a document',
       tags: ['Document'],
       deprecated: true,
     },

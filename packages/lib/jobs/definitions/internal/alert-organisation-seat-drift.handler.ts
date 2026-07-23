@@ -1,7 +1,7 @@
 import { mailer } from '@documenso/email/mailer';
 import { prisma } from '@documenso/prisma';
 import { IS_BILLING_ENABLED, SUPPORT_EMAIL } from '../../../constants/app';
-import { DOCUMENSO_INTERNAL_EMAIL } from '../../../constants/email';
+import { DAVINCI_INTERNAL_EMAIL } from '../../../constants/email';
 import type { JobRunIO } from '../../client/_internal/job';
 import type { TAlertOrganisationSeatDriftJobDefinition } from './alert-organisation-seat-drift';
 
@@ -53,7 +53,7 @@ export const run = async ({ io }: { payload: TAlertOrganisationSeatDriftJobDefin
 
   await mailer.sendMail({
     to: SUPPORT_EMAIL,
-    from: DOCUMENSO_INTERNAL_EMAIL,
+    from: DAVINCI_INTERNAL_EMAIL,
     subject: `[Billing] ${driftedOrganisations.length} organisation(s) exceed their paid seat count`,
     text: [
       `${driftedOrganisations.length} organisation(s) have more members than their paid seat count:`,

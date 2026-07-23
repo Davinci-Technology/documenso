@@ -51,7 +51,7 @@ export const fieldRouter = router({
         path: '/document/field/{fieldId}',
         summary: 'Get document field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Returns a single field. If you want to retrieve all the fields for a document, use the "Get Document" endpoint.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Returns a single field. If you want to retrieve all the fields for a document, use the "Get Document" endpoint.',
         tags: ['Document Fields'],
         deprecated: true,
       },
@@ -86,7 +86,7 @@ export const fieldRouter = router({
         path: '/document/field/create',
         summary: 'Create document field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Create a single field for a document.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Create a single field for a document.',
         tags: ['Document Fields'],
         deprecated: true,
       },
@@ -134,7 +134,7 @@ export const fieldRouter = router({
         path: '/document/field/create-many',
         summary: 'Create document fields',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Create multiple fields for a document.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Create multiple fields for a document.',
         tags: ['Document Fields'],
         deprecated: true,
       },
@@ -178,7 +178,7 @@ export const fieldRouter = router({
         path: '/document/field/update',
         summary: 'Update document field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Update a single field for a document.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Update a single field for a document.',
         tags: ['Document Fields'],
         deprecated: true,
       },
@@ -220,7 +220,7 @@ export const fieldRouter = router({
         path: '/document/field/update-many',
         summary: 'Update document fields',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Update multiple fields for a document.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Update multiple fields for a document.',
         tags: ['Document Fields'],
         deprecated: true,
       },
@@ -260,7 +260,7 @@ export const fieldRouter = router({
         path: '/document/field/delete',
         summary: 'Delete document field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide.',
         tags: ['Document Fields'],
         deprecated: true,
       },
@@ -336,7 +336,7 @@ export const fieldRouter = router({
         path: '/template/field/create',
         summary: 'Create template field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Create a single field for a template.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Create a single field for a template.',
         tags: ['Template Fields'],
         deprecated: true,
       },
@@ -384,7 +384,7 @@ export const fieldRouter = router({
         path: '/template/field/{fieldId}',
         summary: 'Get template field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Returns a single field. If you want to retrieve all the fields for a template, use the "Get Template" endpoint.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Returns a single field. If you want to retrieve all the fields for a template, use the "Get Template" endpoint.',
         tags: ['Template Fields'],
         deprecated: true,
       },
@@ -419,7 +419,7 @@ export const fieldRouter = router({
         path: '/template/field/create-many',
         summary: 'Create template fields',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Create multiple fields for a template.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Create multiple fields for a template.',
         tags: ['Template Fields'],
         deprecated: true,
       },
@@ -463,7 +463,7 @@ export const fieldRouter = router({
         path: '/template/field/update',
         summary: 'Update template field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Update a single field for a template.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Update a single field for a template.',
         tags: ['Template Fields'],
         deprecated: true,
       },
@@ -505,7 +505,7 @@ export const fieldRouter = router({
         path: '/template/field/update-many',
         summary: 'Update template fields',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Update multiple fields for a template.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Update multiple fields for a template.',
         tags: ['Template Fields'],
         deprecated: true,
       },
@@ -545,7 +545,7 @@ export const fieldRouter = router({
         path: '/template/field/delete',
         summary: 'Delete template field',
         description:
-          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide.',
+          'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide.',
         tags: ['Template Fields'],
         deprecated: true,
       },

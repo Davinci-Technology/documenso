@@ -9,7 +9,7 @@ export const getDocumentMeta: TrpcRouteMeta = {
     path: '/document/{documentId}',
     summary: 'Get document',
     description:
-      'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Returns a document given an ID',
+      'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Returns a document given an ID',
     tags: ['Document'],
     deprecated: true,
   },

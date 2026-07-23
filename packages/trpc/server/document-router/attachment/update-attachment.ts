@@ -11,7 +11,7 @@ export const updateAttachmentRoute = authenticatedProcedure
       path: '/document/attachment/update',
       summary: 'Update attachment',
       description:
-        'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Update an existing attachment',
+        'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Update an existing attachment',
       tags: ['Document'],
       deprecated: true,
     },

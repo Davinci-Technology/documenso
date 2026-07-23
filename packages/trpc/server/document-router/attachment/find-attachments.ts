@@ -13,7 +13,7 @@ export const findAttachmentsRoute = authenticatedProcedure
       path: '/document/attachment',
       summary: 'Find attachments',
       description:
-        'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.documenso.com/docs/developers/api/migrate-to-envelopes for the migration guide. Find all attachments for a document',
+        'Deprecated: this endpoint is being replaced by the Envelope API. See https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes for the migration guide. Find all attachments for a document',
       tags: ['Document'],
       deprecated: true,
     },
