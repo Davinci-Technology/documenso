@@ -11,7 +11,7 @@ export const OpenAPIV1 = Object.assign(
         title: 'Davinci Sign API',
         version: '1.0.0',
         description:
-          'API V1 is deprecated, but will continue to be supported.\n\nThe Davinci Sign API for retrieving, creating, updating and deleting documents.',
+          'API V1 has been deprecated. For more details, see https://docs.davincisolutions.ai/docs/developers/api/migrate-to-envelopes. \n\nThe Davinci Sign API for retrieving, creating, updating and deleting documents.',
       },
       servers: [
         {
