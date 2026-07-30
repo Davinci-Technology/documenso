@@ -664,7 +664,7 @@ test.describe('Find Envelopes API - Team Context', () => {
 test.describe('Find Envelopes API - Team Email', () => {
   test('should include envelopes received by team email from external senders', async ({ request }) => {
     const { team, owner } = await seedTeam();
-    const teamEmailAddr = `team-find-env-${team.id}@test.documenso.com`;
+    const teamEmailAddr = `team-find-env-${team.id}@test.davincisolutions.ai`;
     await seedTeamEmail({ email: teamEmailAddr, teamId: team.id });
 
     const { user: externalUser, team: externalTeam } = await seedUser();
@@ -701,7 +701,7 @@ test.describe('Find Envelopes API - Team Email', () => {
 
   test('should NOT include external noise from other teams when team has team email', async ({ request }) => {
     const { team: teamA, owner: ownerA } = await seedTeam();
-    const teamEmailAddr = `team-noise-${teamA.id}@test.documenso.com`;
+    const teamEmailAddr = `team-noise-${teamA.id}@test.davincisolutions.ai`;
     await seedTeamEmail({ email: teamEmailAddr, teamId: teamA.id });
 
     const { team: teamB, owner: ownerB } = await seedTeam();
@@ -728,7 +728,7 @@ test.describe('Find Envelopes API - Team Email', () => {
 
   test('team email received docs bypass visibility for managers', async ({ request }) => {
     const { team, owner } = await seedTeam();
-    const teamEmailAddr = `team-vis-env-${team.id}@test.documenso.com`;
+    const teamEmailAddr = `team-vis-env-${team.id}@test.davincisolutions.ai`;
     await seedTeamEmail({ email: teamEmailAddr, teamId: team.id });
 
     const { user: externalUser, team: externalTeam } = await seedUser();
