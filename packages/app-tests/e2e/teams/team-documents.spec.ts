@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 import { DocumentStatus, DocumentVisibility, TeamMemberRole } from '@prisma/client';
 
 import { apiSignin, apiSignout } from '../fixtures/authentication';
-import { checkDocumentTabCount } from '../fixtures/documents';
+import { checkDocumentCounts, checkDocumentTabCount, toggleDocumentSenderFilter } from '../fixtures/documents';
 import { expectTextToBeVisible, expectToastTextToBeVisible, openDropdownMenu } from '../fixtures/generic';
 
 test('[TEAMS]: check team documents count', async ({ page }) => {
@@ -20,23 +20,13 @@ test('[TEAMS]: check team documents count', async ({ page }) => {
     });
 
     // Check document counts.
-    await checkDocumentTabCount(page, 'Inbox', 0);
-    await checkDocumentTabCount(page, 'Pending', 2);
-    await checkDocumentTabCount(page, 'Completed', 1);
-    await checkDocumentTabCount(page, 'Draft', 2);
-    await checkDocumentTabCount(page, 'All', 5);
+    await checkDocumentCounts(page, { inbox: 0, pending: 2, completed: 1, draft: 2, all: 5 });
 
     // Apply filter.
-    await page.locator('button').filter({ hasText: 'Sender: All' }).click();
-    await page.getByRole('option', { name: teamMember2.name ?? '' }).click();
-    await page.waitForURL(/senderIds/);
+    await toggleDocumentSenderFilter(page, teamMember2.name ?? '');
 
     // Check counts after filtering.
-    await checkDocumentTabCount(page, 'Inbox', 0);
-    await checkDocumentTabCount(page, 'Pending', 2);
-    await checkDocumentTabCount(page, 'Completed', 0);
-    await checkDocumentTabCount(page, 'Draft', 1);
-    await checkDocumentTabCount(page, 'All', 3);
+    await checkDocumentCounts(page, { inbox: 0, pending: 2, completed: 0, draft: 1, all: 3 });
 
     await apiSignout({ page });
   }
@@ -115,23 +105,13 @@ test('[TEAMS]: check team documents count with internal team email', async ({ pa
     });
 
     // Check document counts.
-    await checkDocumentTabCount(page, 'Inbox', 2);
-    await checkDocumentTabCount(page, 'Pending', 3);
-    await checkDocumentTabCount(page, 'Completed', 3);
-    await checkDocumentTabCount(page, 'Draft', 3);
-    await checkDocumentTabCount(page, 'All', 11);
+    await checkDocumentCounts(page, { inbox: 2, pending: 3, completed: 3, draft: 3, all: 11 });
 
     // Apply filter.
-    await page.locator('button').filter({ hasText: 'Sender: All' }).click();
-    await page.getByRole('option', { name: teamMember2.name ?? '' }).click();
-    await page.waitForURL(/senderIds/);
+    await toggleDocumentSenderFilter(page, teamMember2.name ?? '');
 
     // Check counts after filtering.
-    await checkDocumentTabCount(page, 'Inbox', 0);
-    await checkDocumentTabCount(page, 'Pending', 2);
-    await checkDocumentTabCount(page, 'Completed', 0);
-    await checkDocumentTabCount(page, 'Draft', 1);
-    await checkDocumentTabCount(page, 'All', 3);
+    await checkDocumentCounts(page, { inbox: 0, pending: 2, completed: 0, draft: 1, all: 3 });
 
     await apiSignout({ page });
   }
@@ -142,7 +122,7 @@ test('[TEAMS]: check team documents count with external team email', async ({ pa
 
   const { team: team2, teamMember2: team2Member2 } = await seedTeamDocuments();
 
-  const teamEmail = `external-team-email-${team.id}@test.documenso.com`;
+  const teamEmail = `external-team-email-${team.id}@test.davincisolutions.ai`;
 
   await seedTeamEmail({
     email: teamEmail,
@@ -202,23 +182,13 @@ test('[TEAMS]: check team documents count with external team email', async ({ pa
   });
 
   // Check document counts.
-  await checkDocumentTabCount(page, 'Inbox', 3);
-  await checkDocumentTabCount(page, 'Pending', 2);
-  await checkDocumentTabCount(page, 'Completed', 2);
-  await checkDocumentTabCount(page, 'Draft', 2);
-  await checkDocumentTabCount(page, 'All', 9);
+  await checkDocumentCounts(page, { inbox: 3, pending: 2, completed: 2, draft: 2, all: 9 });
 
   // Apply filter.
-  await page.locator('button').filter({ hasText: 'Sender: All' }).click();
-  await page.getByRole('option', { name: teamMember2.name ?? '' }).click();
-  await page.waitForURL(/senderIds/);
+  await toggleDocumentSenderFilter(page, teamMember2.name ?? '');
 
   // Check counts after filtering.
-  await checkDocumentTabCount(page, 'Inbox', 0);
-  await checkDocumentTabCount(page, 'Pending', 2);
-  await checkDocumentTabCount(page, 'Completed', 0);
-  await checkDocumentTabCount(page, 'Draft', 1);
-  await checkDocumentTabCount(page, 'All', 3);
+  await checkDocumentCounts(page, { inbox: 0, pending: 2, completed: 0, draft: 1, all: 3 });
 });
 
 test('[TEAMS]: resend pending team document', async ({ page }) => {
@@ -235,7 +205,7 @@ test('[TEAMS]: resend pending team document', async ({ page }) => {
   await openDropdownMenu(page, actionBtn);
   await expect(page.getByRole('menuitem', { name: 'Resend' })).toBeVisible();
   await page.getByRole('menuitem', { name: 'Resend' }).click();
-  await page.getByLabel('test.documenso.com').first().click();
+  await page.getByLabel('test.davincisolutions.ai').first().click();
   await page.getByRole('button', { name: 'Send reminder' }).click();
 
   await expectToastTextToBeVisible(page, 'Document resent');
@@ -273,11 +243,7 @@ test('[TEAMS]: delete draft team document', async ({ page }) => {
     });
 
     // Check document counts.
-    await checkDocumentTabCount(page, 'Inbox', 0);
-    await checkDocumentTabCount(page, 'Pending', 2);
-    await checkDocumentTabCount(page, 'Completed', 1);
-    await checkDocumentTabCount(page, 'Draft', 1);
-    await checkDocumentTabCount(page, 'All', 4);
+    await checkDocumentCounts(page, { inbox: 0, pending: 2, completed: 1, draft: 1, all: 4 });
 
     await apiSignout({ page });
   }
@@ -316,11 +282,7 @@ test('[TEAMS]: delete pending team document', async ({ page }) => {
     });
 
     // Check document counts.
-    await checkDocumentTabCount(page, 'Inbox', 0);
-    await checkDocumentTabCount(page, 'Pending', 1);
-    await checkDocumentTabCount(page, 'Completed', 1);
-    await checkDocumentTabCount(page, 'Draft', 2);
-    await checkDocumentTabCount(page, 'All', 4);
+    await checkDocumentCounts(page, { inbox: 0, pending: 1, completed: 1, draft: 2, all: 4 });
 
     await apiSignout({ page });
   }
@@ -359,11 +321,7 @@ test('[TEAMS]: delete completed team document', async ({ page }) => {
     });
 
     // Check document counts.
-    await checkDocumentTabCount(page, 'Inbox', 0);
-    await checkDocumentTabCount(page, 'Pending', 2);
-    await checkDocumentTabCount(page, 'Completed', 0);
-    await checkDocumentTabCount(page, 'Draft', 2);
-    await checkDocumentTabCount(page, 'All', 4);
+    await checkDocumentCounts(page, { inbox: 0, pending: 2, completed: 0, draft: 2, all: 4 });
 
     await apiSignout({ page });
   }
