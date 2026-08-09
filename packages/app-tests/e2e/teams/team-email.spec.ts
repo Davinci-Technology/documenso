@@ -19,9 +19,9 @@ test('[TEAMS]: send team email request', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Add email' }).click();
   await page.getByPlaceholder('eg. Legal').click();
-  await page.getByPlaceholder('eg. Legal').fill('test@test.documenso.com');
+  await page.getByPlaceholder('eg. Legal').fill('test@test.davincisolutions.ai');
   await page.getByPlaceholder('example@example.com').click();
-  await page.getByPlaceholder('example@example.com').fill('test@test.documenso.com');
+  await page.getByPlaceholder('example@example.com').fill('test@test.davincisolutions.ai');
   await page.getByRole('button', { name: 'Add' }).click();
 
   await expect(
@@ -33,7 +33,7 @@ test('[TEAMS]: accept team email request', async ({ page }) => {
   const { team } = await seedUser();
 
   const teamEmailVerification = await seedTeamEmailVerification({
-    email: `team-email-verification--${team.url}@test.documenso.com`,
+    email: `team-email-verification--${team.url}@test.davincisolutions.ai`,
     teamId: team.id,
   });
 
@@ -59,7 +59,7 @@ test('[TEAMS]: team email verification link is invalid once completed', async ({
   const { team } = await seedUser();
 
   const teamEmailVerification = await seedTeamEmailVerification({
-    email: `team-email-verification--${team.url}@test.documenso.com`,
+    email: `team-email-verification--${team.url}@test.davincisolutions.ai`,
     teamId: team.id,
   });
 

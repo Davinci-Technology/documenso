@@ -16,7 +16,7 @@ test('[ENVELOPE_EXPIRATION]: expired recipient is redirected to expired page', a
 
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
-    recipients: ['expired-recipient@test.documenso.com'],
+    recipients: ['expired-recipient@test.davincisolutions.ai'],
     teamId: team.id,
   });
 
@@ -40,7 +40,7 @@ test('[ENVELOPE_EXPIRATION]: non-expired recipient can access signing page', asy
 
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
-    recipients: ['active-recipient@test.documenso.com'],
+    recipients: ['active-recipient@test.davincisolutions.ai'],
     teamId: team.id,
   });
 
@@ -62,7 +62,7 @@ test('[ENVELOPE_EXPIRATION]: recipient with null expiresAt can sign normally', a
 
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner: user,
-    recipients: ['null-expiry@test.documenso.com'],
+    recipients: ['null-expiry@test.davincisolutions.ai'],
     teamId: team.id,
   });
 
@@ -148,7 +148,7 @@ test('[ENVELOPE_EXPIRATION]: expired recipient cannot sign a field via the V2 AP
     title: '[TEST] Expired recipient V2 signing',
     recipients: [
       {
-        email: `expired-v2-${Date.now()}@test.documenso.com`,
+        email: `expired-v2-${Date.now()}@test.davincisolutions.ai`,
         name: 'Expired Signer',
         role: 'SIGNER',
         signingOrder: 1,
