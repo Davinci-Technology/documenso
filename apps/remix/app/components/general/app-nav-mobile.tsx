@@ -8,7 +8,6 @@ import { Link } from 'react-router';
 import LogoImage from '@documenso/assets/logo.png';
 import { authClient } from '@documenso/auth/client';
 import { useSession } from '@documenso/lib/client-only/providers/session';
-import { isPersonalLayout } from '@documenso/lib/utils/organisations';
 import { trpc } from '@documenso/trpc/react';
 import { Sheet, SheetContent } from '@documenso/ui/primitives/sheet';
 import { ThemeSwitcher } from '@documenso/ui/primitives/theme-switcher';
@@ -43,8 +42,8 @@ export const AppNavMobile = ({ isMenuOpen, onMenuOpenChange }: AppNavMobileProps
   const menuNavigationLinks = useMemo(() => {
     let teamUrl = currentTeam?.url || null;
 
-    if (!teamUrl && isPersonalLayout(organisations)) {
-      teamUrl = organisations[0].teams[0]?.url || null;
+    if (!teamUrl && organisations.length === 1 && organisations[0].teams.length === 1) {
+      teamUrl = organisations[0].teams[0].url;
     }
 
     if (!teamUrl) {
