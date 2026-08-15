@@ -166,23 +166,34 @@ export const OrganisationCreateDialog = ({ trigger, ...props }: OrganisationCrea
                 ) : (
                   <SpinnerBox className="py-32" />
                 )}
-
-                <DialogFooter className="mt-4">
-                  <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-                    <Trans>Cancel</Trans>
-                  </Button>
-
-                  {isIndividualPlan(selectedPriceId) && isPersonalLayoutMode ? (
-                    <IndividualPersonalLayoutCheckoutButton priceId={selectedPriceId}>
-                      <Trans>Checkout</Trans>
-                    </IndividualPersonalLayoutCheckoutButton>
-                  ) : (
-                    <Button type="submit" onClick={() => setStep('create')}>
-                      <Trans>Continue</Trans>
-                    </Button>
-                  )}
-                </DialogFooter>
               </fieldset>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setOpen(false)}
+                >
+                  <Trans>Cancel</Trans>
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  disabled={!selectedPriceId}
+                  onClick={() =>
+                    isIndividualPlan(selectedPriceId) && isPersonalLayoutMode
+                      ? null
+                      : setStep('create')
+                  }
+                  asChild={isIndividualPlan(selectedPriceId) && isPersonalLayoutMode}
+                >
+                  {isIndividualPlan(selectedPriceId) && isPersonalLayoutMode ? (
+                    <IndividualPersonalLayoutCheckoutButton priceId={selectedPriceId} />
+                  ) : (
+                    <Trans>Continue</Trans>
+                  )}
+                </Button>
+              </DialogFooter>
             </>
           ))
           .with('create', () => (
@@ -193,188 +204,174 @@ export const OrganisationCreateDialog = ({ trigger, ...props }: OrganisationCrea
                 </DialogTitle>
 
                 <DialogDescription>
-                  <Trans>Create an organisation to collaborate with teams</Trans>
+                  <Trans>Create an organisation to start collaborating with your team.</Trans>
                 </DialogDescription>
               </DialogHeader>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onFormSubmit)}>
-                  <fieldset className="flex h-full flex-col space-y-4" disabled={form.formState.isSubmitting}>
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel required>
-                            <Trans>Organisation Name</Trans>
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <form
+                  id="create-organisation-form"
+                  onSubmit={form.handleSubmit(onFormSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          <Trans>Organisation name</Trans>
+                        </FormLabel>
 
-                    <DialogFooter>
-                      {IS_BILLING_ENABLED() ? (
-                        <Button type="button" variant="secondary" onClick={() => setStep('billing')}>
-                          <Trans>Back</Trans>
-                        </Button>
-                      ) : (
-                        <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-                          <Trans>Cancel</Trans>
-                        </Button>
-                      )}
+                        <FormControl>
+                          <Input {...field} placeholder={t`My Organisation`} />
+                        </FormControl>
 
-                      <Button
-                        type="submit"
-                        data-testid="dialog-create-organisation-button"
-                        loading={form.formState.isSubmitting}
-                      >
-                        {selectedPriceId ? <Trans>Checkout</Trans> : <Trans>Create</Trans>}
-                      </Button>
-                    </DialogFooter>
-                  </fieldset>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </form>
               </Form>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => (IS_BILLING_ENABLED() ? setStep('billing') : setOpen(false))}
+                  disabled={form.formState.isSubmitting}
+                >
+                  {IS_BILLING_ENABLED() ? <Trans>Back</Trans> : <Trans>Cancel</Trans>}
+                </Button>
+
+                <Button
+                  type="submit"
+                  form="create-organisation-form"
+                  className="flex-1"
+                  loading={form.formState.isSubmitting}
+                >
+                  <Trans>Create</Trans>
+                </Button>
+              </DialogFooter>
             </>
           ))
-
           .exhaustive()}
       </DialogContent>
     </Dialog>
   );
 };
 
-// This is separated from the internal claims constant because we need to use the msg
-// macro which would cause import issues.
-const internalClaimsDescription: {
-  [key in INTERNAL_CLAIM_ID]: MessageDescriptor | string;
-} = {
-  [INTERNAL_CLAIM_ID.FREE]: msg`5 Documents a month`,
-  [INTERNAL_CLAIM_ID.INDIVIDUAL]: msg`Unlimited documents, API and more`,
-  [INTERNAL_CLAIM_ID.TEAM]: msg`Embedding, 5 members included and more`,
-  [INTERNAL_CLAIM_ID.PLATFORM]: msg`Whitelabeling, unlimited members and more`,
-  [INTERNAL_CLAIM_ID.ENTERPRISE]: '',
-  [INTERNAL_CLAIM_ID.EARLY_ADOPTER]: '',
-};
-
 type BillingPlanFormProps = {
   value: string;
-  onChange: (priceId: string) => void;
+  onChange: (value: string) => void;
   plans: InternalClaimPlans;
   canCreateFreeOrganisation: boolean;
 };
 
-const BillingPlanForm = ({ value, onChange, plans, canCreateFreeOrganisation }: BillingPlanFormProps) => {
+const BillingPlanForm = ({
+  value,
+  onChange,
+  plans,
+  canCreateFreeOrganisation,
+}: BillingPlanFormProps) => {
   const { t } = useLingui();
 
-  const [billingPeriod, setBillingPeriod] = useState<'monthlyPrice' | 'yearlyPrice'>('yearlyPrice');
+  const [interval, setInterval] = useState<'monthly' | 'yearly'>('yearly');
 
-  const dynamicPlans = useMemo(() => {
-    return [INTERNAL_CLAIM_ID.INDIVIDUAL, INTERNAL_CLAIM_ID.TEAM, INTERNAL_CLAIM_ID.PLATFORM].map((planId) => {
-      const plan = plans[planId];
+  const options = useMemo(() => {
+    const plansToRender = [
+      {
+        id: INTERNAL_CLAIM_ID.FREE,
+        title: msg`Free`,
+        description: msg`For personal use`,
+        price: 0,
+        disabled: !canCreateFreeOrganisation,
+        badge: !canCreateFreeOrganisation ? msg`Current Plan` : undefined,
+      },
+      {
+        id: INTERNAL_CLAIM_ID.INDIVIDUAL,
+        title: msg`Individual`,
+        description: msg`For individual professionals`,
+        price:
+          interval === 'monthly'
+            ? plans[INTERNAL_CLAIM_ID.INDIVIDUAL].monthlyPrice?.amount
+            : plans[INTERNAL_CLAIM_ID.INDIVIDUAL].yearlyPrice?.amount,
+      },
+      {
+        id: INTERNAL_CLAIM_ID.BUSINESS,
+        title: msg`Business`,
+        description: msg`For small teams and startups`,
+        price:
+          interval === 'monthly'
+            ? plans[INTERNAL_CLAIM_ID.BUSINESS].monthlyPrice?.amount
+            : plans[INTERNAL_CLAIM_ID.BUSINESS].yearlyPrice?.amount,
+      },
+    ];
+
+    return plansToRender.map((plan) => {
+      const priceId =
+        interval === 'monthly'
+          ? plans[plan.id as keyof InternalClaimPlans]?.monthlyPrice?.id
+          : plans[plan.id as keyof InternalClaimPlans]?.yearlyPrice?.id;
 
       return {
-        id: planId,
-        name: plan.name,
-        description: parseMessageDescriptorMacro(t, internalClaimsDescription[planId]),
-        monthlyPrice: plan.monthlyPrice,
-        yearlyPrice: plan.yearlyPrice,
+        ...plan,
+        priceId: priceId ?? '',
       };
     });
-  }, [plans]);
-
-  useEffect(() => {
-    if (value === '' && !canCreateFreeOrganisation) {
-      onChange(dynamicPlans[0][billingPeriod]?.id ?? '');
-    }
-  }, [value]);
-
-  const onBillingPeriodChange = (billingPeriod: 'monthlyPrice' | 'yearlyPrice') => {
-    const plan = dynamicPlans.find(
-      (plan) =>
-        // Purposely using the opposite billing period to get the correct plan.
-        plan[billingPeriod === 'monthlyPrice' ? 'yearlyPrice' : 'monthlyPrice']?.id === value,
-    );
-
-    setBillingPeriod(billingPeriod);
-
-    onChange(plan?.[billingPeriod]?.id ?? Object.keys(plans)[0]);
-  };
+  }, [plans, interval, canCreateFreeOrganisation]);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col space-y-4 py-4">
       <Tabs
-        className="flex w-full items-center justify-center"
-        defaultValue="monthlyPrice"
-        value={billingPeriod}
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        onValueChange={(value) => onBillingPeriodChange(value as 'monthlyPrice' | 'yearlyPrice')}
+        value={interval}
+        onValueChange={(v) => setInterval(v as 'monthly' | 'yearly')}
+        className="w-full"
       >
-        <TabsList className="flex w-full justify-center">
-          <TabsTrigger className="w-full" value="monthlyPrice">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="monthly">
             <Trans>Monthly</Trans>
           </TabsTrigger>
-          <TabsTrigger className="w-full" value="yearlyPrice">
+          <TabsTrigger value="yearly">
             <Trans>Yearly</Trans>
           </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      <div className="mt-4 grid gap-4 text-sm">
-        <button
-          onClick={() => onChange('')}
-          className={cn(
-            'flex cursor-pointer items-center space-x-2 rounded-md border p-4 transition-all hover:border-primary hover:shadow-sm',
-            {
-              'border-primary ring-2 ring-primary/10 ring-offset-1': '' === value,
-            },
-          )}
-          disabled={!canCreateFreeOrganisation}
-        >
-          <div className="w-full text-left">
-            <div className="flex items-center justify-between">
-              <p className="font-medium">
-                <Trans context="Plan price">Free</Trans>
-              </p>
-
-              <Badge size="small" variant="neutral" className="ml-1.5">
-                {canCreateFreeOrganisation ? (
-                  <Trans>1 Free organisations left</Trans>
-                ) : (
-                  <Trans>0 Free organisations left</Trans>
-                )}
-              </Badge>
-            </div>
-
-            <div className="text-muted-foreground">
-              <Trans>5 documents a month</Trans>
-            </div>
-          </div>
-        </button>
-
-        {dynamicPlans.map((plan) => (
+      <div className="space-y-2">
+        {options.map((option) => (
           <button
-            key={plan[billingPeriod]?.id}
-            onClick={() => onChange(plan[billingPeriod]?.id ?? '')}
+            key={option.id}
+            type="button"
+            disabled={option.disabled}
+            onClick={() => onChange(option.priceId)}
             className={cn(
-              'flex cursor-pointer items-center space-x-2 rounded-md border p-4 transition-all hover:border-primary hover:shadow-sm',
-              {
-                'border-primary ring-2 ring-primary/10 ring-offset-1': plan[billingPeriod]?.id === value,
-              },
+              'flex w-full items-center justify-between rounded-md border p-4 text-left transition-colors',
+              value === option.priceId ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
+              option.disabled && 'cursor-not-allowed opacity-50',
             )}
           >
-            <div className="w-full text-left">
-              <p className="font-medium">{plan.name}</p>
-              <p className="text-muted-foreground">{plan.description}</p>
-            </div>
-            <div className="whitespace-nowrap text-right font-medium text-sm">
-              <p>{plan[billingPeriod]?.friendlyPrice}</p>
-              <span className="text-muted-foreground text-xs">
-                {billingPeriod === 'monthlyPrice' ? <Trans>per month</Trans> : <Trans>per year</Trans>}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{parseMessageDescriptorMacro(t, option.title)}</span>
+                {option.badge && (
+                  <Badge variant="secondary">{parseMessageDescriptorMacro(t, option.badge)}</Badge>
+                )}
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {parseMessageDescriptorMacro(t, option.description)}
               </span>
+            </div>
+            <div className="text-right">
+              <span className="text-lg font-bold">
+                {option.price === 0 ? t`Free` : `$${(option.price ?? 0) / 100}`}
+              </span>
+              {option.price !== 0 && (
+                <span className="ml-1 text-sm text-muted-foreground">
+                  /{interval === 'monthly' ? t`mo` : t`yr`}
+                </span>
+              )}
             </div>
           </button>
         ))}
@@ -384,26 +381,18 @@ const BillingPlanForm = ({ value, onChange, plans, canCreateFreeOrganisation }: 
           target="_blank"
           className="flex items-center space-x-2 rounded-md border bg-muted/30 p-4"
         >
-          <div className="flex-1 font-normal">
-            <p className="font-medium text-muted-foreground">
+          <div className="flex-1">
+            <div className="font-semibold">
               <Trans>Enterprise</Trans>
-            </p>
-            <p className="flex flex-row items-center gap-1 text-muted-foreground">
-              <Trans>Contact sales here</Trans>
-              <ExternalLinkIcon className="h-4 w-4" />
-            </p>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <Trans>For large organisations and custom needs</Trans>
+            </div>
           </div>
-        </Link>
-      </div>
-
-      <div className="mt-6 text-center">
-        <Link
-          to="https://davincisolutions.ai/pricing"
-          className="flex items-center justify-center gap-1 text-primary text-sm hover:text-primary/80 hover:underline"
-          target="_blank"
-        >
-          <Trans>Compare all plans and features in detail</Trans>
-          <ExternalLinkIcon className="h-4 w-4" />
+          <div className="flex items-center text-sm font-medium text-primary">
+            <Trans>Contact Us</Trans>
+            <ExternalLinkIcon className="ml-1 h-4 w-4" />
+          </div>
         </Link>
       </div>
     </div>
