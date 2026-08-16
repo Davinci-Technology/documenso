@@ -166,23 +166,32 @@ export const OrganisationCreateDialog = ({ trigger, ...props }: OrganisationCrea
                 ) : (
                   <SpinnerBox className="py-32" />
                 )}
-
-                <DialogFooter className="mt-4">
-                  <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-                    <Trans>Cancel</Trans>
-                  </Button>
-
-                  {isIndividualPlan(selectedPriceId) && isPersonalLayoutMode ? (
-                    <IndividualPersonalLayoutCheckoutButton priceId={selectedPriceId}>
-                      <Trans>Checkout</Trans>
-                    </IndividualPersonalLayoutCheckoutButton>
-                  ) : (
-                    <Button type="submit" onClick={() => setStep('create')}>
-                      <Trans>Continue</Trans>
-                    </Button>
-                  )}
-                </DialogFooter>
               </fieldset>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={!selectedPriceId}
+                  onClick={() => {
+                    if (isIndividualPlan(selectedPriceId)) {
+                      return;
+                    }
+
+                    setStep('create');
+                  }}
+                  asChild={isIndividualPlan(selectedPriceId)}
+                >
+                  {isIndividualPlan(selectedPriceId) ? (
+                    <IndividualPersonalLayoutCheckoutButton
+                      priceId={selectedPriceId}
+                      onSuccess={() => setOpen(false)}
+                    />
+                  ) : (
+                    <Trans>Next</Trans>
+                  )}
+                </Button>
+              </DialogFooter>
             </>
           ))
           .with('create', () => (
@@ -193,217 +202,176 @@ export const OrganisationCreateDialog = ({ trigger, ...props }: OrganisationCrea
                 </DialogTitle>
 
                 <DialogDescription>
-                  <Trans>Create an organisation to collaborate with teams</Trans>
+                  <Trans>Create an organisation to manage your documents and team.</Trans>
                 </DialogDescription>
               </DialogHeader>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onFormSubmit)}>
-                  <fieldset className="flex h-full flex-col space-y-4" disabled={form.formState.isSubmitting}>
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel required>
-                            <Trans>Organisation Name</Trans>
-                          </FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <form
+                  className="space-y-4"
+                  onSubmit={(e) => {
+                    e.stopPropagation();
+                    void form.handleSubmit(onFormSubmit)(e);
+                  }}
+                >
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          <Trans>Organisation name</Trans>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            autoComplete="off"
+                            placeholder={t`My Organisation`}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.stopPropagation();
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <DialogFooter>
-                      {IS_BILLING_ENABLED() ? (
-                        <Button type="button" variant="secondary" onClick={() => setStep('billing')}>
-                          <Trans>Back</Trans>
-                        </Button>
-                      ) : (
-                        <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-                          <Trans>Cancel</Trans>
-                        </Button>
-                      )}
-
+                  <DialogFooter>
+                    {IS_BILLING_ENABLED() && (
                       <Button
-                        type="submit"
-                        data-testid="dialog-create-organisation-button"
-                        loading={form.formState.isSubmitting}
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setStep('billing')}
+                        disabled={form.formState.isSubmitting}
                       >
-                        {selectedPriceId ? <Trans>Checkout</Trans> : <Trans>Create</Trans>}
+                        <Trans>Back</Trans>
                       </Button>
-                    </DialogFooter>
-                  </fieldset>
+                    )}
+
+                    <Button type="submit" loading={form.formState.isSubmitting}>
+                      <Trans>Create organisation</Trans>
+                    </Button>
+                  </DialogFooter>
                 </form>
               </Form>
             </>
           ))
-
           .exhaustive()}
       </DialogContent>
     </Dialog>
   );
 };
 
-// This is separated from the internal claims constant because we need to use the msg
-// macro which would cause import issues.
-const internalClaimsDescription: {
-  [key in INTERNAL_CLAIM_ID]: MessageDescriptor | string;
-} = {
-  [INTERNAL_CLAIM_ID.FREE]: msg`5 Documents a month`,
-  [INTERNAL_CLAIM_ID.INDIVIDUAL]: msg`Unlimited documents, API and more`,
-  [INTERNAL_CLAIM_ID.TEAM]: msg`Embedding, 5 members included and more`,
-  [INTERNAL_CLAIM_ID.PLATFORM]: msg`Whitelabeling, unlimited members and more`,
-  [INTERNAL_CLAIM_ID.ENTERPRISE]: '',
-  [INTERNAL_CLAIM_ID.EARLY_ADOPTER]: '',
-};
-
 type BillingPlanFormProps = {
   value: string;
-  onChange: (priceId: string) => void;
+  onChange: (value: string) => void;
   plans: InternalClaimPlans;
   canCreateFreeOrganisation: boolean;
 };
 
-const BillingPlanForm = ({ value, onChange, plans, canCreateFreeOrganisation }: BillingPlanFormProps) => {
-  const { t } = useLingui();
+const BillingPlanForm = ({
+  value,
+  onChange,
+  plans,
+  canCreateFreeOrganisation,
+}: BillingPlanFormProps) => {
+  const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly');
 
-  const [billingPeriod, setBillingPeriod] = useState<'monthlyPrice' | 'yearlyPrice'>('yearlyPrice');
-
-  const dynamicPlans = useMemo(() => {
-    return [INTERNAL_CLAIM_ID.INDIVIDUAL, INTERNAL_CLAIM_ID.TEAM, INTERNAL_CLAIM_ID.PLATFORM].map((planId) => {
-      const plan = plans[planId];
-
-      return {
-        id: planId,
-        name: plan.name,
-        description: parseMessageDescriptorMacro(t, internalClaimsDescription[planId]),
-        monthlyPrice: plan.monthlyPrice,
-        yearlyPrice: plan.yearlyPrice,
-      };
-    });
+  const filteredPlans = useMemo(() => {
+    return Object.values(plans)
+      .filter((plan) => plan.monthlyPrice || plan.yearlyPrice)
+      .sort((a, b) => (a.monthlyPrice?.amount ?? 0) - (b.monthlyPrice?.amount ?? 0));
   }, [plans]);
 
-  useEffect(() => {
-    if (value === '' && !canCreateFreeOrganisation) {
-      onChange(dynamicPlans[0][billingPeriod]?.id ?? '');
-    }
-  }, [value]);
-
-  const onBillingPeriodChange = (billingPeriod: 'monthlyPrice' | 'yearlyPrice') => {
-    const plan = dynamicPlans.find(
-      (plan) =>
-        // Purposely using the opposite billing period to get the correct plan.
-        plan[billingPeriod === 'monthlyPrice' ? 'yearlyPrice' : 'monthlyPrice']?.id === value,
-    );
-
-    setBillingPeriod(billingPeriod);
-
-    onChange(plan?.[billingPeriod]?.id ?? Object.keys(plans)[0]);
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col space-y-4">
       <Tabs
-        className="flex w-full items-center justify-center"
-        defaultValue="monthlyPrice"
-        value={billingPeriod}
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        onValueChange={(value) => onBillingPeriodChange(value as 'monthlyPrice' | 'yearlyPrice')}
+        value={interval}
+        onValueChange={(value) => setInterval(value as 'monthly' | 'yearly')}
+        className="w-full"
       >
-        <TabsList className="flex w-full justify-center">
-          <TabsTrigger className="w-full" value="monthlyPrice">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="monthly">
             <Trans>Monthly</Trans>
           </TabsTrigger>
-          <TabsTrigger className="w-full" value="yearlyPrice">
+          <TabsTrigger value="yearly">
             <Trans>Yearly</Trans>
           </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      <div className="mt-4 grid gap-4 text-sm">
-        <button
-          onClick={() => onChange('')}
-          className={cn(
-            'flex cursor-pointer items-center space-x-2 rounded-md border p-4 transition-all hover:border-primary hover:shadow-sm',
-            {
-              'border-primary ring-2 ring-primary/10 ring-offset-1': '' === value,
-            },
-          )}
-          disabled={!canCreateFreeOrganisation}
-        >
-          <div className="w-full text-left">
-            <div className="flex items-center justify-between">
-              <p className="font-medium">
-                <Trans context="Plan price">Free</Trans>
+      <div className="flex flex-col space-y-2">
+        {filteredPlans.map((plan) => {
+          const price = interval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+
+          if (!price) {
+            return null;
+          }
+
+          const isFreePlan = price.amount === 0;
+
+          const isDisabled = isFreePlan && !canCreateFreeOrganisation;
+
+          return (
+            <button
+              key={plan.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => onChange(price.id)}
+              className={cn(
+                'relative flex flex-col items-start space-y-1 rounded-md border p-4 text-left transition-colors hover:bg-muted/50',
+                value === price.id && 'border-primary bg-primary/5 hover:bg-primary/5',
+                isDisabled && 'cursor-not-allowed opacity-50 hover:bg-transparent',
+              )}
+            >
+              <div className="flex w-full items-center justify-between">
+                <span className="font-semibold">
+                  {parseMessageDescriptorMacro(plan.name as unknown as MessageDescriptor)}
+                </span>
+                <span className="text-sm font-medium">
+                  {isFreePlan ? (
+                    <Trans>Free</Trans>
+                  ) : (
+                    <>
+                      ${price.amount / 100}
+                      <span className="text-muted-foreground">
+                        /{interval === 'monthly' ? t`mo` : t`yr`}
+                      </span>
+                    </>
+                  )}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {parseMessageDescriptorMacro(plan.description as unknown as MessageDescriptor)}
               </p>
-
-              <Badge size="small" variant="neutral" className="ml-1.5">
-                {canCreateFreeOrganisation ? (
-                  <Trans>1 Free organisations left</Trans>
-                ) : (
-                  <Trans>0 Free organisations left</Trans>
-                )}
-              </Badge>
-            </div>
-
-            <div className="text-muted-foreground">
-              <Trans>5 documents a month</Trans>
-            </div>
-          </div>
-        </button>
-
-        {dynamicPlans.map((plan) => (
-          <button
-            key={plan[billingPeriod]?.id}
-            onClick={() => onChange(plan[billingPeriod]?.id ?? '')}
-            className={cn(
-              'flex cursor-pointer items-center space-x-2 rounded-md border p-4 transition-all hover:border-primary hover:shadow-sm',
-              {
-                'border-primary ring-2 ring-primary/10 ring-offset-1': plan[billingPeriod]?.id === value,
-              },
-            )}
-          >
-            <div className="w-full text-left">
-              <p className="font-medium">{plan.name}</p>
-              <p className="text-muted-foreground">{plan.description}</p>
-            </div>
-            <div className="whitespace-nowrap text-right font-medium text-sm">
-              <p>{plan[billingPeriod]?.friendlyPrice}</p>
-              <span className="text-muted-foreground text-xs">
-                {billingPeriod === 'monthlyPrice' ? <Trans>per month</Trans> : <Trans>per year</Trans>}
-              </span>
-            </div>
-          </button>
-        ))}
+              {isDisabled && (
+                <Badge variant="secondary" className="mt-2">
+                  <Trans>Limit reached</Trans>
+                </Badge>
+              )}
+            </button>
+          );
+        })}
 
         <Link
           to="https://davincisolutions.ai/enterprise-cta"
           target="_blank"
           className="flex items-center space-x-2 rounded-md border bg-muted/30 p-4"
         >
-          <div className="flex-1 font-normal">
-            <p className="font-medium text-muted-foreground">
-              <Trans>Enterprise</Trans>
-            </p>
-            <p className="flex flex-row items-center gap-1 text-muted-foreground">
-              <Trans>Contact sales here</Trans>
-              <ExternalLinkIcon className="h-4 w-4" />
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold">
+                <Trans>Enterprise</Trans>
+              </span>
+              <ExternalLinkIcon className="h-3 w-3" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              <Trans>Custom solutions for your large-scale needs.</Trans>
             </p>
           </div>
-        </Link>
-      </div>
-
-      <div className="mt-6 text-center">
-        <Link
-          to="https://davincisolutions.ai/pricing"
-          className="flex items-center justify-center gap-1 text-primary text-sm hover:text-primary/80 hover:underline"
-          target="_blank"
-        >
-          <Trans>Compare all plans and features in detail</Trans>
-          <ExternalLinkIcon className="h-4 w-4" />
         </Link>
       </div>
     </div>
