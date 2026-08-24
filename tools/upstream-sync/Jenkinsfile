@@ -339,6 +339,10 @@ for t in touched:
                     } else {
                         echo "Build gate did not produce a result — fail-closed (merge blocked)."
                     }
+
+                    // Post actions run in a separate workspace, so archive here.
+                    archiveArtifacts artifacts: 'sync-output/*.txt, sync-output/*.md, sync-output/*.json',
+                        allowEmptyArchive: true
                 }
             }
         }
@@ -364,10 +368,24 @@ for t in touched:
 
                     // Set GITHUB_TOKEN for gh CLI and push URL for git.
                     env.GITHUB_TOKEN = env.GIT_PASS
-                    sh """
-                        git remote set-url origin https://\${GIT_USER}:\${GIT_PASS}@github.com/${FORK_REPO}.git
-                        git push origin ${env.SYNC_BRANCH} --force
-                    """
+                    sh "git remote set-url origin https://\${GIT_USER}:\${GIT_PASS}@github.com/${FORK_REPO}.git"
+
+                    def pushLog = sh(
+                        script: "git push origin ${env.SYNC_BRANCH} --force 2>&1 || true",
+                        returnStdout: true
+                    ).trim()
+                    echo pushLog
+                    if (pushLog.contains('remote rejected') || pushLog.contains('failed to push')) {
+                        // The content-level .github/workflows/ discard above cannot prevent this
+                        // class of rejection: GitHub inspects every pushed commit, and the merge
+                        // brings upstream commit objects that modify workflow files.
+                        def hint = pushLog.contains('workflows') ?
+                            "Upstream commits touch .github/workflows/ and the GitHub App token lacks the workflows permission. Fix: GitHub App settings -> Repository permissions -> Workflows: Read and write, then approve the updated permission on the org installation." :
+                            "Push rejected - see build log."
+                        notifyTeams("Upstream Sync BLOCKED - push rejected",
+                            "${hint}\\n\\nBuild: ${env.BUILD_URL}", "FF0000")
+                        error "Push rejected: ${hint}"
+                    }
 
                     // Close any existing PR for this sync branch.
                     sh(script: "gh pr close ${env.SYNC_BRANCH} --repo ${FORK_REPO} 2>/dev/null || true", returnStatus: true)
@@ -443,6 +461,14 @@ for t in touched:
                         }
                         prBody = prBody + "\n\n---\n## Merge gate blocked auto-merge\n\nThis sync did not pass every gate, so it was **not** auto-merged. Review and fix before merging.\n\n```\n" + gateReport + "\n```\n"
 
+                        // Give the reviewer the actual gate errors, not just a count.
+                        if (fileExists('sync-output/build_gate_failures.txt')) {
+                            def gateFails = readFile('sync-output/build_gate_failures.txt').trim()
+                            if (gateFails) {
+                                prBody = prBody + "\n### Build gate failures\n\n```\n" + gateFails + "\n```\n"
+                            }
+                        }
+
                         writeFile file: 'sync-output/gh_pr_body.md', text: prBody
 
                         sh """
@@ -475,6 +501,18 @@ for t in touched:
                             "Branch **${env.SYNC_BRANCH}** did not pass all merge gates (build / brand sweep / regression / conflicts).\\n\\nCommits: ${env.COMMIT_COUNT}\\n[Review PR](${prUrl})",
                             "FFA500")
                     }
+
+                    // Supersede older sync PRs — each daily sync branches fresh from main
+                    // and merges the full upstream, so older open sync PRs are fully
+                    // contained in this one.
+                    sh(script: """
+                        gh pr list --repo ${FORK_REPO} --state open --json number,headRefName \
+                            --jq '.[] | select(.headRefName | startswith("upstream-sync/")) | select(.headRefName != "${env.SYNC_BRANCH}") | .number' |
+                        while read n; do
+                            gh pr close "\$n" --repo ${FORK_REPO} \
+                                --comment "Superseded by ${env.SYNC_BRANCH} (each daily sync branches fresh from main and merges the full upstream)."
+                        done
+                    """, returnStatus: true)
                 }
                 } // withCredentials
             }
@@ -484,8 +522,9 @@ for t in touched:
     post {
         failure {
             node('dev-jenkinsrunner-01.davincisolutions.ai') {
+                // env.STAGE_NAME here is always "Declarative: Post Actions" — don't report it.
                 notifyTeams("Upstream Sync FAILED",
-                    "Pipeline failed at stage: ${env.STAGE_NAME}\\n\\nBuild: ${env.BUILD_URL}",
+                    "Pipeline failed — see console log.\\n\\nBuild: ${env.BUILD_URL}",
                     "FF0000")
             }
         }
