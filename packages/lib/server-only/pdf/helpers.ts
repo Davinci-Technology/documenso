@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
+import { FontLibrary } from '@documenso/skia-canvas';
 import type { Recipient } from '@prisma/client';
 import { FieldType } from '@prisma/client';
-import { FontLibrary } from 'skia-canvas';
 import { match } from 'ts-pattern';
 
 /**
@@ -137,7 +137,7 @@ const extractRecipientPlaceholder = (placeholder: string): RecipientPlaceholderI
   const recipientIndex = Number(indexMatch[1]);
 
   return {
-    email: `recipient.${recipientIndex}@documenso.com`,
+    email: `recipient.${recipientIndex}@davincisolutions.ai`,
     name: `Recipient ${recipientIndex}`,
     recipientIndex,
   };
