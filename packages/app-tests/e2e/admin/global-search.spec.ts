@@ -450,7 +450,7 @@ test('[ADMIN][GLOBAL_SEARCH]: capped recipients group links to the admin documen
 
   for (let i = 0; i < 5; i++) {
     documents.push(
-      await seedPendingDocument(sender, team.id, [`${recipientPrefix}-${i}@test.documenso.com`], {
+      await seedPendingDocument(sender, team.id, [`${recipientPrefix}-${i}@test.davincisolutions.ai`], {
         createDocumentOptions: { title: `recipient-viewall-${nanoid()}` },
       }),
     );
@@ -498,13 +498,13 @@ test('[ADMIN][GLOBAL_SEARCH]: view all results updates the documents page when a
 
   for (let i = 0; i < 5; i++) {
     documents.push(
-      await seedPendingDocument(sender, team.id, [`${recipientPrefix}-${i}@test.documenso.com`], {
+      await seedPendingDocument(sender, team.id, [`${recipientPrefix}-${i}@test.davincisolutions.ai`], {
         createDocumentOptions: { title: `recipient-live-${nanoid()}` },
       }),
     );
   }
 
-  const controlDocument = await seedPendingDocument(sender, team.id, [`control-${nanoid()}@test.documenso.com`], {
+  const controlDocument = await seedPendingDocument(sender, team.id, [`control-${nanoid()}@test.davincisolutions.ai`], {
     createDocumentOptions: { title: `recipient-live-control-${nanoid()}` },
   });
 

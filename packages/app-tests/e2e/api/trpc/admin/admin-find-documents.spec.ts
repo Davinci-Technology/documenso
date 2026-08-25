@@ -52,13 +52,13 @@ test('[ADMIN][TRPC][FIND_DOCUMENTS]: recipient prefix matches by recipient email
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: sender, team } = await seedUser();
 
-  const recipientEmail = `recipient-find-${nanoid()}@test.documenso.com`;
+  const recipientEmail = `recipient-find-${nanoid()}@test.davincisolutions.ai`;
 
   const matchingDocument = await seedPendingDocument(sender, team.id, [recipientEmail], {
     createDocumentOptions: { title: `recipient-find-match-${nanoid()}` },
   });
 
-  const otherDocument = await seedPendingDocument(sender, team.id, [`other-${nanoid()}@test.documenso.com`], {
+  const otherDocument = await seedPendingDocument(sender, team.id, [`other-${nanoid()}@test.davincisolutions.ai`], {
     createDocumentOptions: { title: `recipient-find-other-${nanoid()}` },
   });
 
@@ -132,7 +132,7 @@ test('[ADMIN][TRPC][FIND_DOCUMENTS]: recipient prefix with numeric value matches
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: sender, team } = await seedUser();
 
-  const matchingDocument = await seedPendingDocument(sender, team.id, [`recipient-id-${nanoid()}@test.documenso.com`], {
+  const matchingDocument = await seedPendingDocument(sender, team.id, [`recipient-id-${nanoid()}@test.davincisolutions.ai`], {
     createDocumentOptions: { title: `recipient-id-match-${nanoid()}` },
   });
 
@@ -143,7 +143,7 @@ test('[ADMIN][TRPC][FIND_DOCUMENTS]: recipient prefix with numeric value matches
   const decoyDocument = await seedPendingDocument(
     sender,
     team.id,
-    [`decoy-${recipient.id}-${nanoid()}@test.documenso.com`],
+    [`decoy-${recipient.id}-${nanoid()}@test.davincisolutions.ai`],
     {
       createDocumentOptions: { title: `recipient-id-decoy-${nanoid()}` },
     },
@@ -188,7 +188,7 @@ test('[ADMIN][TRPC][FIND_DOCUMENTS]: recipient prefix with oversized number fall
   const matchingDocument = await seedPendingDocument(
     sender,
     team.id,
-    [`${oversizedNumber}-${nanoid()}@test.documenso.com`],
+    [`${oversizedNumber}-${nanoid()}@test.davincisolutions.ai`],
     {
       createDocumentOptions: { title: `recipient-oversized-${nanoid()}` },
     },

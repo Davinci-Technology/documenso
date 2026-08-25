@@ -10231,7 +10231,7 @@ msgid "Sender reported"
 msgstr "已举报发件人"
 
 #: apps/remix/app/components/general/settings-upsell/email-domains-upsell.tsx
-msgid "Sending from app.documenso.com"
+msgid "Sending from app.davincisolutions.ai"
 msgstr ""
 
 #: apps/remix/app/components/general/settings-upsell/email-domains-upsell.tsx
