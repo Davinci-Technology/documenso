@@ -17,9 +17,9 @@ test('[ADMIN]: promote member to owner', async ({ page }) => {
   });
 
   // Create organisation members with different roles
-  const memberEmail = `member-${nanoid()}@test.documenso.com`;
-  const managerEmail = `manager-${nanoid()}@test.documenso.com`;
-  const adminMemberEmail = `admin-member-${nanoid()}@test.documenso.com`;
+  const memberEmail = `member-${nanoid()}@test.davincisolutions.ai`;
+  const managerEmail = `manager-${nanoid()}@test.davincisolutions.ai`;
+  const adminMemberEmail = `admin-member-${nanoid()}@test.davincisolutions.ai`;
 
   const [memberUser, managerUser, adminMemberUser] = await seedOrganisationMembers({
     members: [
@@ -127,7 +127,7 @@ test('[ADMIN]: promote manager to owner', async ({ page }) => {
     isPersonalOrganisation: false,
   });
 
-  const managerEmail = `manager-${nanoid()}@test.documenso.com`;
+  const managerEmail = `manager-${nanoid()}@test.davincisolutions.ai`;
 
   const [managerUser] = await seedOrganisationMembers({
     members: [
@@ -186,7 +186,7 @@ test('[ADMIN]: promote admin member to owner', async ({ page }) => {
     isPersonalOrganisation: false,
   });
 
-  const adminMemberEmail = `admin-member-${nanoid()}@test.documenso.com`;
+  const adminMemberEmail = `admin-member-${nanoid()}@test.davincisolutions.ai`;
 
   const [adminMemberUser] = await seedOrganisationMembers({
     members: [
@@ -271,7 +271,7 @@ test('[ADMIN]: verify role hierarchy after promotion', async ({ page }) => {
     isPersonalOrganisation: false,
   });
 
-  const memberEmail = `member-${nanoid()}@test.documenso.com`;
+  const memberEmail = `member-${nanoid()}@test.davincisolutions.ai`;
 
   const [memberUser] = await seedOrganisationMembers({
     members: [
@@ -338,7 +338,7 @@ test('[ADMIN]: verify role hierarchy after promotion', async ({ page }) => {
   });
 
   // Verify they can access organisation settings (owner permission)
-  await expect(page.getByText('Organisation Settings')).toBeVisible();
+  await expect(page.getByTestId('unified-settings-sidebar')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
 });
 
@@ -372,8 +372,8 @@ test('[ADMIN]: multiple promotions in sequence', async ({ page }) => {
     isPersonalOrganisation: false,
   });
 
-  const member1Email = `member1-${nanoid()}@test.documenso.com`;
-  const member2Email = `member2-${nanoid()}@test.documenso.com`;
+  const member1Email = `member1-${nanoid()}@test.davincisolutions.ai`;
+  const member2Email = `member2-${nanoid()}@test.davincisolutions.ai`;
 
   const [member1User, member2User] = await seedOrganisationMembers({
     members: [
@@ -475,7 +475,7 @@ test('[ADMIN]: verify organisation access after ownership change', async ({ page
     isPersonalOrganisation: false,
   });
 
-  const memberEmail = `member-${nanoid()}@test.documenso.com`;
+  const memberEmail = `member-${nanoid()}@test.davincisolutions.ai`;
 
   const [memberUser] = await seedOrganisationMembers({
     members: [
@@ -524,9 +524,9 @@ test('[ADMIN]: verify organisation access after ownership change', async ({ page
   });
 
   // Should be able to access organisation settings
-  await expect(page.getByText('Organisation Settings')).toBeVisible();
+  await expect(page.getByTestId('unified-settings-sidebar')).toBeVisible();
   await expect(page.getByLabel('Organisation Name*')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Update organisation' })).toBeVisible();
+  await expect(page.getByLabel('Organisation Name*')).toBeEnabled();
 
   // Should have delete permissions
   await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
@@ -539,5 +539,5 @@ test('[ADMIN]: verify organisation access after ownership change', async ({ page
   });
 
   // Should still be able to access settings (as they should now be an admin)
-  await expect(page.getByText('Organisation Settings')).toBeVisible();
+  await expect(page.getByTestId('unified-settings-sidebar')).toBeVisible();
 });

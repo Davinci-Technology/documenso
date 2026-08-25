@@ -7,6 +7,8 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
+<EnvelopeWarning />
+
 ## Prerequisites
 
 - A Documenso account (cloud or self-hosted)
@@ -73,14 +75,14 @@ Include the token in the `Authorization` header of your HTTP requests.
 ### cURL
 
 ```bash
-curl https://app.documenso.com/api/v2/document \
+curl https://app.davincisolutions.ai/api/v2/document \
   -H "Authorization: api_xxxxxxxxxxxxxxxx"
 ```
 
 ### JavaScript / TypeScript
 
 ```typescript
-const response = await fetch('https://app.documenso.com/api/v2/document', {
+const response = await fetch('https://app.davincisolutions.ai/api/v2/document', {
   method: 'GET',
   headers: {
     Authorization: 'api_xxxxxxxxxxxxxxxx',
@@ -110,14 +112,14 @@ SDKs are available for [TypeScript](https://github.com/documenso/sdk-typescript)
 
 | Environment | Base URL                               |
 | ----------- | -------------------------------------- |
-| Production  | `https://app.documenso.com/api/v2`     |
-| Staging     | `https://stg-app.documenso.com/api/v2` |
+| Production  | `https://app.davincisolutions.ai/api/v2`     |
+| Staging     | `https://stg-app.davincisolutions.ai/api/v2` |
 | Self-hosted | `https://your-domain.com/api/v2`       |
 
 <Callout type="info">
   API V1 is deprecated. Use V2 for all new integrations. V1 only works with legacy documents created
   before the envelope system. If you need V1 documentation for migration purposes, see the [V1
-  OpenAPI reference](https://app.documenso.com/api/v1/openapi).
+  OpenAPI reference](https://app.davincisolutions.ai/api/v1/openapi).
 </Callout>
 
 <Callout type="info">

@@ -13,7 +13,7 @@ export const RecipientExpiredTemplate = ({
   documentName = 'Open Source Pledge.pdf',
   recipientName = 'John Doe',
   recipientEmail = 'john@example.com',
-  documentLink = 'https://documenso.com',
+  documentLink = 'https://davincisolutions.ai',
   assetBaseUrl = 'http://localhost:3002',
 }: RecipientExpiredEmailTemplateProps) => {
   const { _ } = useLingui();
@@ -23,9 +23,10 @@ export const RecipientExpiredTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
 
       <Body className="mx-auto my-auto bg-background font-sans">
+        <Preview>{_(previewText)}</Preview>
+
         <Section>
           <Container className="mx-auto mt-8 mb-2 max-w-xl rounded-lg border border-border border-solid p-4 backdrop-blur-sm">
             <Section>

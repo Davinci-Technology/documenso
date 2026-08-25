@@ -35,7 +35,7 @@ Download the production Docker Compose file:
 
 ```bash
 mkdir documenso && cd documenso
-curl -O https://raw.githubusercontent.com/documenso/documenso/release/docker/production/compose.yml
+curl -O https://raw.githubusercontent.com/davinci/davinci-sign/release/docker/production/compose.yml
 ```
 
 Alternatively, clone the full repository:
@@ -71,7 +71,7 @@ Add the required configuration (see [Environment Configuration](#environment-con
 The production `compose.yml` includes two services:
 
 ```yaml
-name: documenso-production
+name: davinci-sign-production
 
 services:
   database:
@@ -81,7 +81,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?err}
       - POSTGRES_DB=${POSTGRES_DB:?err}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,7 +89,7 @@ services:
       - database:/var/lib/postgresql/data
 
   documenso:
-    image: documenso/documenso:latest
+    image: davinci/davinci-sign:latest
     depends_on:
       database:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
     ports:
       - ${PORT:-3000}:${PORT:-3000}
     volumes:
-      - /opt/documenso/cert.p12:/opt/documenso/cert.p12:ro
+      - /opt/davinci-sign/cert.p12:/opt/davinci-sign/cert.p12:ro
 
 volumes:
   database:
@@ -163,6 +163,19 @@ NEXT_PUBLIC_DISABLE_SIGNUP=false
 # NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNUP=true
 # NEXT_PUBLIC_DISABLE_OIDC_SIGNUP=true
 # NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS=example.com,acme.org
+
+# Signin restrictions (optional)
+# Master switch — disables every signin method
+# NEXT_PUBLIC_DISABLE_SIGNIN=true
+# Per-method switches (optional). Each disables that signin path.
+# NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_SIGNIN=true
+# NEXT_PUBLIC_DISABLE_GOOGLE_SIGNIN=true
+# NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNIN=true
+# NEXT_PUBLIC_DISABLE_OIDC_SIGNIN=true
+
+# When OIDC is the only enabled transport, /signin auto-redirects to the provider.
+# Set this to opt out and keep showing the signin page (optional).
+# NEXT_PUBLIC_DISABLE_OIDC_AUTO_REDIRECT=true
 ```
 
 <Callout type="info">Generate secure secrets using: `openssl rand -base64 32`</Callout>
@@ -193,9 +206,9 @@ Place the certificate on the host and set permissions so the container can read 
 
 ```bash
 sudo mkdir -p /opt/documenso
-sudo cp /path/to/your/cert.p12 /opt/documenso/cert.p12
-sudo chown 1001:1001 /opt/documenso/cert.p12
-sudo chmod 400 /opt/documenso/cert.p12
+sudo cp /path/to/your/cert.p12 /opt/davinci-sign/cert.p12
+sudo chown 1001:1001 /opt/davinci-sign/cert.p12
+sudo chmod 400 /opt/davinci-sign/cert.p12
 ```
 
 The `compose.yml` mounts this path into the container. Add the passphrase to your `.env` file:
@@ -232,8 +245,8 @@ Expected output:
 
 ```
 NAME                             STATUS              PORTS
-documenso-production-database-1  running (healthy)   5432/tcp
-documenso-production-documenso-1 running             0.0.0.0:3000->3000/tcp
+davinci-sign-production-database-1  running (healthy)   5432/tcp
+davinci-sign-production-documenso-1 running             0.0.0.0:3000->3000/tcp
 ```
 
 Wait for the database to be healthy and for migrations to complete. Check the logs:

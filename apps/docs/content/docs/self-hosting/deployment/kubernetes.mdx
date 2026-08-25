@@ -131,7 +131,7 @@ data:
   NEXT_PRIVATE_SMTP_FROM_NAME: 'Documenso'
   NEXT_PRIVATE_SMTP_FROM_ADDRESS: 'noreply@example.com'
   NEXT_PRIVATE_INTERNAL_WEBAPP_URL: 'http://localhost:3000'
-  NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: '/opt/documenso/cert.p12'
+  NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: '/opt/davinci-sign/cert.p12'
   NEXT_PUBLIC_UPLOAD_TRANSPORT: 'database'
 ```
 
@@ -178,7 +178,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: documenso
-          image: documenso/documenso:latest
+          image: davinci/davinci-sign:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -222,7 +222,7 @@ spec:
             failureThreshold: 30
           volumeMounts:
             - name: signing-cert
-              mountPath: /opt/documenso/cert.p12
+              mountPath: /opt/davinci-sign/cert.p12
               subPath: cert.p12
               readOnly: true
       volumes:
@@ -235,7 +235,7 @@ spec:
 ```
 
 <Callout type="info">
-  Pin to a specific image tag (e.g., `documenso/documenso:1.5.0`) in production instead of `latest`
+  Pin to a specific image tag (e.g., `davinci/davinci-sign:<version>`) in production instead of `latest`
   to ensure predictable deployments.
 </Callout>
 
@@ -699,7 +699,7 @@ data:
   NEXT_PRIVATE_SMTP_FROM_NAME: 'Documenso'
   NEXT_PRIVATE_SMTP_FROM_ADDRESS: 'noreply@example.com'
   NEXT_PRIVATE_INTERNAL_WEBAPP_URL: 'http://localhost:3000'
-  NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: '/opt/documenso/cert.p12'
+  NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: '/opt/davinci-sign/cert.p12'
   NEXT_PUBLIC_UPLOAD_TRANSPORT: 'database'
 ---
 apiVersion: v1
@@ -739,7 +739,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: documenso
-          image: documenso/documenso:latest
+          image: davinci/davinci-sign:latest
           ports:
             - name: http
               containerPort: 3000
@@ -776,7 +776,7 @@ spec:
             failureThreshold: 30
           volumeMounts:
             - name: signing-cert
-              mountPath: /opt/documenso/cert.p12
+              mountPath: /opt/davinci-sign/cert.p12
               subPath: cert.p12
               readOnly: true
       volumes:

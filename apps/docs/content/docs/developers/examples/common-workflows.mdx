@@ -8,6 +8,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
+<EnvelopeWarning />
+
 ## Workflow 1: Send a Document for Signature
 
 The most common workflow: upload a PDF, add recipients with signature fields, and send for signing.
@@ -29,7 +31,7 @@ The most common workflow: upload a PDF, add recipients with signature fields, an
 <Tab value="TypeScript">
 ```typescript
 const API_TOKEN = process.env.DOCUMENSO_API_TOKEN;
-const BASE_URL = 'https://app.documenso.com/api/v2';
+const BASE_URL = 'https://app.davincisolutions.ai/api/v2';
 
 type Recipient = {
   email: string;
@@ -160,7 +162,7 @@ result.recipients.forEach((r) => console.log(`${r.email}: ${r.signingUrl}`));
 set -e
 
 API_TOKEN="YOUR_API_TOKEN"
-BASE_URL="https://app.documenso.com/api/v2"
+BASE_URL="https://app.davincisolutions.ai/api/v2"
 PDF_FILE="./contract.pdf"
 
 # Step 1: Create envelope with recipients and fields
@@ -263,7 +265,7 @@ Use templates for repeatable document workflows. This example creates an employm
 <Tab value="TypeScript">
 ```typescript
 const API_TOKEN = process.env.DOCUMENSO_API_TOKEN;
-const BASE_URL = 'https://app.documenso.com/api/v2';
+const BASE_URL = 'https://app.davincisolutions.ai/api/v2';
 
 type EmployeeData = {
   email: string;
@@ -403,7 +405,7 @@ console.log('Signing URL:', result.signingUrl);
 set -e
 
 API_TOKEN="YOUR_API_TOKEN"
-BASE_URL="https://app.documenso.com/api/v2"
+BASE_URL="https://app.davincisolutions.ai/api/v2"
 TEMPLATE_ID=123
 
 # Variables
@@ -472,7 +474,7 @@ Send the same document to multiple recipients in parallel. Useful for policy ack
     <code>distributeDocument: true</code>
   </Step>
   <Step>
-    Process in batches with a short delay to respect rate limits (e.g. 100 requests/minute)
+    Process in batches with a short delay to respect rate limits (e.g. 1000 requests/minute)
   </Step>
 </Steps>
 
@@ -480,7 +482,7 @@ Send the same document to multiple recipients in parallel. Useful for policy ack
 <Tab value="TypeScript">
 ```typescript
 const API_TOKEN = process.env.DOCUMENSO_API_TOKEN;
-const BASE_URL = 'https://app.documenso.com/api/v2';
+const BASE_URL = 'https://app.davincisolutions.ai/api/v2';
 
 type BulkRecipient = {
   email: string;
@@ -588,7 +590,7 @@ results.failed.forEach((f) => console.error(`${f.email}: ${f.error}`));
 #!/bin/bash
 
 API_TOKEN="YOUR_API_TOKEN"
-BASE_URL="https://app.documenso.com/api/v2"
+BASE_URL="https://app.davincisolutions.ai/api/v2"
 TEMPLATE_ID=456
 
 # Get signer slot ID from template
@@ -638,8 +640,8 @@ done
 </Tabs>
 
 <Callout type="info">
-  The API allows 100 requests per minute. For large batches, implement rate limiting with delays
-  between requests to avoid hitting limits.
+  The API allows 1000 requests per minute (your organisation may have its own lower limit). For large
+  batches, implement rate limiting with delays between requests to avoid hitting limits.
 </Callout>
 
 ---
@@ -833,7 +835,7 @@ After a document is completed, download the signed PDF with all signatures embed
 <Tab value="TypeScript">
 ```typescript
 const API_TOKEN = process.env.DOCUMENSO_API_TOKEN;
-const BASE_URL = 'https://app.documenso.com/api/v2';
+const BASE_URL = 'https://app.davincisolutions.ai/api/v2';
 
 type DownloadVersion = 'signed' | 'original';
 
@@ -919,7 +921,7 @@ await downloadAllCompletedDocuments('./downloads');
 #!/bin/bash
 
 API_TOKEN="YOUR_API_TOKEN"
-BASE_URL="https://app.documenso.com/api/v2"
+BASE_URL="https://app.davincisolutions.ai/api/v2"
 ENVELOPE_ID="envelope_abc123"
 OUTPUT_DIR="./downloads"
 
@@ -998,9 +1000,12 @@ async function fetchWithRetry(
       // Retry on rate limit
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After');
-        const delay = retryAfter ? parseInt(retryAfter) * 1000 : baseDelayMs * Math.pow(2, attempt);
+        // Honor Retry-After exactly; the cap only applies to the exponential fallback.
+        const delay = retryAfter
+          ? parseInt(retryAfter) * 1000
+          : Math.min(baseDelayMs * Math.pow(2, attempt), maxDelayMs);
         console.log(`Rate limited, waiting ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, Math.min(delay, maxDelayMs)));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
 
@@ -1150,7 +1155,7 @@ function validatePdfFile(buffer: Buffer, maxSizeMb = 10) {
 
 ## See Also
 
-- [API Reference](https://openapi.documenso.com/) - Full endpoint documentation
+- [API Reference](https://openapi.davincisolutions.ai/) - Full endpoint documentation
 - [Documents API](/docs/developers/api/documents) - Document operations
 - [Templates API](/docs/developers/api/templates) - Template management
 - [Webhooks](/docs/developers/webhooks/setup) - Webhook configuration

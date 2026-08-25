@@ -14,13 +14,13 @@ Verifying webhook requests ensures that incoming payloads originate from Documen
 
 ## How Documenso Signs Webhooks
 
-When you configure a webhook with a secret, Documenso includes that secret in every webhook request via the `X-Documenso-Secret` header. Your server should compare this header value against your stored secret to authenticate the request.
+When you configure a webhook with a secret, Documenso includes that secret in every webhook request via the `X-Davinci-Secret` header. Your server should compare this header value against your stored secret to authenticate the request.
 
 ```bash
 POST /your-webhook-endpoint HTTP/1.1
 Host: your-server.com
 Content-Type: application/json
-X-Documenso-Secret: your_webhook_secret_here
+X-Davinci-Secret: your_webhook_secret_here
 
 {"event": "DOCUMENT_COMPLETED", "payload": {...}}
 ```
@@ -29,7 +29,7 @@ X-Documenso-Secret: your_webhook_secret_here
 
 | Header               | Description                                             |
 | -------------------- | ------------------------------------------------------- |
-| `X-Documenso-Secret` | The secret key you configured when creating the webhook |
+| `X-Davinci-Secret` | The secret key you configured when creating the webhook |
 
 The header contains your webhook secret as a plain string. If you did not configure a secret, the header will be an empty string.
 
@@ -38,7 +38,7 @@ The header contains your webhook secret as a plain string. If you did not config
 {/* prettier-ignore */}
 <Steps>
   <Step>
-    Extract the `X-Documenso-Secret` header from the incoming request
+    Extract the `X-Davinci-Secret` header from the incoming request
   </Step>
   <Step>
     Compare it against your stored webhook secret using a constant-time comparison
@@ -139,7 +139,7 @@ def verify_webhook_signature(received_secret, expected_secret):
 
 @app.route('/webhooks/documenso', methods=['POST'])
 def handle_webhook():
-    received_secret = request.headers.get('X-Documenso-Secret', '')
+    received_secret = request.headers.get('X-Davinci-Secret', '')
 
     if not verify_webhook_signature(received_secret, WEBHOOK_SECRET):
         print('Webhook verification failed')
@@ -255,6 +255,7 @@ const validEvents = [
   'DOCUMENT_REJECTED',
   'DOCUMENT_CANCELLED',
   'DOCUMENT_REMINDER_SENT',
+  'RECIPIENT_EXPIRED',
   'TEMPLATE_CREATED',
   'TEMPLATE_UPDATED',
   'TEMPLATE_DELETED',

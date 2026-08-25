@@ -34,6 +34,25 @@ Davinci Sign provides a fast, secure, and easy document signing experience for b
 - Full control over your document signing infrastructure
 - Integration with your existing workflows
 
+## Community and Next Steps 🎯
+
+- Try Davinci Sign by self-hosting it or visiting [davincisolutions.ai](https://davincisolutions.ai).
+- Tell us what you think in the [Davinci Sign Discussions](https://github.com/documenso/documenso/discussions).
+- Join the [Discord server](https://documen.so/discord) for any questions and getting to know other community members.
+- ⭐ the repository to help us raise awareness.
+- Open detailed [issues](https://github.com/documenso/documenso/issues) to report bugs or propose features.
+
+## Contributing
+
+> **Note**: We no longer accept external pull requests, aside from a small group of trusted contributors we reach out to directly. The best way to contribute is through detailed issues. Read [Why We're Pausing External Pull Requests](https://davincisolutions.ai/blog/why-we-re-pausing-external-pull-requests) for the reasoning.
+
+- Davinci Sign stays open source. You can read, audit, run, and fork the code.
+- To report issues or propose changes, see our [contribution guide](https://github.com/documenso/documenso/blob/main/CONTRIBUTING.md).
+
+## Contact us
+
+Contact us if you are interested in our Enterprise plan for large organizations that need extra flexibility and control at [support@davincisolutions.ai](mailto:support@davincisolutions.ai).
+
 ## Tech Stack
 
 <p align="left">
@@ -42,14 +61,16 @@ Davinci Sign provides a fast, secure, and easy document signing experience for b
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/tailwindcss-0F172A?&logo=tailwindcss" alt="Tailwind CSS"></a>
 </p>
 
-- [Typescript](https://www.typescriptlang.org/) - Language
-- [ReactRouter](https://reactrouter.com/) - Framework
+- [TypeScript](https://www.typescriptlang.org/) - Language
+- [React Router v7](https://reactrouter.com/) - Framework
+- [Hono](https://hono.dev/) - Server
 - [Prisma](https://www.prisma.io/) - ORM
-- [Tailwind](https://tailwindcss.com/) - CSS
-- [shadcn/ui](https://ui.shadcn.com/) - Component Library
+- [Tailwind CSS](https://tailwindcss.com/) - CSS
+- [shadcn/ui](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) - Component Library
 - [react-email](https://react.email/) - Email Templates
+- [Lingui](https://lingui.dev/) - Internationalization
 - [tRPC](https://trpc.io/) - API
-- [@documenso/pdf-sign](https://www.npmjs.com/package/@documenso/pdf-sign) - PDF Signatures (launching soon)
+- [@documenso/pdf-sign](https://www.npmjs.com/package/@documenso/pdf-sign) - PDF Signatures
 - [React-PDF](https://github.com/wojtekmaj/react-pdf) - Viewing PDFs
 - [PDF-Lib](https://github.com/Hopding/pdf-lib) - PDF manipulation
 - [Stripe](https://stripe.com/) - Payments
@@ -142,40 +163,4 @@ For local docker run:
 
 ```bash
 docker run -it davinci/davinci-sign:latest npm run start -- -H ::
-```
-
-### One-Click Deploys
-
-#### Railway
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/DjrRRX?referralCode=EZR3s0&utm_medium=integration&utm_source=template&utm_campaign=generic)
-
-#### Render
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/documenso/documenso)
-
-#### Koyeb
-
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/documenso/documenso&branch=main&name=documenso-app&builder=dockerfile&dockerfile=/docker/Dockerfile)
-
-#### Elestio
-
-[![Deploy on Elestio](https://elest.io/images/logos/deploy-to-elestio-btn.png)](https://elest.io/open-source/documenso)
-
-## Troubleshooting
-
-For troubleshooting self-hosted deployments, see the [Troubleshooting guide](https://docs.davincisolutions.ai/docs/self-hosting/maintenance/troubleshooting) and [Tips & Common Pitfalls](https://docs.davincisolutions.ai/docs/self-hosting/getting-started/tips).
-
-### I'm not receiving any emails when using the developer quickstart.
-
-When using the developer quickstart, an [Inbucket](https://inbucket.org/) server will be spun up in a docker container that will store all outgoing emails locally for you to view.
-
-The Web UI can be found at http://localhost:9000, while the SMTP port will be on localhost:2500.
-
-### I can't see environment variables in my package scripts.
-
-Wrap your package script with the `with:env` script like such:
-
-```bash
-npm run with:env <script>
 ```

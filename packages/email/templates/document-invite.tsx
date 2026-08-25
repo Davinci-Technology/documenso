@@ -58,11 +58,11 @@ export const DocumentInviteEmailTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
+      <Body className="mx-auto my-auto bg-background font-sans">
+        <Preview>{_(previewText)}</Preview>
 
-      <Body className="mx-auto my-auto bg-white font-sans">
         <Section>
-          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-slate-200 p-4 backdrop-blur-sm">
+          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-border p-4 backdrop-blur-sm">
             <Section>
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
@@ -88,17 +88,17 @@ export const DocumentInviteEmailTemplate = ({
           <Container className="mx-auto mt-12 max-w-xl">
             <Section>
               {organisationType === OrganisationType.PERSONAL && (
-                <Text className="my-4 text-base font-semibold">
+                <Text className="my-4 text-base font-semibold text-foreground">
                   <Trans>
                     {inviterName}{' '}
-                    <Link className="font-normal text-slate-400" href="mailto:{inviterEmail}">
+                    <Link className="font-normal text-muted-foreground" href={`mailto:${inviterEmail}`}>
                       ({inviterEmail})
                     </Link>
                   </Trans>
                 </Text>
               )}
 
-              <Text className="mt-2 text-base text-slate-400">
+              <Text className="mt-2 text-base text-muted-foreground">
                 {customBody ? (
                   <TemplateCustomMessageBody text={customBody} />
                 ) : (

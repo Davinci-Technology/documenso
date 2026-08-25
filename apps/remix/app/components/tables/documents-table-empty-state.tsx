@@ -1,7 +1,7 @@
 import { ExtendedDocumentStatus } from '@documenso/prisma/types/extended-document-status';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
-import { CheckCircle2, FileText, XCircle } from 'lucide-react';
+import { Bird, CheckCircle2, TimerOff, XCircle } from 'lucide-react';
 import { match } from 'ts-pattern';
 
 export type DocumentsTableEmptyStateProps = { status: ExtendedDocumentStatus };
@@ -29,10 +29,20 @@ export const DocumentsTableEmptyState = ({ status }: DocumentsTableEmptyStatePro
       message: msg`There are no cancelled documents. Documents you cancel will remain here as a record that they were distributed.`,
       icon: XCircle,
     }))
+    .with(ExtendedDocumentStatus.REJECTED, () => ({
+      title: msg`No rejected documents`,
+      message: msg`There are no rejected documents. Documents that a recipient declines to sign will appear here.`,
+      icon: XCircle,
+    }))
+    .with(ExtendedDocumentStatus.EXPIRED, () => ({
+      title: msg`No expired documents`,
+      message: msg`There are no documents with expired signing links. You can redistribute a document to renew its expiration.`,
+      icon: TimerOff,
+    }))
     .with(ExtendedDocumentStatus.ALL, () => ({
       title: msg`We're all empty`,
       message: msg`You have not yet created or received any documents. To create a document please upload one.`,
-      icon: FileText,
+      icon: Bird,
     }))
     .otherwise(() => ({
       title: msg`Nothing to do`,

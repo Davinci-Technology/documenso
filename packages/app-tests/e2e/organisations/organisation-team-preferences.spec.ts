@@ -35,12 +35,24 @@ test('[ORGANISATIONS]: manage document preferences', async ({ page }) => {
   await page.getByTestId('signature-types-trigger').click();
   await page.getByRole('option', { name: 'Draw' }).click();
   await page.getByRole('option', { name: 'Upload' }).click();
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
+  await expect(page.getByText('Your document preferences have been updated').first()).toBeVisible();
+
+  // Sender details moved to the email preferences page.
+  await page.goto(`/o/${organisation.url}/settings/email`);
   await page.getByTestId('include-sender-details-trigger').click();
   await page.getByRole('option', { name: 'No' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
+  await expect(page.getByText('Your email preferences have been updated').first()).toBeVisible();
+
+  // The signing certificate toggle moved to the certificates page.
+  await page.goto(`/o/${organisation.url}/settings/certificates`);
   await page.getByTestId('include-signing-certificate-trigger').click();
   await page.getByRole('option', { name: 'No' }).click();
-  await page.getByRole('button', { name: 'Update' }).first().click();
-  await expect(page.getByText('Your document preferences have been updated').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
+  await expect(page.getByText('Your certificate preferences have been updated').first()).toBeVisible();
 
   const teamSettings = await getTeamSettings({
     teamId: team.id,
@@ -73,7 +85,7 @@ test('[ORGANISATIONS]: manage document preferences', async ({ page }) => {
   await page.getByTestId('document-date-format-trigger').click();
   await page.getByRole('option', { name: 'MM/DD/YYYY', exact: true }).click();
 
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your document preferences have been updated').first()).toBeVisible();
 
   const updatedTeamSettings = await getTeamSettings({
@@ -125,10 +137,10 @@ test('[ORGANISATIONS]: manage branding preferences', async ({ page }) => {
   await page.getByTestId('enable-branding').click();
   await page.getByRole('option', { name: 'Yes' }).click();
   await page.getByRole('textbox', { name: 'Brand Website' }).click();
-  await page.getByRole('textbox', { name: 'Brand Website' }).fill('https://documenso.com');
+  await page.getByRole('textbox', { name: 'Brand Website' }).fill('https://davincisolutions.ai');
   await page.getByRole('textbox', { name: 'Brand Details' }).click();
   await page.getByRole('textbox', { name: 'Brand Details' }).fill('BrandDetails');
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your branding preferences have been updated').first()).toBeVisible();
 
   const teamSettings = await getTeamSettings({
@@ -137,7 +149,7 @@ test('[ORGANISATIONS]: manage branding preferences', async ({ page }) => {
 
   // Check that the team settings have inherited these values.
   expect(teamSettings.brandingEnabled).toEqual(true);
-  expect(teamSettings.brandingUrl).toEqual('https://documenso.com');
+  expect(teamSettings.brandingUrl).toEqual('https://davincisolutions.ai');
   expect(teamSettings.brandingCompanyDetails).toEqual('BrandDetails');
 
   // Edit the team branding settings
@@ -150,7 +162,7 @@ test('[ORGANISATIONS]: manage branding preferences', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Brand Website' }).fill('https://example.com');
   await page.getByRole('textbox', { name: 'Brand Details' }).click();
   await page.getByRole('textbox', { name: 'Brand Details' }).fill('UpdatedBrandDetails');
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your branding preferences have been updated').first()).toBeVisible();
 
   const updatedTeamSettings = await getTeamSettings({
@@ -165,7 +177,7 @@ test('[ORGANISATIONS]: manage branding preferences', async ({ page }) => {
   // Test inheritance by setting team back to inherit from organisation
   await page.getByTestId('enable-branding').click();
   await page.getByRole('option', { name: 'Inherit from organisation' }).click();
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your branding preferences have been updated').first()).toBeVisible();
 
   await page.waitForTimeout(2000);
@@ -176,7 +188,7 @@ test('[ORGANISATIONS]: manage branding preferences', async ({ page }) => {
 
   // Check that the team settings now inherit from organisation again.
   expect(inheritedTeamSettings.brandingEnabled).toEqual(true);
-  expect(inheritedTeamSettings.brandingUrl).toEqual('https://documenso.com');
+  expect(inheritedTeamSettings.brandingUrl).toEqual('https://davincisolutions.ai');
   expect(inheritedTeamSettings.brandingCompanyDetails).toEqual('BrandDetails');
 
   // Verify that a document can be created successfully with the branding settings
@@ -201,14 +213,14 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
   // Update email preferences at organisation level.
   // Set reply to email
   await page.getByRole('textbox', { name: 'Reply to email' }).click();
-  await page.getByRole('textbox', { name: 'Reply to email' }).fill('organisation@documenso.com');
+  await page.getByRole('textbox', { name: 'Reply to email' }).fill('organisation@davincisolutions.ai');
 
   // Update email document settings by enabling/disabling some checkboxes
   await page.getByRole('checkbox', { name: 'Email the owner when a recipient signs' }).uncheck();
   await page.getByRole('checkbox', { name: 'Email the signer if the document is still pending' }).uncheck();
   await page.getByRole('checkbox', { name: 'Email recipients when a pending document is deleted' }).uncheck();
 
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your email preferences have been updated').first()).toBeVisible();
 
   const teamSettings = await getTeamSettings({
@@ -216,7 +228,7 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
   });
 
   // Check that the team settings have inherited these values.
-  expect(teamSettings.emailReplyTo).toEqual('organisation@documenso.com');
+  expect(teamSettings.emailReplyTo).toEqual('organisation@davincisolutions.ai');
   expect(teamSettings.emailDocumentSettings).toEqual({
     recipientSigningRequest: true,
     recipientRemoved: true,
@@ -236,8 +248,14 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Reply to email' }).click();
   await page.getByRole('textbox', { name: 'Reply to email' }).fill('team@example.com');
 
-  // Change email document settings inheritance to controlled
-  await page.getByRole('combobox').filter({ hasText: 'Inherit from organisation' }).click();
+  // Change email document settings inheritance to controlled. Scope to the
+  // email-document-settings field — the sender-details select on this page also
+  // renders an "Inherit from organisation" value.
+  await page
+    .getByTestId('inheritable-email-document-settings')
+    .getByRole('combobox')
+    .filter({ hasText: 'Inherit from organisation' })
+    .click();
   await page.getByRole('option', { name: 'Override organisation settings' }).click();
 
   // Update some email settings
@@ -245,7 +263,7 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
   await page.getByRole('checkbox', { name: 'Email recipients when the document is completed', exact: true }).uncheck();
   await page.getByRole('checkbox', { name: 'Email the owner when the document is completed' }).uncheck();
 
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your email preferences have been updated').first()).toBeVisible();
 
   const updatedTeamSettings = await getTeamSettings({
@@ -292,7 +310,7 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Reply to email' }).fill('');
   await page.getByRole('combobox').filter({ hasText: 'Override organisation settings' }).click();
   await page.getByRole('option', { name: 'Inherit from organisation' }).click();
-  await page.getByRole('button', { name: 'Update' }).first().click();
+  await page.getByRole('button', { name: 'Save changes' }).first().click();
   await expect(page.getByText('Your email preferences have been updated').first()).toBeVisible();
 
   await page.waitForTimeout(1000);
@@ -302,7 +320,7 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
   });
 
   // Check that the team settings now inherit from organisation again.
-  expect(inheritedTeamSettings.emailReplyTo).toEqual('organisation@documenso.com');
+  expect(inheritedTeamSettings.emailReplyTo).toEqual('organisation@davincisolutions.ai');
   expect(inheritedTeamSettings.emailDocumentSettings).toEqual({
     recipientSigningRequest: true,
     recipientRemoved: true,
@@ -324,7 +342,7 @@ test('[ORGANISATIONS]: manage email preferences', async ({ page }) => {
     },
   });
 
-  expect(documentMeta.emailReplyTo).toEqual('organisation@documenso.com');
+  expect(documentMeta.emailReplyTo).toEqual('organisation@davincisolutions.ai');
   expect(documentMeta.emailSettings).toEqual({
     recipientSigningRequest: true,
     recipientRemoved: true,

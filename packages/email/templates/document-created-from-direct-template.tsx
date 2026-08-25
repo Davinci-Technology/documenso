@@ -35,11 +35,11 @@ export const DocumentCreatedFromDirectTemplateEmailTemplate = ({
   return (
     <Html>
       <Head />
-      <Preview>{_(previewText)}</Preview>
-
       <Body className="mx-auto my-auto font-sans">
-        <Section className="bg-white">
-          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-slate-200 p-2 backdrop-blur-sm">
+        <Preview>{_(previewText)}</Preview>
+
+        <Section className="bg-background">
+          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-border p-2 backdrop-blur-sm">
             <Section className="p-2">
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
@@ -50,13 +50,13 @@ export const DocumentCreatedFromDirectTemplateEmailTemplate = ({
               <TemplateDocumentImage className="mt-6" assetBaseUrl={assetBaseUrl} />
 
               <Section>
-                <Text className="mb-0 text-center text-lg font-semibold text-primary">
+                <Text className="mb-0 text-center text-lg font-semibold text-foreground">
                   <Trans>
                     {recipientName} {action} a document by using one of your direct links
                   </Trans>
                 </Text>
 
-                <div className="mx-auto my-2 w-fit rounded-lg bg-gray-50 px-4 py-2 text-sm text-slate-600">
+                <div className="mx-auto my-2 w-fit rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
                   {documentName}
                 </div>
 
