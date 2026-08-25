@@ -11,6 +11,7 @@ import { isRouteErrorResponse, Link, Outlet } from 'react-router';
 import { Header as AuthenticatedHeader } from '~/components/general/app-header';
 import { BrandingLogo } from '~/components/general/branding-logo';
 import { GenericErrorLayout } from '~/components/general/generic-error-layout';
+import { SourceCodeFooter } from '~/components/general/source-code-footer';
 import { appMetaTags } from '~/utils/meta';
 
 import type { Route } from './+types/_layout';
@@ -35,7 +36,7 @@ export default function PublicProfileLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       {sessionData ? (
         <AuthenticatedHeader />
       ) : (
@@ -91,6 +92,8 @@ export default function PublicProfileLayout() {
       <main className="my-8 px-4 md:my-12 md:px-8">
         <Outlet />
       </main>
+
+      <SourceCodeFooter />
     </div>
   );
 }

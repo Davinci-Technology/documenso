@@ -66,6 +66,18 @@ export const API_V2_URL = '/api/v2';
 
 export const SUPPORT_EMAIL = env('NEXT_PUBLIC_SUPPORT_EMAIL') ?? 'support@davincisolutions.ai';
 
+/**
+ * The public URL where the complete, corresponding source code for this
+ * deployment can be obtained.
+ *
+ * This powers the in-app source offer required by section 13 of the
+ * GNU AGPL-3.0: every user interacting with this (modified) instance over a
+ * network must be offered access to its source. Override per-deployment with
+ * `NEXT_PUBLIC_SOURCE_CODE_URL` (e.g. to pin a tag/commit matching the build).
+ */
+export const SOURCE_CODE_URL = () =>
+  env('NEXT_PUBLIC_SOURCE_CODE_URL') ?? 'https://github.com/Davinci-Technology/documenso';
+
 export const USE_INTERNAL_URL_BROWSERLESS = () => env('NEXT_PUBLIC_USE_INTERNAL_URL_BROWSERLESS') === 'true';
 
 /**

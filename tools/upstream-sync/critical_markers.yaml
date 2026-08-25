@@ -36,3 +36,18 @@ markers:
   # from team settings — upstream's caller does not pass it).
   apps/remix/app/routes/_recipient+/sign.$token+/_index.tsx:
     - "brandingEnabled: settings.brandingEnabled"
+
+  # AGPL section 13 compliance — the in-app source offer and the upstream
+  # attribution. A sync (or the brand sweep) must never drop these.
+  packages/lib/constants/app.ts:
+    - SOURCE_CODE_URL
+  apps/remix/app/components/general/source-code-footer.tsx:
+    - SOURCE_CODE_URL
+  apps/remix/app/routes/_authenticated+/_layout.tsx:
+    - SourceCodeFooter
+  apps/remix/app/routes/_recipient+/_layout.tsx:
+    - SourceCodeFooter
+  apps/remix/app/routes/_unauthenticated+/_layout.tsx:
+    - SourceCodeFooter
+  README.md:
+    - modified fork of [Documenso](https://github.com/documenso/documenso)

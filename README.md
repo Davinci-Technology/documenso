@@ -2,7 +2,7 @@
 
 Professional electronic signature solution by Davinci AI Solutions.
 
-> **Note:** This project is based on [Davinci Sign](https://github.com/documenso/documenso), an open-source document signing platform. We extend our gratitude to the Davinci Sign team for their excellent work.
+> **Note:** This project is a modified fork of [Documenso](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Documenso team for their excellent work. The complete corresponding source for this fork is available in this repository.
 
 <p align="center" style="margin-top: 20px">
   <p align="center">
