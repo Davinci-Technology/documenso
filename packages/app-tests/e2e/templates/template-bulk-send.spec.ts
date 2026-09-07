@@ -16,7 +16,7 @@ test('[TEMPLATES]: bulk send via CSV from the table action dropdown', async ({ p
     teamId: team.id,
   });
 
-  const uniqueRecipientEmail = `bulk-send-${Date.now()}@documenso.com`;
+  const uniqueRecipientEmail = `bulk-send-${Date.now()}@davincisolutions.ai`;
 
   await apiSignin({
     page,
