@@ -1,4 +1,5 @@
 import { Column, Img, Row, Section } from '../components';
+import { getEmailAssetUrl } from '../utils/asset-url';
 
 export interface TemplateDocumentImageProps {
   assetBaseUrl: string;
@@ -6,10 +7,6 @@ export interface TemplateDocumentImageProps {
 }
 
 export const TemplateDocumentImage = ({ assetBaseUrl, className }: TemplateDocumentImageProps) => {
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
-
   return (
     <Section className={className}>
       <Row className="table-fixed">
@@ -17,8 +14,8 @@ export const TemplateDocumentImage = ({ assetBaseUrl, className }: TemplateDocum
 
         <Column>
           <Img
-            className="h-42 mx-auto"
-            src={getAssetUrl('/static/document.png')}
+            className="mx-auto h-42"
+            src={getEmailAssetUrl(assetBaseUrl, 'static/document.png')}
             alt="Davinci Sign"
           />
         </Column>
