@@ -1,8 +1,9 @@
 import { env } from '@documenso/lib/utils/env';
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 
-import { Button, Column, Img, Link, Section, Text } from "../components";
-import { TemplateDocumentImage } from "./template-document-image";
+import { Button, Column, Img, Link, Section, Text } from '../components';
+import { getEmailAssetUrl } from '../utils/asset-url';
+import { TemplateDocumentImage } from './template-document-image';
 
 export interface TemplateDocumentSelfSignedProps {
   documentName: string;
@@ -13,13 +14,9 @@ export const TemplateDocumentSelfSigned = ({
   documentName,
   assetBaseUrl,
 }: TemplateDocumentSelfSignedProps) => {
-  const NEXT_PUBLIC_WEBAPP_URL = env("NEXT_PUBLIC_WEBAPP_URL");
+  const NEXT_PUBLIC_WEBAPP_URL = env('NEXT_PUBLIC_WEBAPP_URL');
 
-  const signUpUrl = `${NEXT_PUBLIC_WEBAPP_URL ?? "http://localhost:3002"}/signup`;
-
-  const getAssetUrl = (path: string) => {
-    return new URL(path, assetBaseUrl).toString();
-  };
+  const signUpUrl = `${NEXT_PUBLIC_WEBAPP_URL ?? 'http://localhost:3002'}/signup`;
 
   return (
     <>
@@ -30,7 +27,7 @@ export const TemplateDocumentSelfSigned = ({
           <Column align="center">
             <Text className="text-base font-semibold text-[#1A98CF]">
               <Img
-                src={getAssetUrl("/static/completed.png")}
+                src={getEmailAssetUrl(assetBaseUrl, 'static/completed.png')}
                 className="-mt-0.5 mr-2 inline h-7 w-7 align-middle"
                 alt=""
               />
@@ -39,20 +36,20 @@ export const TemplateDocumentSelfSigned = ({
           </Column>
         </Section>
 
-        <Text className="mt-6 mb-0 text-center text-lg font-semibold text-primary">
+        <Text className="mt-6 mb-0 text-center text-lg font-semibold text-foreground">
           <Trans>You have signed “{documentName}”</Trans>
         </Text>
 
-        <Text className="mx-auto mt-1 mb-6 max-w-[80%] text-center text-base text-slate-400">
+        <Text className="mx-auto mt-1 mb-6 max-w-[80%] text-center text-base text-muted-foreground">
           <Trans>
-            Create a{" "}
+            Create a{' '}
             <Link
               href={signUpUrl}
               target="_blank"
-              className="whitespace-nowrap text-documenso-700 hover:text-documenso-600"
+              className="whitespace-nowrap text-primary hover:text-primary"
             >
               free account
-            </Link>{" "}
+            </Link>{' '}
             to access your signed documents at any time.
           </Trans>
         </Text>
@@ -60,10 +57,10 @@ export const TemplateDocumentSelfSigned = ({
         <Section className="mt-8 mb-6 text-center">
           <Button
             href={signUpUrl}
-            className="mr-4 rounded-lg border border-solid border-slate-200 px-4 py-2 text-center text-sm font-medium text-black no-underline"
+            className="mr-4 rounded-lg border border-solid border-border px-4 py-2 text-center text-sm font-medium text-foreground no-underline"
           >
             <Img
-              src={getAssetUrl("/static/user-plus.png")}
+              src={getEmailAssetUrl(assetBaseUrl, 'static/user-plus.png')}
               className="mr-2 mb-0.5 inline h-5 w-5 align-middle"
               alt=""
             />
@@ -71,11 +68,11 @@ export const TemplateDocumentSelfSigned = ({
           </Button>
 
           <Button
-            className="rounded-lg border border-solid border-slate-200 px-4 py-2 text-center text-sm font-medium text-black no-underline"
+            className="rounded-lg border border-solid border-border px-4 py-2 text-center text-sm font-medium text-foreground no-underline"
             href="https://davincisolutions.ai"
           >
             <Img
-              src={getAssetUrl("/static/review.png")}
+              src={getEmailAssetUrl(assetBaseUrl, 'static/review.png')}
               className="mr-2 mb-0.5 inline h-5 w-5 align-middle"
               alt=""
             />
