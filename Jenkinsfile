@@ -210,6 +210,8 @@ spec:
                     string(credentialsId: 'davinci-sign-minio-password', variable: 'MINIO_PASSWORD'),
                     string(credentialsId: 'davinci-sign-smtp-password', variable: 'SMTP_PASSWORD'),
                     string(credentialsId: 'davinci-sign-cert-passphrase', variable: 'CERT_PASSPHRASE'),
+                    string(credentialsId: 'davinci-sign-oidc-client-id', variable: 'OIDC_CLIENT_ID'),
+                    string(credentialsId: 'davinci-sign-oidc-client-secret', variable: 'OIDC_CLIENT_SECRET'),
                     file(credentialsId: 'davinci-sign-certificate-p12', variable: 'CERT_FILE')
                 ]) {
                     container('kubectl') {
@@ -241,6 +243,8 @@ spec:
                                 --from-literal=NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY="${MINIO_PASSWORD}" \
                                 --from-literal=NEXT_PRIVATE_SMTP_PASSWORD="${SMTP_PASSWORD}" \
                                 --from-literal=NEXT_PRIVATE_SIGNING_PASSPHRASE="${CERT_PASSPHRASE}" \
+                                --from-literal=OIDC_CLIENT_ID="${OIDC_CLIENT_ID}" \
+                                --from-literal=OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET}" \
                                 --dry-run=client -o yaml | kubectl apply -f -
 
                             # Create certificate secret from file

@@ -45,15 +45,20 @@ data:
   NEXT_PRIVATE_SIGNING_TRANSPORT: "local"
   NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: "/opt/davinci-sign/cert.p12"
 
-  # OIDC (Azure AD) - can be enabled for SSO
-  # NEXT_PRIVATE_OIDC_WELL_KNOWN: "https://login.microsoftonline.com/953021b0-d492-4cc9-8551-e0b35080b03a/v2.0/.well-known/openid-configuration"
-  # NEXT_PRIVATE_OIDC_PROVIDER_LABEL: "Sign in with Microsoft"
-  # NEXT_PRIVATE_OIDC_SKIP_VERIFY: "true"
+  # OIDC (Azure AD / Entra ID) - enabled for SSO (single-tenant app)
+  NEXT_PRIVATE_OIDC_WELL_KNOWN: "https://login.microsoftonline.com/953021b0-d492-4cc9-8551-e0b35080b03a/v2.0/.well-known/openid-configuration"
+  NEXT_PRIVATE_OIDC_PROVIDER_LABEL: "Sign in with Microsoft"
+  # Entra emits no email_verified claim; bypass verification (mandatory for Azure AD).
+  NEXT_PRIVATE_OIDC_SKIP_VERIFY: "true"
 
   # Features (billing disabled for internal use initially)
   NEXT_PUBLIC_FEATURE_BILLING_ENABLED: "false"
   NEXT_PUBLIC_DISABLE_SIGNUP: "false"
   NEXT_PUBLIC_DISABLE_ONBOARDING: "false"
+  # Link-only SSO: users link an Entra account instead of signing up via OIDC.
+  NEXT_PUBLIC_DISABLE_OIDC_SIGNUP: "true"
+  # Restrict signups to the company domain.
+  NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS: "davincisolutions.ai"
   NEXT_PUBLIC_DOCUMENT_LINK_ENABLED: "true"
 
   # Document limits
