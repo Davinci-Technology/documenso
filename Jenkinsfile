@@ -130,10 +130,10 @@ spec:
     command: ['sleep', '9999']
     resources:
       requests:
-        memory: "4Gi"
+        memory: "10Gi"
         cpu: "1000m"
       limits:
-        memory: "8Gi"
+        memory: "16Gi"
         cpu: "2000m"
 '''
                 }
