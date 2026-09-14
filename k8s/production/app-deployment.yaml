@@ -31,7 +31,7 @@ spec:
       # Init container to create MinIO bucket
       initContainers:
         - name: create-bucket
-          image: minio/mc:latest
+          image: davinciai.azurecr.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
           command:
             - sh
             - -c
