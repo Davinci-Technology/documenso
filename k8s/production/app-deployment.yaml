@@ -138,6 +138,17 @@ spec:
                 secretKeyRef:
                   name: davinci-sign-secrets
                   key: NEXT_PRIVATE_SIGNING_PASSPHRASE
+            # Azure AD (Entra ID) OIDC SSO — client ID + secret from Jenkins-managed secret
+            - name: NEXT_PRIVATE_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: OIDC_CLIENT_ID
+            - name: NEXT_PRIVATE_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: OIDC_CLIENT_SECRET
 
           volumeMounts:
             - name: certificate
