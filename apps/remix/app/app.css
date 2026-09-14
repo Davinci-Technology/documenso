@@ -1,19 +1,21 @@
 @import "@documenso/ui/styles/theme.css";
 
-/* Inter Variable Fonts */
+/* Open Sans Variable Fonts (Davinci AI Solutions brand font, May 2025 guideline) */
 @font-face {
-  font-family: "Inter";
-  src: url("/fonts/inter-variablefont_opsz,wght.ttf") format("truetype-variations");
-  font-weight: 100 900;
+  font-family: "Open Sans";
+  src: url("/fonts/open-sans-variablefont_wdth,wght.ttf") format("truetype-variations");
+  font-weight: 300 800;
+  font-stretch: 75% 100%;
   font-style: normal;
   font-display: swap;
 }
 
-/* Inter Italic Variable Fonts */
+/* Open Sans Italic Variable Fonts */
 @font-face {
-  font-family: "Inter";
-  src: url("/fonts/inter-italic-variablefont_opsz,wght.ttf") format("truetype-variations");
-  font-weight: 100 900;
+  font-family: "Open Sans";
+  src: url("/fonts/open-sans-italic-variablefont_wdth,wght.ttf") format("truetype-variations");
+  font-weight: 300 800;
+  font-stretch: 75% 100%;
   font-style: italic;
   font-display: swap;
 }
@@ -64,7 +66,7 @@
 
 @layer base {
   :root {
-    --font-sans: "Inter";
+    --font-sans: "Open Sans", Arial;
     --font-signature: "Caveat";
     --font-noto: "Noto Sans", "Noto Sans Korean", "Noto Sans Japanese", "Noto Sans Chinese";
   }
