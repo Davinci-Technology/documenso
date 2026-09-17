@@ -381,7 +381,7 @@ test.describe('Organisation Templates - Use from different team', () => {
     // Add a recipient to the org template so we can use it.
     await prisma.recipient.create({
       data: {
-        email: 'recipient@test.documenso.com',
+        email: 'recipient@test.davincisolutions.ai',
         name: 'Recipient',
         token: Math.random().toString().slice(2, 7),
         envelopeId: orgTemplate.id,

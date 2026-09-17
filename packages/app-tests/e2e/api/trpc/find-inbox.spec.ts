@@ -259,7 +259,7 @@ test.describe('Inbox Find - Search Hardening', () => {
     const { user: sender, team: senderTeam } = await seedUser({ name: 'Sender Person' });
     const { user: recipient } = await seedUser({ name: 'Recipient Person' });
 
-    await seedPendingDocument(sender, senderTeam.id, ['zebra-person@test.documenso.com', recipient], {
+    await seedPendingDocument(sender, senderTeam.id, ['zebra-person@test.davincisolutions.ai', recipient], {
       createDocumentOptions: {
         title: 'Plain Title',
         externalId: 'ext-hidden-identifier',
