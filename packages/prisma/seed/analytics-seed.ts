@@ -24,7 +24,7 @@ import { seedBlankTemplate } from './templates';
 
 /**
  * One-off seed script: creates three teams with analytics-friendly data inside
- * the organisation owned by `admin@documenso.com` (created by `initial-seed.ts`).
+ * the organisation owned by `admin@davincisolutions.ai` (created by `initial-seed.ts`).
  *
  * Run via:
  *   npm run with:env -- tsx packages/prisma/seed/analytics-seed.ts
@@ -41,9 +41,9 @@ import { seedBlankTemplate } from './templates';
  *   - "members"               = organisation members attached to the team's role groups
  */
 
-const ADMIN_EMAIL = 'admin@documenso.com';
+const ADMIN_EMAIL = 'admin@davincisolutions.ai';
 const ADMIN_PASSWORD = 'password';
-const MEMBER_EMAIL_DOMAIN = 'test.documenso.com';
+const MEMBER_EMAIL_DOMAIN = 'test.davincisolutions.ai';
 const WEBAPP_URL = process.env.NEXT_PUBLIC_WEBAPP_URL ?? 'http://localhost:49000';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
