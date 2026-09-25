@@ -31,6 +31,22 @@ markers:
     - Davinci Sign
   apps/remix/app/components/general/branding-logo.tsx:
     - Davinci Sign
+    - logo-white.svg
+  # Davinci emblem replaces the upstream Documenso mark (viewBox is ours).
+  apps/remix/app/components/general/branding-logo-icon.tsx:
+    - viewBox="0 0 1148 1148"
+
+  # Visual Identity guideline (May 2025): Davinci Blue #0B98CE, Open Sans.
+  packages/ui/styles/theme.css:
+    - "197 90% 43%"
+  packages/tailwind-config/index.cjs:
+    - "#0B98CE"
+  apps/remix/app/app.css:
+    - Open Sans
+  packages/email/tailwind.config.js:
+    - Open Sans
+  packages/assets/site.webmanifest:
+    - Davinci Sign
 
   # Fork-only customization on the V1 signing page (custom branding prop fed
   # from team settings — upstream's caller does not pass it).

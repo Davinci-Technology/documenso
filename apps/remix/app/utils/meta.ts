@@ -3,14 +3,9 @@ import { i18n, type MessageDescriptor } from '@lingui/core';
 
 export const appMetaTags = (title?: MessageDescriptor | string) => {
   const description =
-    'Davinci Sign - Professional electronic signature solution by Davinci AI Solutions. Fast, secure, and easy document signing for businesses. Streamline your workflow with our powerful e-signature platform.';
+    'Davinci Sign is the electronic signature platform from Davinci AI Solutions. Send, sign, and seal agreements with a verifiable audit trail, so your documents move without waiting on paper.';
 
-  const resolvedTitle = 
-    typeof title === 'string' 
-      ? title 
-      : title 
-        ? i18n._(title) 
-        : '';
+  const resolvedTitle = typeof title === 'string' ? title : title ? i18n._(title) : '';
 
   return [
     {
@@ -35,7 +30,7 @@ export const appMetaTags = (title?: MessageDescriptor | string) => {
     },
     {
       property: 'og:title',
-      content: 'Davinci Sign - Professional Electronic Signature Solution',
+      content: 'Davinci Sign - Electronic Signatures by Davinci AI Solutions',
     },
     {
       property: 'og:description',
