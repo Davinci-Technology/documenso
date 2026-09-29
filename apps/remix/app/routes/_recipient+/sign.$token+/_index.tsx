@@ -83,22 +83,23 @@ const handleV1Loader = async ({ params, request }: Route.LoaderArgs) => {
         })
       : [recipient];
 
-  if (
-    document.documentMeta?.signingOrder === DocumentSigningOrder.SEQUENTIAL &&
-    recipient.role !== RecipientRole.ASSISTANT
-  ) {
-    const nextPendingRecipient = await getNextPendingRecipient({
-      documentId: document.id,
-      currentRecipientId: recipient.id,
-    });
+  // Dictation eligibility must be decided here, over the FULL recipient list
+  // — the same computation the completion route enforces. `allRecipients` is
+  // role-scoped (assistants only see strictly later steps, not their own
+  // group peers), so deriving it client-side from that list would offer
+  // dictation the server then silently ignores.
+  const nextPendingRecipient =
+    document.documentMeta?.signingOrder === DocumentSigningOrder.SEQUENTIAL
+      ? await getNextPendingRecipient({
+          documentId: document.id,
+          currentRecipientId: recipient.id,
+        })
+      : null;
 
-    if (nextPendingRecipient) {
-      allRecipients.push({
-        ...nextPendingRecipient,
-        fields: [],
-      });
-    }
-  }
+  // Only the identity is needed client-side (dictation flag + prefill).
+  const nextRecipient = nextPendingRecipient
+    ? { name: nextPendingRecipient.name, email: nextPendingRecipient.email }
+    : null;
 
   const { derivedRecipientAccessAuth } = extractDocumentAuthMethods({
     documentAuth: document.authOptions,
@@ -160,6 +161,7 @@ const handleV1Loader = async ({ params, request }: Route.LoaderArgs) => {
     recipient,
     recipientWithFields,
     allRecipients,
+    nextRecipient,
     completedFields,
     recipientSignature,
     isRecipientsTurn,
@@ -341,6 +343,7 @@ const SigningPageV1 = ({ data }: { data: Awaited<ReturnType<typeof handleV1Loade
     recipientSignature,
     isRecipientsTurn,
     allRecipients,
+    nextRecipient,
     includeSenderDetails,
     recipientWithFields,
     branding,
@@ -414,6 +417,7 @@ const SigningPageV1 = ({ data }: { data: Awaited<ReturnType<typeof handleV1Loade
             completedFields={completedFields}
             isRecipientsTurn={isRecipientsTurn}
             allRecipients={allRecipients}
+            nextRecipient={nextRecipient ?? undefined}
             includeSenderDetails={includeSenderDetails}
             branding={branding}
           />
