@@ -67,19 +67,21 @@ module.exports = {
           DEFAULT: 'hsl(var(--widget))',
           foreground: 'hsl(var(--widget-foreground))',
         },
+        // Davinci AI Solutions palette (Visual Identity guideline, May 2025).
+        // Internal key kept as `documenso` so upstream class names keep working.
         documenso: {
-          DEFAULT: '#1A98CF',
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#1A98CF',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          DEFAULT: '#0B98CE', // Davinci Blue
+          50: '#F0F0F0', // Davinci Steam
+          100: '#DDDDDD', // Davinci Cloud
+          200: '#8FD7E5', // Davinci Beach
+          300: '#8FD7E5', // Davinci Beach
+          400: '#0B98CE', // Davinci Blue
+          500: '#0B98CE', // Davinci Blue
+          600: '#316EA8', // Davinci Denim
+          700: '#316EA8', // Davinci Denim
+          800: '#143562', // Davinci Midnight
+          900: '#143562', // Davinci Midnight
+          950: '#143562', // Davinci Midnight
         },
         dawn: {
           DEFAULT: '#aaa89f',
