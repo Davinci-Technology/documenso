@@ -31,8 +31,8 @@ type SeededGroupEnvelope = {
 const seedGroupedAssistantEnvelope = async (request: APIRequestContext): Promise<SeededGroupEnvelope> => {
   const timestamp = Date.now();
 
-  const peerEmail = `peer-signer-${timestamp}@documenso.com`;
-  const laterEmail = `later-signer-${timestamp}@documenso.com`;
+  const peerEmail = `peer-signer-${timestamp}@davincisolutions.ai`;
+  const laterEmail = `later-signer-${timestamp}@davincisolutions.ai`;
 
   const { envelope, distributeResult } = await apiSeedPendingDocument(request, {
     title: '[TEST] Grouped assistant envelope',
@@ -41,7 +41,7 @@ const seedGroupedAssistantEnvelope = async (request: APIRequestContext): Promise
     },
     recipients: [
       {
-        email: `assistant-${timestamp}@documenso.com`,
+        email: `assistant-${timestamp}@davincisolutions.ai`,
         name: 'Assistant',
         role: 'ASSISTANT',
         signingOrder: 1,

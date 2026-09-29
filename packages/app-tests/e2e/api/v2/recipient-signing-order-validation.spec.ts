@@ -22,7 +22,7 @@ const createRecipient = async (request: APIRequestContext, token: string, envelo
       envelopeId,
       data: [
         {
-          email: `signing-order-${Date.now()}-${signingOrder}@documenso.com`,
+          email: `signing-order-${Date.now()}-${signingOrder}@davincisolutions.ai`,
           name: 'Signing Order Test',
           role: 'SIGNER',
           signingOrder,

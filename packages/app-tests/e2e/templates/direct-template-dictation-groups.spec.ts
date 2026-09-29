@@ -22,12 +22,12 @@ const requestMetadata: ApiRequestMetadata = {
   auth: null,
 };
 
-const PEER_EMAIL = 'peer@documenso.com';
+const PEER_EMAIL = 'peer@davincisolutions.ai';
 const PEER_NAME = 'Peer Signer';
-const LATER_EMAIL = 'later@documenso.com';
+const LATER_EMAIL = 'later@davincisolutions.ai';
 const LATER_NAME = 'Later Signer';
 
-const DICTATED = { email: 'dictated@documenso.com', name: 'Dictated Signer' };
+const DICTATED = { email: 'dictated@davincisolutions.ai', name: 'Dictated Signer' };
 
 /**
  * Seeds a direct template whose direct recipient sits at `directSigningOrder`,
@@ -112,7 +112,7 @@ const seedDirectTemplateWithPeer = async (options: { peerSigningOrder: number })
 const signDirectTemplate = async (seeded: Awaited<ReturnType<typeof seedDirectTemplateWithPeer>>) =>
   await createDocumentFromDirectTemplate({
     directRecipientName: 'Direct Signer',
-    directRecipientEmail: 'direct-signer@documenso.com',
+    directRecipientEmail: 'direct-signer@davincisolutions.ai',
     directTemplateToken: seeded.directLinkToken,
     templateUpdatedAt: seeded.templateUpdatedAt,
     signedFieldValues: [

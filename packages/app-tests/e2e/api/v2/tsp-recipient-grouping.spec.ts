@@ -28,7 +28,7 @@ const createRecipients = async (
     data: {
       envelopeId,
       data: recipients.map((recipient, index) => ({
-        email: `tsp-grouping-${Date.now()}-${index}@documenso.com`,
+        email: `tsp-grouping-${Date.now()}-${index}@davincisolutions.ai`,
         name: `TSP Recipient ${index}`,
         role: 'SIGNER',
         ...recipient,
