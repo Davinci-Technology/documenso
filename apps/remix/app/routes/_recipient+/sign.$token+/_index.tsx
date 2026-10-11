@@ -1,7 +1,14 @@
 import signingCelebration from '@documenso/assets/images/signing-celebration.png';
 import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
+import {
+  expiredCscBlockingErrorCookieHeader,
+  readCscBlockingErrorFromRequest,
+} from '@documenso/ee/server-only/signing/csc/cookies/blocking-error-cookie';
+import { readCscSadSessionFromRequest } from '@documenso/ee/server-only/signing/csc/cookies/sad-session-cookie';
+import { readCscServiceSessionFromRequest } from '@documenso/ee/server-only/signing/csc/cookies/service-session-cookie';
 import { EnvelopeRenderProvider } from '@documenso/lib/client-only/providers/envelope-render-provider';
 import { useOptionalSession } from '@documenso/lib/client-only/providers/session';
+import { IS_INSTANCE_CSC_MODE } from '@documenso/lib/constants/app';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import { loadRecipientBrandingByTeamId } from '@documenso/lib/server-only/branding/load-recipient-branding';
 import { getDocumentAndSenderByToken } from '@documenso/lib/server-only/document/get-document-by-token';
@@ -16,8 +23,10 @@ import { getRecipientByToken } from '@documenso/lib/server-only/recipient/get-re
 import { getRecipientSignatures } from '@documenso/lib/server-only/recipient/get-recipient-signatures';
 import { getRecipientsForAssistant } from '@documenso/lib/server-only/recipient/get-recipients-for-assistant';
 import { getTeamSettings } from '@documenso/lib/server-only/team/get-team-settings';
+import { assertSenderNotDisabled } from '@documenso/lib/server-only/user/assert-user-not-disabled';
 import { getUserByEmail } from '@documenso/lib/server-only/user/get-user-by-email';
 import { DocumentAccessAuth } from '@documenso/lib/types/document-auth';
+import { isTspEnvelope } from '@documenso/lib/types/signature-level';
 import { extractDocumentAuthMethods } from '@documenso/lib/utils/document-auth';
 import { isRecipientExpired } from '@documenso/lib/utils/recipients';
 import { prisma } from '@documenso/prisma';
@@ -30,11 +39,14 @@ import { getOptionalLoaderContext } from 'server/utils/get-loader-session';
 import { match } from 'ts-pattern';
 
 import { Header as AuthenticatedHeader } from '~/components/general/app-header';
+import { CscRecipientBlockedPage } from '~/components/general/document-signing/csc-recipient-blocked-page';
+import { CscRecipientSigningInProgressPage } from '~/components/general/document-signing/csc-recipient-signing-in-progress-page';
 import { DocumentSigningAuthPageView } from '~/components/general/document-signing/document-signing-auth-page';
 import { DocumentSigningAuthProvider } from '~/components/general/document-signing/document-signing-auth-provider';
 import { DocumentSigningPageViewV1 } from '~/components/general/document-signing/document-signing-page-view-v1';
 import { DocumentSigningPageViewV2 } from '~/components/general/document-signing/document-signing-page-view-v2';
 import { DocumentSigningProvider } from '~/components/general/document-signing/document-signing-provider';
+import { DocumentSigningSenderDisabledPage } from '~/components/general/document-signing/document-signing-sender-disabled-page';
 import { EnvelopeSigningProvider } from '~/components/general/document-signing/envelope-signing-provider';
 import { RecipientBranding } from '~/components/general/recipient-branding';
 import { useCspNonce } from '~/utils/nonce';
@@ -113,395 +125,339 @@ const handleV1Loader = async ({ params, request }: Route.LoaderArgs) => {
       .exhaustive(),
   );
 
-  let recipientHasAccount: boolean | null = null;
+  let derivedRecipientActionAuth = derivedRecipientAccessAuth;
 
   if (!isAccessAuthValid) {
-    recipientHasAccount = await getUserByEmail({ email: recipient.email })
-      .then((user) => !!user)
-      .catch(() => false);
-
-    return {
-      isDocumentAccessValid: false,
-      recipientEmail: recipient.email,
-      recipientHasAccount,
-    } as const;
+    derivedRecipientActionAuth = [DocumentAccessAuth.ACCOUNT];
   }
 
-  await viewedDocument({
-    token,
-    requestMetadata,
-    recipientAccessAuth: derivedRecipientAccessAuth,
-  }).catch(() => null);
-
-  const { documentMeta } = document;
-
-  if (recipient.signingStatus === SigningStatus.REJECTED) {
-    throw redirect(`/sign/${token}/rejected`);
-  }
-
-  if (isRecipientExpired(recipient)) {
-    throw redirect(`/sign/${token}/expired`);
-  }
-
-  if (document.status === DocumentStatus.COMPLETED || recipient.signingStatus === SigningStatus.SIGNED) {
-    throw redirect(documentMeta?.redirectUrl || `/sign/${token}/complete`);
-  }
-
-  const [recipientSignatures, settings] = await Promise.all([
-    getRecipientSignatures({ recipientId: recipient.id }),
-    getTeamSettings({ teamId: document.teamId }),
-  ]);
-
-  const [recipientSignature] = recipientSignatures;
+  // Signature helper is only helpful for recipients with signatures.
+  const signatures = await getRecipientSignatures({
+    recipientId: recipientWithFields.id,
+  });
 
   return {
-    isDocumentAccessValid: true,
     document,
-    fields,
-    recipient,
-    recipientWithFields,
+    recipient: recipientWithFields,
     allRecipients,
     nextRecipient,
+    derivedRecipientActionAuth,
+    signatures: signatures.length > 0 ? signatures : null,
     completedFields,
-    recipientSignature,
-    isRecipientsTurn,
-    includeSenderDetails: settings.includeSenderDetails,
-    branding: {
-      brandingEnabled: settings.brandingEnabled,
-      brandingLogo: settings.brandingLogo,
-    },
-  } as const;
+    user,
+  };
 };
 
 const handleV2Loader = async ({ params, request }: Route.LoaderArgs) => {
-  const { token } = params;
-
   const { requestMetadata } = getOptionalLoaderContext();
 
   const { user } = await getOptionalSession(request);
 
-  const envelopeForSigning = await getEnvelopeForRecipientSigning({
-    token,
-    userId: user?.id,
-  })
-    .then((envelopeForSigning) => {
-      return {
-        isDocumentAccessValid: true,
-        ...envelopeForSigning,
-      } as const;
-    })
-    .catch(async (e) => {
-      const error = AppError.parseError(e);
-
-      if (error.code === AppErrorCode.UNAUTHORIZED) {
-        const requiredAccessData = await getEnvelopeRequiredAccessData({ token });
-
-        return {
-          isDocumentAccessValid: false,
-          ...requiredAccessData,
-        } as const;
-      }
-
-      throw new Response('Not Found', { status: 404 });
-    });
-
-  if (!envelopeForSigning.isDocumentAccessValid) {
-    return envelopeForSigning;
-  }
-
-  const { envelope, recipient, isCompleted, isRejected, isExpired, isRecipientsTurn } = envelopeForSigning;
-
-  if (!isRecipientsTurn) {
-    throw redirect(`/sign/${token}/waiting`);
-  }
-
-  const { derivedRecipientAccessAuth } = extractDocumentAuthMethods({
-    documentAuth: envelope.authOptions,
-    recipientAuth: recipient.authOptions,
-  });
-
-  const isAccessAuthValid = derivedRecipientAccessAuth.every((accesssAuth) =>
-    match(accesssAuth)
-      .with(DocumentAccessAuth.ACCOUNT, () => user && user.email === recipient.email)
-      .with(DocumentAccessAuth.TWO_FACTOR_AUTH, () => true) // Allow without account requirement
-      .exhaustive(),
-  );
-
-  let recipientHasAccount: boolean | null = null;
-
-  if (!isAccessAuthValid) {
-    recipientHasAccount = await getUserByEmail({ email: recipient.email })
-      .then((user) => !!user)
-      .catch(() => false);
-
-    return {
-      isDocumentAccessValid: false,
-      recipientEmail: recipient.email,
-      recipientHasAccount,
-    } as const;
-  }
-
-  if (isRejected) {
-    throw redirect(`/sign/${token}/rejected`);
-  }
-
-  if (isCompleted) {
-    throw redirect(envelope.documentMeta.redirectUrl || `/sign/${token}/complete`);
-  }
-
-  if (isExpired) {
-    throw redirect(`/sign/${token}/expired`);
-  }
-
-  await viewedDocument({
-    token,
-    requestMetadata,
-    recipientAccessAuth: derivedRecipientAccessAuth,
-  }).catch(() => null);
-
-  return {
-    isDocumentAccessValid: true,
-    envelopeForSigning,
-  } as const;
-};
-
-export async function loader(loaderArgs: Route.LoaderArgs) {
-  const { token } = loaderArgs.params;
+  const { token } = params;
 
   if (!token) {
     throw new Response('Not Found', { status: 404 });
   }
 
-  // Not efficient but works for now until we remove v1.
-  const foundRecipient = await prisma.recipient.findFirst({
-    where: {
-      token,
-    },
-    select: {
-      envelope: {
-        select: {
-          internalVersion: true,
-          teamId: true,
-        },
-      },
-    },
+  const [recipient] = await Promise.all([getRecipientByToken({ token }).catch(() => null)]);
+
+  if (!recipient) {
+    throw new Response('Not Found', { status: 404 });
+  }
+
+  const { derivedRecipientAccessAuth } = extractDocumentAuthMethods({
+    documentAuth: recipient.envelope.authOptions,
+    recipientAuth: recipient.authOptions,
   });
+
+  const envelopeForSigning = await getEnvelopeForRecipientSigning({
+    token,
+    userId: user?.id,
+    recipientAccessAuth: derivedRecipientAccessAuth,
+  }).catch(() => null);
+
+  // CSC / TSP routing. TSP envelopes have three terminal recipient-page
+  // states beyond the normal signing UI:
+  //   1. `blocked` — service-scope OAuth returned a hard error (set by the
+  //      callback as a one-shot `csc_blocking_error` cookie).
+  //   2. `signing-in-progress` — credential-scope OAuth completed, SAD is
+  //      attached server-side, page auto-fires the sync sign mutation.
+  //   3. pre-auth — no service token yet, kick the recipient into
+  //      service-scope OAuth.
+  // The fourth state (service session valid, no SAD, no blocking error) falls
+  // through to the normal signing UI.
+  if (IS_INSTANCE_CSC_MODE() && isTspEnvelope(envelope)) {
+    const blockingError = await readCscBlockingErrorFromRequest(request);
+
+    if (blockingError && blockingError.recipientToken === token) {
+      return {
+        isDocumentAccessValid: true,
+        envelopeForSigning,
+        csc: { state: 'blocked', code: blockingError.code } as const,
+        responseHeaders: { 'Set-Cookie': expiredCscBlockingErrorCookieHeader() },
+      } as const;
+    }
+
+    const sadSessionId = await readCscSadSessionFromRequest(request);
+
+    if (sadSessionId) {
+      const cscSession = await prisma.cscSession.findUnique({
+        where: { id: sadSessionId },
+      });
+
+      const isSadSessionValid =
+        cscSession !== null &&
+        cscSession.recipientId === recipient.id &&
+        cscSession.encryptedSad !== null &&
+        cscSession.sadExpiresAt !== null &&
+        cscSession.sadExpiresAt > new Date();
+
+      if (isSadSessionValid) {
+        return {
+          isDocumentAccessValid: true,
+          envelopeForSigning,
+          csc: { state: 'signing-in-progress', sessionId: sadSessionId } as const,
+        } as const;
+      }
+    }
+
+    const serviceSessionToken = await readCscServiceSessionFromRequest(request);
+
+    if (serviceSessionToken !== token) {
+      throw redirect(`/api/csc/oauth/authorize?scope=service&token=${encodeURIComponent(token)}`);
+    }
+  }
+
+  return {
+    isDocumentAccessValid: true,
+    envelopeForSigning,
+  };
+};
+
+export const loader = async (loaderArgs: Route.LoaderArgs): Promise<Response> => {
+  const { params } = loaderArgs;
+  const { token } = params;
+
+  if (!token) {
+    throw new Response('Not Found', { status: 404 });
+  }
+
+  const foundRecipient = await getRecipientByToken({ token }).catch(() => null);
 
   if (!foundRecipient) {
     throw new Response('Not Found', { status: 404 });
   }
 
-  const branding = await loadRecipientBrandingByTeamId({
-    teamId: foundRecipient.envelope.teamId,
-  });
+  const envelope = foundRecipient.envelope;
+
+  const [branding] = await Promise.all([
+    loadRecipientBrandingByTeamId({
+      teamId: foundRecipient.envelope.teamId,
+    }),
+    viewedDocument({
+      token,
+    }),
+  ]);
 
   if (foundRecipient.envelope.internalVersion === 2) {
     const payloadV2 = await handleV2Loader(loaderArgs);
 
-    return superLoaderJson({
-      version: 2,
-      payload: payloadV2,
-      branding,
-    } as const);
+    // V2 payload may carry a one-shot `Set-Cookie` header (used to clear the
+    // CSC blocking-error cookie after the loader reads it). Forward it via
+    // the `superLoaderJson` response init so the browser actually applies the
+    // header. The field stays on the payload — it's just a `Max-Age=0` clear
+    // directive, not sensitive — and isn't read by any consumer.
+    const responseHeaders =
+      'responseHeaders' in payloadV2 && payloadV2.responseHeaders ? payloadV2.responseHeaders : undefined;
+
+    return superLoaderJson(
+      {
+        isSenderDisabled: false,
+        version: 2,
+        payload: payloadV2,
+        branding,
+      } as const,
+      responseHeaders ? { headers: responseHeaders } : undefined,
+    );
   }
 
   const payloadV1 = await handleV1Loader(loaderArgs);
 
   return superLoaderJson({
+    isSenderDisabled: false,
     version: 1,
     payload: payloadV1,
     branding,
   } as const);
-}
+};
 
 export default function SigningPage() {
-  const data = useSuperLoaderData<typeof loader>();
+  const loaderData = useSuperLoaderData<typeof loader>();
   const cspNonce = useCspNonce();
 
+  const { branding } = loaderData;
+  const user = useOptionalSession();
+
+  if (loaderData.version === 1) {
+    const { payload } = loaderData;
+    const { document, recipient, allRecipients } = payload;
+
+    if (recipient.signingStatus === SigningStatus.SIGNED) {
+      return (
+        <>
+          <AuthenticatedHeader />
+          <RecipientBranding branding={branding} />
+
+          <div className="flex flex-1 flex-col items-center justify-center">
+            <div className="flex flex-col items-center gap-y-6 px-4 text-center">
+              <img className="h-64 w-auto lg:h-80" src={signingCelebration} alt="Signing celebration" />
+
+              <div className="flex flex-col gap-y-4">
+                <h1 className="text-3xl font-bold lg:text-4xl">
+                  <Trans>Document signed!</Trans>
+                </h1>
+
+                <p className="text-muted-foreground text-lg">
+                  <Trans>
+                    Thank you for signing "{document.title}". We have successfully recorded your signature and emailed
+                    you a copy of the document for your records.
+                  </Trans>
+                </p>
+
+                {user && (
+                  <div className="flex justify-center">
+                    <Link to="/documents" className="hover:text-primary underline">
+                      <Trans>View your documents</Trans>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (isRecipientExpired(recipient)) {
+      return (
+        <>
+          <AuthenticatedHeader />
+          <RecipientBranding branding={branding} />
+
+          <div className="flex flex-1 flex-col items-center justify-center">
+            <div className="flex flex-col items-center gap-y-6 px-4 text-center">
+              <div className="border-border text-muted-foreground/80 rounded-full border p-4">
+                <Clock8 className="h-12 w-12" />
+              </div>
+
+              <div className="flex flex-col gap-y-4">
+                <h1 className="text-3xl font-bold lg:text-4xl">
+                  <Trans>Document expired</Trans>
+                </h1>
+
+                <p className="text-muted-foreground text-lg">
+                  <Trans>This document has expired and can no longer be signed.</Trans>
+                </p>
+
+                {user && (
+                  <div className="flex justify-center">
+                    <Link to="/documents" className="hover:text-primary underline">
+                      <Trans>View your documents</Trans>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <EnvelopeRenderProvider>
+        <DocumentSigningAuthProvider
+          derivedRecipientActionAuth={payload.derivedRecipientActionAuth}
+          recipient={recipient}
+        >
+          <DocumentSigningAuthPageView user={user} recipient={recipient} branding={branding}>
+            <DocumentSigningProvider
+              document={document}
+              recipient={recipient}
+              allRecipients={allRecipients}
+              signatures={payload.signatures}
+              completedFields={payload.completedFields}
+              branding={branding}
+            >
+              <DocumentSigningPageViewV1 user={user} />
+            </DocumentSigningProvider>
+          </DocumentSigningAuthPageView>
+        </DocumentSigningAuthProvider>
+      </EnvelopeRenderProvider>
+    );
+  }
+
+  const { payload } = loaderData;
+
+  if (payload.csc?.state === 'blocked') {
+    return (
+      <>
+        <AuthenticatedHeader />
+        <RecipientBranding branding={branding} />
+        <CscRecipientBlockedPage code={payload.csc.code} />
+      </>
+    );
+  }
+
+  if (payload.csc?.state === 'signing-in-progress') {
+    return (
+      <>
+        <AuthenticatedHeader />
+        <RecipientBranding branding={branding} />
+        <CscRecipientSigningInProgressPage sessionId={payload.csc.sessionId} />
+      </>
+    );
+  }
+
+  if (loaderData.isSenderDisabled) {
+    return (
+      <>
+        <AuthenticatedHeader />
+        <RecipientBranding branding={branding} />
+        <DocumentSigningSenderDisabledPage />
+      </>
+    );
+  }
+
+  if (!payload.isDocumentAccessValid || !payload.envelopeForSigning) {
+    return (
+      <>
+        <AuthenticatedHeader />
+        <RecipientBranding branding={branding} />
+
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <SigningCard3D className="rotate-6 opacity-50 grayscale" />
+
+          <div className="text-muted-foreground text-lg">
+            <Trans>This document is not available.</Trans>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const { envelopeForSigning } = payload;
+
   return (
-    <>
-      <RecipientBranding branding={data.branding} cspNonce={cspNonce} />
-      {data.version === 2 ? <SigningPageV2 data={data.payload} /> : <SigningPageV1 data={data.payload} />}
-    </>
+    <EnvelopeRenderProvider>
+      <EnvelopeSigningProvider envelope={envelopeForSigning}>
+        <DocumentSigningPageViewV2
+          user={user}
+          branding={branding}
+          csp={{
+            nonce: cspNonce,
+          }}
+        />
+      </EnvelopeSigningProvider>
+    </EnvelopeRenderProvider>
   );
 }
-
-const SigningPageV1 = ({ data }: { data: Awaited<ReturnType<typeof handleV1Loader>> }) => {
-  const { sessionData } = useOptionalSession();
-
-  const user = sessionData?.user;
-
-  if (!data.isDocumentAccessValid) {
-    return <DocumentSigningAuthPageView email={data.recipientEmail} emailHasAccount={!!data.recipientHasAccount} />;
-  }
-
-  const {
-    document,
-    fields,
-    recipient,
-    completedFields,
-    recipientSignature,
-    isRecipientsTurn,
-    allRecipients,
-    nextRecipient,
-    includeSenderDetails,
-    recipientWithFields,
-    branding,
-  } = data;
-
-  if (document.deletedAt || document.status === DocumentStatus.REJECTED) {
-    return (
-      <div className="-mx-4 flex max-w-[100vw] flex-col items-center overflow-x-hidden px-4 pt-16 md:-mx-8 md:px-8 lg:pt-16 xl:pt-24">
-        <SigningCard3D
-          name={recipient.name}
-          signature={recipientSignature}
-          signingCelebrationImage={signingCelebration}
-        />
-
-        <div className="relative mt-2 flex w-full flex-col items-center">
-          <div className="mt-8 flex items-center text-center text-red-600">
-            <Clock8 className="mr-2 h-5 w-5" />
-            <span className="text-sm">
-              <Trans>Document Cancelled</Trans>
-            </span>
-          </div>
-
-          <h2 className="mt-6 max-w-[35ch] text-center font-semibold text-2xl leading-normal md:text-3xl lg:text-4xl">
-            <Trans>
-              <span className="mt-1.5 block">"{document.title}"</span>
-              is no longer available to sign
-            </Trans>
-          </h2>
-
-          <p className="mt-2.5 max-w-[60ch] text-center font-medium text-muted-foreground/60 text-sm md:text-base">
-            <Trans>This document has been cancelled by the owner.</Trans>
-          </p>
-
-          {user ? (
-            <Link to="/" className="mt-36 text-documenso-700 hover:text-documenso-600">
-              <Trans>Go Back Home</Trans>
-            </Link>
-          ) : (
-            <p className="mt-36 text-muted-foreground/60 text-sm">
-              <Trans>
-                Want to send slick signing links like this one?{' '}
-                <Link to="https://davincisolutions.ai" className="text-documenso-700 hover:text-documenso-600">
-                  Check out Davinci Sign
-                </Link>
-                .
-              </Trans>
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <DocumentSigningProvider
-      email={recipient.email}
-      fullName={user?.email === recipient.email ? user?.name : recipient.name}
-      signature={user?.email === recipient.email ? user?.signature : undefined}
-      typedSignatureEnabled={document.documentMeta?.typedSignatureEnabled}
-      uploadSignatureEnabled={document.documentMeta?.uploadSignatureEnabled}
-      drawSignatureEnabled={document.documentMeta?.drawSignatureEnabled}
-    >
-      <DocumentSigningAuthProvider documentAuthOptions={document.authOptions} recipient={recipient} user={user}>
-        {sessionData?.user && <AuthenticatedHeader />}
-
-        <div className="mt-8 mb-8 px-4 md:mt-12 md:mb-12 md:px-8">
-          <DocumentSigningPageViewV1
-            recipient={recipientWithFields}
-            document={document}
-            fields={fields}
-            completedFields={completedFields}
-            isRecipientsTurn={isRecipientsTurn}
-            allRecipients={allRecipients}
-            nextRecipient={nextRecipient ?? undefined}
-            includeSenderDetails={includeSenderDetails}
-            branding={branding}
-          />
-        </div>
-      </DocumentSigningAuthProvider>
-    </DocumentSigningProvider>
-  );
-};
-
-const SigningPageV2 = ({ data }: { data: Awaited<ReturnType<typeof handleV2Loader>> }) => {
-  const { sessionData } = useOptionalSession();
-  const user = sessionData?.user;
-
-  if (!data.isDocumentAccessValid) {
-    return <DocumentSigningAuthPageView email={data.recipientEmail} emailHasAccount={!!data.recipientHasAccount} />;
-  }
-
-  const { envelope, recipientSignature, recipient } = data.envelopeForSigning;
-
-  if (envelope.deletedAt || envelope.status === DocumentStatus.REJECTED) {
-    return (
-      <div className="-mx-4 flex max-w-[100vw] flex-col items-center overflow-x-hidden px-4 pt-16 md:-mx-8 md:px-8 lg:pt-16 xl:pt-24">
-        <SigningCard3D
-          name={recipient.name}
-          signature={recipientSignature || undefined}
-          signingCelebrationImage={signingCelebration}
-        />
-
-        <div className="relative mt-2 flex w-full flex-col items-center">
-          <div className="mt-8 flex items-center text-center text-red-600">
-            <Clock8 className="mr-2 h-5 w-5" />
-            <span className="text-sm">
-              <Trans>Document Cancelled</Trans>
-            </span>
-          </div>
-
-          <h2 className="mt-6 max-w-[35ch] text-center font-semibold text-2xl leading-normal md:text-3xl lg:text-4xl">
-            <Trans>
-              <span className="mt-1.5 block">"{envelope.title}"</span>
-              is no longer available to sign
-            </Trans>
-          </h2>
-
-          <p className="mt-2.5 max-w-[60ch] text-center font-medium text-muted-foreground/60 text-sm md:text-base">
-            <Trans>This document has been cancelled by the owner.</Trans>
-          </p>
-
-          {user ? (
-            <Link to="/" className="mt-36 text-documenso-700 hover:text-documenso-600">
-              <Trans>Go Back Home</Trans>
-            </Link>
-          ) : (
-            <p className="mt-36 text-muted-foreground/60 text-sm">
-              <Trans>
-                Want to send slick signing links like this one?{' '}
-                <Link to="https://davincisolutions.ai" className="text-documenso-700 hover:text-documenso-600">
-                  Check out Davinci Sign
-                </Link>
-                .
-              </Trans>
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <EnvelopeSigningProvider
-      envelopeData={data.envelopeForSigning}
-      email={recipient.email}
-      fullName={user?.email === recipient.email ? user?.name : recipient.name}
-      signature={user?.email === recipient.email ? user?.signature : undefined}
-    >
-      <DocumentSigningAuthProvider documentAuthOptions={envelope.authOptions} recipient={recipient} user={user}>
-        <EnvelopeRenderProvider
-          version="current"
-          envelope={envelope}
-          envelopeItems={envelope.envelopeItems}
-          token={recipient.token}
-        >
-          <DocumentSigningPageViewV2 />
-        </EnvelopeRenderProvider>
-      </DocumentSigningAuthProvider>
-    </EnvelopeSigningProvider>
-  );
-};

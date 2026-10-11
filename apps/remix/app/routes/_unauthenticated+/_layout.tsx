@@ -5,8 +5,8 @@ import { SourceCodeFooter } from '~/components/general/source-code-footer';
 
 export default function Layout() {
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12 md:p-12 lg:p-24">
-      <div>
+    <main className="relative flex min-h-screen flex-col items-between overflow-hidden px-4 py-12 md:p-12 lg:p-24">
+      <div className="flex w-full flex-1 flex-col items-center justify-center">
         <div className="absolute -inset-[min(600px,max(400px,60vw))] -z-[1] flex items-center justify-center opacity-70">
           <img
             src={backgroundPattern}
@@ -19,12 +19,12 @@ export default function Layout() {
           />
         </div>
 
-        <div className="relative w-full">
+        <div className="relative w-full flex items-center justify-center">
           <Outlet />
         </div>
       </div>
 
-      <SourceCodeFooter className="relative" />
+      <SourceCodeFooter className="relative z-10 mt-8 w-full" />
     </main>
   );
 }
