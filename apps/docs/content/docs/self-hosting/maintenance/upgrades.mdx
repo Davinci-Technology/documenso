@@ -1,6 +1,6 @@
 ---
 title: Upgrades
-description: Upgrade your self-hosted Documenso installation to get the latest features, security patches, and bug fixes.
+description: Upgrade your self-hosted Davinci Sign installation to get the latest features, security patches, and bug fixes.
 ---
 
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -10,7 +10,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 ## Version Policy
 
-Documenso follows [Semantic Versioning](https://semver.org/):
+Davinci Sign follows [Semantic Versioning](https://semver.org/):
 
 | Version Type | Format  | Description                                |
 | ------------ | ------- | ------------------------------------------ |
@@ -37,7 +37,7 @@ For production deployments, pin to a specific version tag to avoid unexpected up
 
 ### View Current Version
 
-Check your running Documenso version:
+Check your running Davinci Sign version:
 
 <Tabs items={['Docker', 'Docker Compose', 'Kubernetes']}>
 <Tab value="Docker">
@@ -218,7 +218,7 @@ curl http://localhost:3000/api/health
 <Step>
 ### Update the image tag
 
-Edit `compose.yml` or your `.env` file to specify the new version:
+edit `compose.yml` or your `.env` file to specify the new version:
 
 ```yaml
 services:
@@ -312,340 +312,42 @@ kubectl apply -f deployment.yaml
 kubectl rollout status deployment/documenso -n documenso
 ```
 
-Watch pods transition:
-
-```bash
-kubectl get pods -n documenso -w
-```
-
-</Step>
-<Step>
-### Verify the upgrade
-
-Check the new pods are running:
-
-```bash
-kubectl get pods -n documenso -o wide
-```
-
-Test the health endpoint:
-
-```bash
-kubectl port-forward svc/documenso 3000:80 -n documenso &
-curl http://localhost:3000/api/health
-```
-
 </Step>
 </Steps>
 
-## Database Migrations
+## Manual Migrations
 
-Documenso runs database migrations automatically when the container starts. No manual intervention is required.
-
-### Migration Process
-
-{/* prettier-ignore */}
-<Steps>
-<Step>
-### Container starts
-
-The container starts and connects to the database.
-
-</Step>
-<Step>
-### Prisma checks for migrations
-
-Prisma checks for pending migrations.
-
-</Step>
-<Step>
-### Migrations run
-
-Migrations are applied in order.
-
-</Step>
-<Step>
-### Application starts
-
-The application starts after migrations complete.
-
-</Step>
-</Steps>
-
-### Checking Migration Status
-
-View migration logs:
-
-<Tabs items={['Docker / Docker Compose', 'Kubernetes']}>
-<Tab value="Docker / Docker Compose">
+If you need to run migrations manually (e.g., in a CI/CD pipeline or before updating the application):
 
 ```bash
-docker logs documenso 2>&1 | grep -i migration
-```
-
-</Tab>
-<Tab value="Kubernetes">
-
-```bash
-kubectl logs -l app.kubernetes.io/name=documenso -n documenso | grep -i migration
-```
-
-</Tab>
-</Tabs>
-
-### Slow Migrations
-
-Large databases may take longer to migrate. The startup probe in Kubernetes allows up to 150 seconds (30 failures x 5 second period) for migrations to complete.
-
-If migrations take longer:
-
-{/* prettier-ignore */}
-<Steps>
-<Step>
-### Adjust startup probe
-
-Increase `failureThreshold` on the startup probe.
-
-</Step>
-<Step>
-### Run migrations separately (optional)
-
-Consider running migrations manually before upgrading (see Manual Migration below).
-
-</Step>
-</Steps>
-
-### Manual Migration (Advanced)
-
-To run migrations manually before upgrading:
-
-```bash
-# Pull the new image
-docker pull davinci/davinci-sign:<version>
-
 # Run migrations only
 docker run --rm \
   -e NEXT_PRIVATE_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
+  -e NEXT_PRIVATE_DIRECT_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
   davinci/davinci-sign:<version> \
-  npx prisma migrate deploy
+  npx prisma migrate deploy --schema ../../packages/prisma/schema.prisma
 ```
 
 <Callout type="warn">
-  This is an advanced operation. In most cases, automatic migrations are sufficient.
+  Ensure the database user has sufficient privileges to perform schema changes.
 </Callout>
 
-## Breaking Changes
+## Troubleshooting
 
-Major version upgrades may include breaking changes that require manual steps.
+### Migration Failures
 
-### Before a Major Upgrade
+If a migration fails, your database may be in an inconsistent state.
 
-{/* prettier-ignore */}
-<Steps>
-<Step>
-### Read release notes
+1.  Check the logs: `docker logs documenso`
+2.  Identify the failed migration in the `_prisma_migrations` table.
+3.  Fix the underlying issue (e.g., permissions, disk space).
+4.  Run `prisma migrate resolve` if necessary to mark a migration as applied.
 
-Read the [release notes](https://github.com/documenso/documenso/releases) carefully.
+### Rollback
 
-</Step>
-<Step>
-### Check environment variables
+If an upgrade causes critical issues, you can roll back to your backup:
 
-Check for required environment variable changes.
-
-</Step>
-<Step>
-### Review configuration
-
-Review any configuration deprecations.
-
-</Step>
-<Step>
-### Back up database
-
-Back up your database.
-
-</Step>
-<Step>
-### Plan for downtime
-
-Plan for potential downtime.
-
-</Step>
-</Steps>
-
-### Common Breaking Changes
-
-| Change Type               | Action Required                              |
-| ------------------------- | -------------------------------------------- |
-| New required env variable | Add the variable to your configuration       |
-| Removed env variable      | Remove from configuration to avoid confusion |
-| Renamed env variable      | Update to the new name                       |
-| Database schema change    | Automatic migration (back up first)          |
-| API changes               | Update integrations using the API            |
-
-### Environment Variable Changes
-
-Compare your current environment with the latest example:
-
-```bash
-# Download latest example
-curl -O https://raw.githubusercontent.com/davinci/davinci-sign/main/.env.example
-
-# Compare with your current config
-diff .env .env.example
-```
-
-## Rollback Procedure
-
-If an upgrade fails, roll back to the previous version.
-
-### Container Rollback
-
-<Tabs items={['Docker', 'Docker Compose', 'Kubernetes']}>
-<Tab value="Docker">
-
-```bash
-# Stop the new container
-docker stop documenso
-docker rm documenso
-
-# Start with the previous image
-docker run -d \
-  --name documenso \
-  -p 3000:3000 \
-  --env-file .env \
-  -v /path/to/cert.p12:/opt/davinci-sign/cert.p12:ro \
-  davinci/davinci-sign:<previous-version>
-```
-
-</Tab>
-<Tab value="Docker Compose">
-
-```bash
-# Revert the image tag in compose.yml or .env
-# Then recreate containers
-docker compose --env-file .env up -d
-```
-
-</Tab>
-<Tab value="Kubernetes">
-
-```bash
-# View rollout history
-kubectl rollout history deployment/documenso -n documenso
-
-# Rollback to previous version
-kubectl rollout undo deployment/documenso -n documenso
-
-# Or rollback to a specific revision
-kubectl rollout undo deployment/documenso -n documenso --to-revision=2
-```
-
-</Tab>
-</Tabs>
-
-### Database Rollback
-
-<Callout type="error">
-  Database migrations cannot be automatically reversed. If you need to rollback after migrations
-  have run, restore from your backup.
-</Callout>
-
-Restore from backup:
-
-<Tabs items={['Docker Compose', 'External Database']}>
-<Tab value="Docker Compose">
-
-```bash
-docker compose exec -T database psql -U documenso documenso < backup-20240115-120000.sql
-```
-
-</Tab>
-<Tab value="External Database">
-
-```bash
-psql "postgresql://user:password@host:5432/documenso" < backup-20240115-120000.sql
-```
-
-</Tab>
-</Tabs>
-
-## Troubleshooting Upgrades
-
-<Accordions type="multiple">
-  <Accordion title="Container fails to start after upgrade">
-    **Check logs:** `docker logs documenso`
-
-    **Common causes:**
-    - Missing env variable: check release notes for new required variables
-    - Database connection error: verify database is accessible and credentials are valid
-    - Migration failure: check logs for the specific migration error
-    - Certificate error: verify certificate mount and passphrase
-
-  </Accordion>
-  <Accordion title="Migration errors">
-    **What to do:**
-    - Check the specific error in the logs
-    - Verify database connectivity
-    - Ensure the database user has `ALTER` permissions
-    - Check for sufficient disk space on the database server
-
-    **Test connectivity:**
-
-    ```bash
-    docker run --rm postgres:15 psql "postgresql://user:password@host:5432/documenso" -c "SELECT 1"
-    ```
-
-  </Accordion>
-  <Accordion title="Application errors after upgrade">
-    **If the application starts but behaves unexpectedly:**
-    - Clear browser cache and cookies
-    - Check for new environment variables in release notes
-    - Verify all environment variables are correctly set
-    - Check application logs: 
-    
-    ```bash
-    docker logs documenso 2>&1 | grep -i -E "(warn|error)"
-    ```
-  </Accordion>
-  <Accordion title="Performance issues after upgrade">
-    **If performance degrades:**
-    - New indexes being created can cause temporary slowdown (normal)
-    - Monitor database CPU and memory usage
-    - Review release notes for known performance impacts
-    - Allow time for database query plans to stabilize
-  </Accordion>
-  <Accordion title="Rollback failed">
-    **If rollback also fails:**
-    - Verify the old image tag exists and is accessible
-    - Check that your backup is valid and complete
-    - Review environment configuration for any changes
-    - Consider restoring to a clean database from backup
-  </Accordion>
-</Accordions>
-
-## Upgrade Checklist
-
-Use this checklist for each upgrade:
-
-- [ ] Review release notes for the target version
-- [ ] Check for breaking changes or new requirements
-- [ ] Back up the database
-- [ ] Back up environment configuration
-- [ ] Note the current image tag for potential rollback
-- [ ] Pull the new image
-- [ ] Apply the upgrade
-- [ ] Verify container starts successfully
-- [ ] Check logs for migration completion
-- [ ] Test the health endpoint
-- [ ] Verify core functionality (login, document upload, signing)
-- [ ] Monitor for errors in logs
-
----
-
-## See Also
-
-- [Backups](/docs/self-hosting/maintenance/backups) - Automated backup strategies
-- [Troubleshooting](/docs/self-hosting/maintenance/troubleshooting) - Common issues and solutions
-- [Environment Variables](/docs/self-hosting/configuration/environment) - Configuration reference
+1.  Stop the application.
+2.  Restore the database from your SQL backup.
+3.  Revert the configuration changes.
+4.  Start the application with the previous version tag.
