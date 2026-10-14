@@ -1,6 +1,6 @@
 ---
 title: Upgrades
-description: Upgrade your self-hosted Documenso installation to get the latest features, security patches, and bug fixes.
+description: Upgrade your self-hosted Davinci Sign installation to get the latest features, security patches, and bug fixes.
 ---
 
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -10,7 +10,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 ## Version Policy
 
-Documenso follows [Semantic Versioning](https://semver.org/):
+Davinci Sign follows [Semantic Versioning](https://semver.org/):
 
 | Version Type | Format  | Description                                |
 | ------------ | ------- | ------------------------------------------ |
@@ -37,7 +37,7 @@ For production deployments, pin to a specific version tag to avoid unexpected up
 
 ### View Current Version
 
-Check your running Documenso version:
+Check your running Davinci Sign version:
 
 <Tabs items={['Docker', 'Docker Compose', 'Kubernetes']}>
 <Tab value="Docker">
@@ -312,205 +312,169 @@ kubectl apply -f deployment.yaml
 kubectl rollout status deployment/documenso -n documenso
 ```
 
-Watch pods transition:
-
-```bash
-kubectl get pods -n documenso -w
-```
+Wait for the rollout to complete.
 
 </Step>
 <Step>
 ### Verify the upgrade
 
-Check the new pods are running:
-
 ```bash
-kubectl get pods -n documenso -o wide
+kubectl get pods -n documenso
+kubectl logs -f deployment/documenso -n documenso
 ```
 
-Test the health endpoint:
-
-```bash
-kubectl port-forward svc/documenso 3000:80 -n documenso &
-curl http://localhost:3000/api/health
-```
+Confirm pods are running and healthy.
 
 </Step>
 </Steps>
 
-## Database Migrations
-
-Documenso runs database migrations automatically when the container starts. No manual intervention is required.
-
-### Migration Process
+### Kubernetes with Helm
 
 {/* prettier-ignore */}
 <Steps>
 <Step>
-### Container starts
+### Update values file
 
-The container starts and connects to the database.
+Edit your `values.yaml` file:
 
-</Step>
-<Step>
-### Prisma checks for migrations
-
-Prisma checks for pending migrations.
-
-</Step>
-<Step>
-### Migrations run
-
-Migrations are applied in order.
+```yaml
+image:
+  repository: davinci/davinci-sign
+  tag: "<version>"
+```
 
 </Step>
 <Step>
-### Application starts
+### Upgrade the release
 
-The application starts after migrations complete.
+```bash
+helm upgrade documenso . \
+  --namespace documenso \
+  --values values.yaml \
+  --timeout 300s
+```
+
+Or if using a remote chart:
+
+```bash
+helm upgrade documenso davinci/davinci-sign \
+  --namespace documenso \
+  --set image.tag=<version> \
+  --timeout 300s
+```
+
+</Step>
+<Step>
+### Monitor the upgrade
+
+```bash
+helm status documenso -n documenso
+kubectl get pods -n documenso -w
+```
 
 </Step>
 </Steps>
 
-### Checking Migration Status
+## Migration-Only Updates
 
-View migration logs:
+For maintenance windows or when running multiple replicas, you may want to run database migrations separately from the application upgrade.
 
-<Tabs items={['Docker / Docker Compose', 'Kubernetes']}>
-<Tab value="Docker / Docker Compose">
+### Run Migrations Separately
 
 ```bash
-docker logs documenso 2>&1 | grep -i migration
+# Run migrations only
+docker run --rm \
+  -e NEXT_PRIVATE_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
+  -e NEXT_PRIVATE_DIRECT_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
+  davinci/davinci-sign:<version> \
+  npx prisma migrate deploy --schema ../../packages/prisma/schema.prisma
+```
+
+<Callout type="warn">
+  Ensure no application instances are running when performing migrations to prevent race conditions
+  or data corruption.
+</Callout>
+
+{/* prettier-ignore */}
+<Steps>
+<Step>
+### Scale down all instances
+
+<Tabs items={['Docker Compose', 'Kubernetes']}>
+<Tab value="Docker Compose">
+
+```bash
+docker compose stop documenso
 ```
 
 </Tab>
 <Tab value="Kubernetes">
 
 ```bash
-kubectl logs -l app.kubernetes.io/name=documenso -n documenso | grep -i migration
+kubectl scale deployment/documenso --replicas=0 -n documenso
 ```
 
 </Tab>
 </Tabs>
 
-### Slow Migrations
-
-Large databases may take longer to migrate. The startup probe in Kubernetes allows up to 150 seconds (30 failures x 5 second period) for migrations to complete.
-
-If migrations take longer:
-
-{/* prettier-ignore */}
-<Steps>
-<Step>
-### Adjust startup probe
-
-Increase `failureThreshold` on the startup probe.
-
 </Step>
 <Step>
-### Run migrations separately (optional)
-
-Consider running migrations manually before upgrading (see Manual Migration below).
-
-</Step>
-</Steps>
-
-### Manual Migration (Advanced)
-
-To run migrations manually before upgrading:
+### Run migrations
 
 ```bash
-# Pull the new image
-docker pull davinci/davinci-sign:<version>
-
-# Run migrations only
+# Run the migration command from above
 docker run --rm \
   -e NEXT_PRIVATE_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
+  -e NEXT_PRIVATE_DIRECT_DATABASE_URL="postgresql://user:password@host:5432/documenso" \
   davinci/davinci-sign:<version> \
-  npx prisma migrate deploy
+  npx prisma migrate deploy --schema ../../packages/prisma/schema.prisma
 ```
 
-<Callout type="warn">
-  This is an advanced operation. In most cases, automatic migrations are sufficient.
-</Callout>
-
-## Breaking Changes
-
-Major version upgrades may include breaking changes that require manual steps.
-
-### Before a Major Upgrade
-
-{/* prettier-ignore */}
-<Steps>
+</Step>
 <Step>
-### Read release notes
+### Update application image
 
-Read the [release notes](https://github.com/documenso/documenso/releases) carefully.
+Update your compose file or Kubernetes deployment to use the new image version.
 
 </Step>
 <Step>
-### Check environment variables
+### Scale back up
 
-Check for required environment variable changes.
+<Tabs items={['Docker Compose', 'Kubernetes']}>
+<Tab value="Docker Compose">
 
-</Step>
-<Step>
-### Review configuration
+```bash
+docker compose up -d documenso
+```
 
-Review any configuration deprecations.
+</Tab>
+<Tab value="Kubernetes">
 
-</Step>
-<Step>
-### Back up database
+```bash
+kubectl scale deployment/documenso --replicas=2 -n documenso
+```
 
-Back up your database.
-
-</Step>
-<Step>
-### Plan for downtime
-
-Plan for potential downtime.
+</Tab>
+</Tabs>
 
 </Step>
 </Steps>
 
-### Common Breaking Changes
+## Rollback
 
-| Change Type               | Action Required                              |
-| ------------------------- | -------------------------------------------- |
-| New required env variable | Add the variable to your configuration       |
-| Removed env variable      | Remove from configuration to avoid confusion |
-| Renamed env variable      | Update to the new name                       |
-| Database schema change    | Automatic migration (back up first)          |
-| API changes               | Update integrations using the API            |
+If an upgrade fails or introduces issues, you can rollback to the previous version.
 
-### Environment Variable Changes
-
-Compare your current environment with the latest example:
-
-```bash
-# Download latest example
-curl -O https://raw.githubusercontent.com/davinci/davinci-sign/main/.env.example
-
-# Compare with your current config
-diff .env .env.example
-```
-
-## Rollback Procedure
-
-If an upgrade fails, roll back to the previous version.
-
-### Container Rollback
+### Quick Rollback
 
 <Tabs items={['Docker', 'Docker Compose', 'Kubernetes']}>
 <Tab value="Docker">
 
 ```bash
-# Stop the new container
+# Stop current container
 docker stop documenso
 docker rm documenso
 
-# Start with the previous image
+# Start with previous image
 docker run -d \
   --name documenso \
   -p 3000:3000 \
@@ -523,23 +487,21 @@ docker run -d \
 <Tab value="Docker Compose">
 
 ```bash
-# Revert the image tag in compose.yml or .env
+# Edit compose.yml to use previous version
 # Then recreate containers
-docker compose --env-file .env up -d
+docker compose up -d
 ```
 
 </Tab>
 <Tab value="Kubernetes">
 
 ```bash
-# View rollout history
-kubectl rollout history deployment/documenso -n documenso
-
-# Rollback to previous version
+# Rollback to previous revision
 kubectl rollout undo deployment/documenso -n documenso
 
-# Or rollback to a specific revision
-kubectl rollout undo deployment/documenso -n documenso --to-revision=2
+# Or rollback to specific revision
+kubectl rollout history deployment/documenso -n documenso
+kubectl rollout undo deployment/documenso --to-revision=<revision> -n documenso
 ```
 
 </Tab>
@@ -548,104 +510,173 @@ kubectl rollout undo deployment/documenso -n documenso --to-revision=2
 ### Database Rollback
 
 <Callout type="error">
-  Database migrations cannot be automatically reversed. If you need to rollback after migrations
-  have run, restore from your backup.
+  Database migrations typically cannot be automatically reversed. If you need to rollback a
+  migration, restore from your database backup.
 </Callout>
 
-Restore from backup:
+```bash
+# Restore from backup
+psql "postgresql://user:password@host:5432/documenso" < backup-YYYYMMDD-HHMMSS.sql
+```
 
-<Tabs items={['Docker Compose', 'External Database']}>
-<Tab value="Docker Compose">
+## Major Version Upgrades
+
+Major version upgrades may include breaking changes that require additional steps.
+
+<Callout type="warn">
+  Always read the release notes for major versions. They may include:
+
+  - Database schema changes
+  - Configuration changes
+  - API changes
+  - Required manual intervention
+</Callout>
+
+### Pre-upgrade Checklist
+
+{/* prettier-ignore */}
+<Steps>
+<Step>
+### Review breaking changes
+
+Check the [release notes](https://github.com/documenso/documenso/releases) for breaking changes and required actions.
+
+</Step>
+<Step>
+### Update configuration
+
+Some major versions introduce new required environment variables or deprecate old ones.
+
+</Step>
+<Step>
+### Plan downtime
+
+Major upgrades may require longer downtime for database migrations.
+
+</Step>
+<Step>
+### Test in staging
+
+Always test major upgrades in a non-production environment first.
+
+</Step>
+</Steps>
+
+## Monitoring Upgrades
+
+### Health Checks
+
+After upgrading, monitor these endpoints:
+
+- Health check: `GET /api/health`
+- Database status: Check application logs
+- Feature functionality: Test key user workflows
+
+### Common Issues
+
+| Issue                    | Symptoms                         | Solution                              |
+| ------------------------ | -------------------------------- | ------------------------------------- |
+| Migration failure        | App won't start, database errors | Check logs, restore backup if needed  |
+| Configuration mismatch   | 500 errors, missing features    | Review env vars against release notes |
+| Certificate issues       | SAML/signing errors              | Verify certificate path and format   |
+| Resource constraints     | Slow response, timeouts          | Check CPU/memory usage                |
+
+### Log Monitoring
+
+<Tabs items={['Docker', 'Docker Compose', 'Kubernetes']}>
+<Tab value="Docker">
 
 ```bash
-docker compose exec -T database psql -U documenso documenso < backup-20240115-120000.sql
+# Follow logs during upgrade
+docker logs -f documenso
+
+# Check for errors
+docker logs documenso | grep -i error
 ```
 
 </Tab>
-<Tab value="External Database">
+<Tab value="Docker Compose">
 
 ```bash
-psql "postgresql://user:password@host:5432/documenso" < backup-20240115-120000.sql
+# Follow all service logs
+docker compose logs -f
+
+# Check specific service
+docker compose logs documenso | grep -i error
+```
+
+</Tab>
+<Tab value="Kubernetes">
+
+```bash
+# Follow deployment logs
+kubectl logs -f deployment/documenso -n documenso
+
+# Check for pod issues
+kubectl get events -n documenso --sort-by='.lastTimestamp'
 ```
 
 </Tab>
 </Tabs>
 
-## Troubleshooting Upgrades
+## Automated Upgrades
 
-<Accordions type="multiple">
-  <Accordion title="Container fails to start after upgrade">
-    **Check logs:** `docker logs documenso`
+### Renovate Bot
 
-    **Common causes:**
-    - Missing env variable: check release notes for new required variables
-    - Database connection error: verify database is accessible and credentials are valid
-    - Migration failure: check logs for the specific migration error
-    - Certificate error: verify certificate mount and passphrase
+For automated dependency updates, configure [Renovate](https://docs.renovatebot.com/) in your infrastructure repository:
 
-  </Accordion>
-  <Accordion title="Migration errors">
-    **What to do:**
-    - Check the specific error in the logs
-    - Verify database connectivity
-    - Ensure the database user has `ALTER` permissions
-    - Check for sufficient disk space on the database server
+```json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "docker": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchPackageNames": ["davinci/davinci-sign"],
+      "schedule": ["before 9am on monday"]
+    }
+  ]
+}
+```
 
-    **Test connectivity:**
+### Watchtower
 
-    ```bash
-    docker run --rm postgres:15 psql "postgresql://user:password@host:5432/documenso" -c "SELECT 1"
-    ```
+For automatic Docker container updates, use [Watchtower](https://containrrr.dev/watchtower/):
 
-  </Accordion>
-  <Accordion title="Application errors after upgrade">
-    **If the application starts but behaves unexpectedly:**
-    - Clear browser cache and cookies
-    - Check for new environment variables in release notes
-    - Verify all environment variables are correctly set
-    - Check application logs: 
-    
-    ```bash
-    docker logs documenso 2>&1 | grep -i -E "(warn|error)"
-    ```
-  </Accordion>
-  <Accordion title="Performance issues after upgrade">
-    **If performance degrades:**
-    - New indexes being created can cause temporary slowdown (normal)
-    - Monitor database CPU and memory usage
-    - Review release notes for known performance impacts
-    - Allow time for database query plans to stabilize
-  </Accordion>
-  <Accordion title="Rollback failed">
-    **If rollback also fails:**
-    - Verify the old image tag exists and is accessible
-    - Check that your backup is valid and complete
-    - Review environment configuration for any changes
-    - Consider restoring to a clean database from backup
-  </Accordion>
-</Accordions>
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower \
+  --schedule "0 0 4 * * *" \
+  --cleanup \
+  documenso
+```
 
-## Upgrade Checklist
+<Callout type="warn">
+  Automated upgrades should only be used for patch releases. Always manually review and test major
+  and minor releases.
+</Callout>
 
-Use this checklist for each upgrade:
+## Best Practices
 
-- [ ] Review release notes for the target version
-- [ ] Check for breaking changes or new requirements
-- [ ] Back up the database
-- [ ] Back up environment configuration
-- [ ] Note the current image tag for potential rollback
-- [ ] Pull the new image
-- [ ] Apply the upgrade
-- [ ] Verify container starts successfully
-- [ ] Check logs for migration completion
-- [ ] Test the health endpoint
-- [ ] Verify core functionality (login, document upload, signing)
-- [ ] Monitor for errors in logs
+1. **Pin versions in production**: Use specific version tags, not `latest`
+2. **Test upgrades**: Always test in a staging environment first
+3. **Backup before upgrading**: Database and configuration backups are essential
+4. **Read release notes**: Understand what's changing before upgrading
+5. **Monitor after upgrades**: Watch logs and health metrics post-upgrade
+6. **Gradual rollouts**: For high-availability setups, upgrade instances gradually
+7. **Document your process**: Maintain upgrade procedures for your specific setup
 
----
+## Getting Help
 
-## See Also
+If you encounter issues during upgrades:
 
-- [Backups](/docs/self-hosting/maintenance/backups) - Automated backup strategies
-- [Troubleshooting](/docs/self-hosting/maintenance/troubleshooting) - Common issues and solutions
-- [Environment Variables](/docs/self-hosting/configuration/environment) - Configuration reference
+1. Check the [troubleshooting guide](/docs/self-hosting/troubleshooting)
+2. Review [GitHub issues](https://github.com/documenso/documenso/issues)
+3. Join the [Discord community](https://davincisolutions.ai/discord)
+4. Search previous [discussions](https://github.com/documenso/documenso/discussions)
+
+For critical production issues, consider [Davinci Sign Cloud](https://davincisolutions.ai/cloud) for managed upgrades and support.

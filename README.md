@@ -2,7 +2,7 @@
 
 Professional electronic signature solution by Davinci AI Solutions.
 
-> **Note:** This project is a modified fork of [Documenso](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Documenso team for their excellent work. The complete corresponding source for this fork is available in this repository.
+> **Note:** This project is a modified fork of [Davinci Sign](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Davinci Sign team for their excellent work. The complete corresponding source for this fork is available in this repository.
 
 <p align="center" style="margin-top: 20px">
   <p align="center">
@@ -103,6 +103,21 @@ git clone https://github.com/<your-username>/documenso
 
 4. Run `npm run dev` in the root directory
 
+5. Want it even faster? Just use
+
+```sh
+npm run d
+```
+
+#### Access Points for Your Application
+
+1. **App** - http://localhost:3000
+2. **Incoming Mail Access** - http://localhost:9000
+3. **Database Connection Details**
+
+   - **Port**: 54320
+   - **Connection**: Use your favorite database client to connect using the provided port.
+
 ## Developer Setup
 
 ### Manual Setup
@@ -136,31 +151,57 @@ git clone https://github.com/<your-username>/documenso
 
 7. Run `npm run dev` in the root directory to start
 
-8. Register a new user at http://localhost:3000/signup
+8. Register a new user at `http://localhost:3000/signup`
 
----
+## Setup Guides
 
-- Optional: Seed the database using `npm run prisma:seed -w @documenso/prisma` to create a test user and document.
-- Optional: Create your own signing certificate. See **[Create your own signing certificate](./SIGNING.md)**.
+- [Manual Setup](https://docs.davincisolutions.ai/docs/developers/local-development/manual)
+- [GitHub Codespaces Setup](https://docs.davincisolutions.ai/docs/developers/local-development/github-codespaces)
+- [Docker Setup](https://docs.davincisolutions.ai/docs/developers/local-development/docker)
+- [Gitpod Setup](https://docs.davincisolutions.ai/docs/developers/local-development/gitpod)
 
-### Run in Gitpod
+## Migration Guides
 
-- Click below to launch a ready-to-use Gitpod workspace in your browser.
+- [v2.0.0 Migration Guide](https://docs.davincisolutions.ai/docs/developers/migration-guide/v2.0.0)
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/documenso/documenso)
+## Features
 
-## Docker
+- [x] Signing documents
+- [x] Requesting signatures from others
+- [x] Sign documents via email
+- [x] Sign documents via link
+- [x] Native PDF annotation (no more overlay signatures)
+- [x] Self host your signing experience (Docker + environment variables)
+- [x] API for integrations
+- [x] Webhook support
+- [x] Multi-language support
+- [x] Dark mode
+- [x] Mobile responsive
+- [x] Unlimited signers per document
+- [x] Unlimited documents per month
+- [x] Teams support (Early access)
+- [x] Template support (Early access)
+- [ ] Advanced fields (Early access)
+- [ ] 2FA (Early access)
+- [ ] SSO (Early access)
+- [ ] Audit logs (Early access)
+- [ ] Advanced permissions (Early access)
 
-Docker containers are available for running Davinci Sign. We support official Docker images for Davinci Sign on [DockerHub](https://hub.docker.com/r/davinci/davinci-sign) and [GitHub Container Registry](https://ghcr.io/davinci/davinci-sign).
+## Self-Host
 
-For setup instructions, see the [Docker Deployment](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker) and [Docker Compose](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker-compose) guides.
+We support a variety of ways to deploy Davinci Sign to make it as easy as possible for you.
 
-### Support IPv6
+The Docker image can be found on the [Docker Hub](https://hub.docker.com/r/davinci/davinci-sign).
 
-If you are deploying to a cluster that uses only IPv6, you can use a custom command to pass a parameter to the Remix start command.
+- [Environment Variables](https://docs.davincisolutions.ai/docs/developers/self-hosting/environment-variables)
+- [Manual](https://docs.davincisolutions.ai/docs/developers/self-hosting/manual)
+- [Docker](https://docs.davincisolutions.ai/docs/developers/self-hosting/docker)
+- [Railway](https://docs.davincisolutions.ai/docs/developers/self-hosting/railway)
 
-For local docker run:
+## License
 
-```bash
-docker run -it davinci/davinci-sign:latest npm run start -- -H ::
-```
+Distributed under the [AGPLv3 License](https://github.com/documenso/documenso/blob/main/LICENSE). See `LICENSE` for more information.
+
+## Acknowledgments
+
+- [Davinci Sign](https://github.com/documenso/documenso) - The original open-source project that this fork is based on
