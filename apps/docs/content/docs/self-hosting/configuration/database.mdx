@@ -173,7 +173,7 @@ For Docker deployments, mount the certificate file:
 docker run -d \
   -v /path/to/ca.crt:/etc/ssl/certs/db-ca.crt:ro \
   -e NEXT_PRIVATE_DATABASE_URL="postgresql://user:password@host:5432/documenso?sslmode=verify-full&sslrootcert=/etc/ssl/certs/db-ca.crt" \
-  documenso/documenso:latest
+  davinci/davinci-sign:latest
 ```
 
 ## Running Migrations

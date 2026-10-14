@@ -45,7 +45,7 @@ const findRemovalEmailJob = async (envelopeId: string, recipientEmail: string) =
 
 test('[ADMIN][TRPC][DELETE_RECIPIENT]: unauthenticated request is rejected with 401', async ({ page }) => {
   const { user: owner, team } = await seedUser();
-  const document = await seedPendingDocument(owner, team.id, ['recipient@test.documenso.com']);
+  const document = await seedPendingDocument(owner, team.id, ['recipient@test.davincisolutions.ai']);
 
   const recipient = document.recipients[0];
 
@@ -61,7 +61,7 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: unauthenticated request is rejected with 
 test('[ADMIN][TRPC][DELETE_RECIPIENT]: non-admin authenticated user is rejected with 401', async ({ page }) => {
   const { user: nonAdminUser } = await seedUser({ isAdmin: false });
   const { user: owner, team } = await seedUser();
-  const document = await seedPendingDocument(owner, team.id, ['recipient@test.documenso.com']);
+  const document = await seedPendingDocument(owner, team.id, ['recipient@test.davincisolutions.ai']);
 
   const recipient = document.recipients[0];
 
@@ -84,10 +84,10 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: admin can remove a recipient who has open
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: owner, team } = await seedUser();
 
-  const recipientEmail = 'recipient@test.documenso.com';
+  const recipientEmail = 'recipient@test.davincisolutions.ai';
 
   // Seeded recipients are OPENED with an inserted field, which the non-admin flow refuses to delete.
-  const document = await seedPendingDocument(owner, team.id, [recipientEmail, 'other@test.documenso.com']);
+  const document = await seedPendingDocument(owner, team.id, [recipientEmail, 'other@test.davincisolutions.ai']);
 
   const recipient = document.recipients.find((r) => r.email === recipientEmail);
 
@@ -109,7 +109,7 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: admin can remove a recipient who has open
 
   const remainingRecipients = await prisma.recipient.findMany({ where: { envelopeId: document.id } });
   expect(remainingRecipients).toHaveLength(1);
-  expect(remainingRecipients[0].email).toBe('other@test.documenso.com');
+  expect(remainingRecipients[0].email).toBe('other@test.davincisolutions.ai');
 
   const auditLog = await prisma.documentAuditLog.findFirst({
     where: {
@@ -150,9 +150,9 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: admin cannot remove a recipient who has c
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: owner, team } = await seedUser();
 
-  const recipientEmail = 'recipient@test.documenso.com';
+  const recipientEmail = 'recipient@test.davincisolutions.ai';
 
-  const document = await seedPendingDocument(owner, team.id, [recipientEmail, 'other@test.documenso.com']);
+  const document = await seedPendingDocument(owner, team.id, [recipientEmail, 'other@test.davincisolutions.ai']);
 
   const recipient = document.recipients.find((r) => r.email === recipientEmail);
 
@@ -183,7 +183,7 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: admin cannot remove a recipient from a co
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: owner, team } = await seedUser();
 
-  const recipientEmail = 'recipient@test.documenso.com';
+  const recipientEmail = 'recipient@test.davincisolutions.ai';
 
   const document = await seedPendingDocument(owner, team.id, [recipientEmail], {
     createDocumentOptions: {
@@ -219,7 +219,7 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: unknown recipient returns 404', async ({ 
 test('[ADMIN][TRPC][DELETE_RECIPIENT]: a missing reason is rejected with 400', async ({ page }) => {
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: owner, team } = await seedUser();
-  const document = await seedPendingDocument(owner, team.id, ['recipient@test.documenso.com']);
+  const document = await seedPendingDocument(owner, team.id, ['recipient@test.davincisolutions.ai']);
 
   const recipient = document.recipients[0];
 
@@ -241,12 +241,12 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: document is sealed when every remaining s
   const { user: owner, team } = await seedUser();
 
   const document = await seedPendingDocument(owner, team.id, [
-    'signed@test.documenso.com',
-    'blocking@test.documenso.com',
+    'signed@test.davincisolutions.ai',
+    'blocking@test.davincisolutions.ai',
   ]);
 
-  const signedRecipient = document.recipients.find((r) => r.email === 'signed@test.documenso.com');
-  const blockingRecipient = document.recipients.find((r) => r.email === 'blocking@test.documenso.com');
+  const signedRecipient = document.recipients.find((r) => r.email === 'signed@test.davincisolutions.ai');
+  const blockingRecipient = document.recipients.find((r) => r.email === 'blocking@test.davincisolutions.ai');
 
   if (!signedRecipient || !blockingRecipient) {
     throw new Error('Recipients not seeded');
@@ -282,7 +282,7 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: document with no remaining signers is not
   const { user: adminUser } = await seedUser({ isAdmin: true });
   const { user: owner, team } = await seedUser();
 
-  const document = await seedPendingDocument(owner, team.id, ['only@test.documenso.com']);
+  const document = await seedPendingDocument(owner, team.id, ['only@test.davincisolutions.ai']);
 
   await apiSignin({ page, email: adminUser.email });
 
@@ -303,9 +303,9 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: sequential signing advances to the next r
   const { user: owner, team } = await seedUser();
 
   const document = await seedPendingDocument(owner, team.id, [
-    'first@test.documenso.com',
-    'second@test.documenso.com',
-    'third@test.documenso.com',
+    'first@test.davincisolutions.ai',
+    'second@test.davincisolutions.ai',
+    'third@test.davincisolutions.ai',
   ]);
 
   await prisma.documentMeta.update({
@@ -314,7 +314,7 @@ test('[ADMIN][TRPC][DELETE_RECIPIENT]: sequential signing advances to the next r
   });
 
   const [first, second, third] = ['first', 'second', 'third'].map((prefix) => {
-    const recipient = document.recipients.find((r) => r.email === `${prefix}@test.documenso.com`);
+    const recipient = document.recipients.find((r) => r.email === `${prefix}@test.davincisolutions.ai`);
 
     if (!recipient) {
       throw new Error(`Recipient ${prefix} not seeded`);
