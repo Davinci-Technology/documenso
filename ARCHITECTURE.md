@@ -124,132 +124,67 @@ packages/trpc/server/
 - **Mount**: `/api/trpc/*`
 - **Usage**: Frontend-to-backend communication
 
-### Key Directories
-
-- `packages/lib/jobs/client/` - Provider implementations
-- `packages/lib/jobs/definitions/` - Job definitions
-
-### Job Types
-
-**Email Jobs**:
-
-- `send.signing.requested.email` - Signing invitation
-- `send-confirmation-email` - Email verification
-- `send-recipient-signed-email` - Notify on signature
-- `send-rejection-emails` - Rejection notifications
-- `send-document-cancelled-emails` - Cancellation notices
-
-**Internal Jobs**:
-
-- `internal.seal-document` - Finalize signed documents
-- `internal.bulk-send-template` - Bulk document sending
-- `internal.execute-webhook` - External webhook calls
-
-## Swappable Providers
-
-The codebase uses a **strategy pattern** with `ts-pattern` for provider selection via environment variables.
-
-### Storage Provider
-
-Handles file uploads and downloads.
-
-| Provider | Description                          | Env Value  |
-| -------- | ------------------------------------ | ---------- |
-| Database | Store files as Base64 in DB          | `database` |
-| S3       | S3-compatible storage (+ CloudFront) | `s3`       |
-
-**Config**: `NEXT_PUBLIC_UPLOAD_TRANSPORT`
-
-**Location**: `packages/lib/universal/upload/`
-
-### PDF Signing Provider
-
-Cryptographically signs PDF documents.
-
-| Provider         | Description          | Env Value    |
-| ---------------- | -------------------- | ------------ |
-| Local            | P12 certificate file | `local`      |
-| Google Cloud HSM | Google Cloud KMS     | `gcloud-hsm` |
-
-**Config**: `NEXT_PRIVATE_SIGNING_TRANSPORT`
-
-**Location**: `packages/signing/`
-
-### Email Provider
-
-Sends transactional emails.
-
-| Provider     | Description                    | Env Value      |
-| ------------ | ------------------------------ | -------------- |
-| SMTP Auth    | Standard SMTP with credentials | `smtp-auth`    |
-| SMTP API     | SMTP with API key              | `smtp-api`     |
-| Resend       | Resend API                     | `resend`       |
-| MailChannels | MailChannels API               | `mailchannels` |
-
-**Config**: `NEXT_PRIVATE_SMTP_TRANSPORT`
-
-**Location**: `packages/email/mailer.ts`
-
-### Background Jobs Provider
-
-Processes async jobs.
-
-| Provider | Description           | Env Value         |
-| -------- | --------------------- | ----------------- |
-| Local    | Database-backed queue | `local` (default) |
-| BullMQ   | Redis-backed queue    | `bullmq`          |
-| Inngest  | Managed cloud service | `inngest`         |
-
-**Config**: `NEXT_PRIVATE_JOBS_PROVIDER`
-
-**Location**: `packages/lib/jobs/client/`
-
-## Request Flow
-
-### Web Application Request
+## Key Directories
 
 ```
-Browser
-   │
-   ▼
-Hono Server (apps/remix/server/)
-   │
-   ├──▶ /api/v1/* ──▶ ts-rest handlers (packages/api/)
-   │
-   ├──▶ /api/v2/* ──▶ tRPC OpenAPI handlers (packages/trpc/)
-   │
-   ├──▶ /api/trpc/* ──▶ tRPC handlers (packages/trpc/)
-   │
-   ├──▶ /api/jobs/* ──▶ Job handlers (packages/lib/jobs/)
-   │
-   └──▶ /* ──▶ React Router (apps/remix/app/routes/)
-                    │
-                    ▼
-              React Components (packages/ui/)
+apps/
+└── remix/
+    ├── app/
+    │   └── routes/           # React Router routes
+    │       ├── _authenticated+/  # Protected routes
+    │       ├── _unauthenticated+/  # Public routes
+    │       └── _recipient+/  # Signing routes
+    └── server/
+        ├── router.ts         # Hono route mounting
+        └── main.js           # Entry point
+packages/
+├── api/v1/                   # API V1 (ts-rest)
+├── trpc/server/              # API V2 + Internal (tRPC)
+├── lib/
+│   ├── server-only/          # Server business logic
+│   ├── client-only/          # Client utilities
+│   ├── universal/            # Shared code
+│   └── jobs/                 # Background jobs
+├── prisma/                   # Database schema & client
+├── signing/                  # PDF signing
+├── email/                    # Email templates
+└── ui/                       # Component library
+docker/                       # Docker configs
 ```
 
-### Document Signing Flow
+## Development
 
+```bash
+# Full setup (install, docker, migrate, seed, dev)
+npm run d
+
+# Start development server
+npm run dev
+
+# Database GUI
+npm run prisma:studio
+
+# Type checking (faster than build)
+npx tsc --noEmit
+
+# E2E tests
+npm run test:e2e
 ```
-1. Upload Document ──▶ Storage Provider (DB/S3)
-                                  │
-2. Add Recipients ────────────────┤
-                                  │
-3. Add Fields ────────────────────┤
-                                  │
-4. Send Document ─────────────────┤
-       │                          │
-       ▼                          │
-   Email Job ──▶ Email Provider   |
-       │                          |
-5. Recipient Signs ───────────────┤
-       │                          │
-       ▼                          │
-   seal-document Job              │
-       │                          │
-       ▼                          │
-   Signing Provider ◀─────────────┘
-       │
-       ▼
-   Signed PDF ──▶ Storage Provider
-```
+
+### Docker Services (Development)
+
+| Service         | Port       |
+| --------------- | ---------- |
+| PostgreSQL      | 54320      |
+| Inbucket (Mail) | 9000       |
+
+## Environment Variables Summary
+
+| Variable                         | Purpose          | Options                                           |
+| -------------------------------- | ---------------- | ------------------------------------------------- |
+| `NEXT_PUBLIC_UPLOAD_TRANSPORT`   | Storage provider | `database`, `s3`                                  |
+| `NEXT_PRIVATE_SIGNING_TRANSPORT` | Signing provider | `local`, `gcloud-hsm`                             |
+| `NEXT_PRIVATE_SMTP_TRANSPORT`    | Email provider   | `smtp-auth`, `smtp-api`, `resend`, `mailchannels` |
+| `NEXT_PRIVATE_JOBS_PROVIDER`     | Jobs provider    | `local`, `inngest`                                |
+
+See `.env.example` for the complete list of configuration options.

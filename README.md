@@ -2,7 +2,7 @@
 
 Professional electronic signature solution by Davinci AI Solutions.
 
-> **Note:** This project is a modified fork of [Documenso](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Documenso team for their excellent work. The complete corresponding source for this fork is available in this repository.
+> **Note:** This project is a modified fork of [Davinci Sign](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Davinci Sign team for their excellent work. The complete corresponding source for this fork is available in this repository.
 
 <p align="center" style="margin-top: 20px">
   <p align="center">
@@ -103,6 +103,21 @@ git clone https://github.com/<your-username>/documenso
 
 4. Run `npm run dev` in the root directory
 
+5. Want it even faster? Just use
+
+```sh
+npm run d
+```
+
+#### Access Points for Your Application
+
+1. **App** - http://localhost:3000
+2. **Incoming Mail Access** - http://localhost:9000
+3. **Database Connection Details**
+
+   - **Port**: 54320
+   - **Connection**: Use your favorite database client to connect using the provided port.
+
 ## Developer Setup
 
 ### Manual Setup
@@ -138,29 +153,60 @@ git clone https://github.com/<your-username>/documenso
 
 8. Register a new user at http://localhost:3000/signup
 
----
+### Running the project
 
-- Optional: Seed the database using `npm run prisma:seed -w @documenso/prisma` to create a test user and document.
-- Optional: Create your own signing certificate. See **[Create your own signing certificate](./SIGNING.md)**.
+1. Run `npm run dev` in the root directory
 
-### Run in Gitpod
+## Test suite
 
-- Click below to launch a ready-to-use Gitpod workspace in your browser.
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/documenso/documenso)
-
-## Docker
-
-Docker containers are available for running Davinci Sign. We support official Docker images for Davinci Sign on [DockerHub](https://hub.docker.com/r/davinci/davinci-sign) and [GitHub Container Registry](https://ghcr.io/davinci/davinci-sign).
-
-For setup instructions, see the [Docker Deployment](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker) and [Docker Compose](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker-compose) guides.
-
-### Support IPv6
-
-If you are deploying to a cluster that uses only IPv6, you can use a custom command to pass a parameter to the Remix start command.
-
-For local docker run:
+All tests are located in the same directory as the source files. They are identified by the `.spec.ts` or `.test.ts` file extension.
 
 ```bash
-docker run -it davinci/davinci-sign:latest npm run start -- -H ::
+# Run the test suite
+npm test
+
+# Run the test suite in watch mode
+npm run test:watch
 ```
+
+## Production
+
+### Docker
+
+We provide a Docker image for easy deployment. The Docker image is available at [davinci/davinci-sign](https://hub.docker.com/r/davinci/davinci-sign).
+
+For Docker deployment, refer to our [Docker guide](https://docs.davincisolutions.ai/docs/developers/local-development/docker).
+
+### Railway
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/DLHftT?referralCode=luckybyte)
+
+### Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/documenso/documenso)
+
+### Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/documenso/documenso)
+
+## Email Address
+
+You can now setup your own email using [Resend](https://resend.com/docs/send-with-nextjs), [SendGrid](https://sendgrid.com/), [Mailgun](https://www.mailgun.com/), [Postmark](https://postmarkapp.com/), or [Nodemailer](https://nodemailer.com/about/).
+
+## Pledges
+
+This project was built in public by the [Davinci AI Solutions team](https://davincisolutions.ai/) and is funded by our own savings and by the community.
+
+And a big thanks goes to the [Davinci Sign](https://davincisolutions.ai/) team for creating this open-source project that we could fork and build upon.
+
+## Acknowledgements
+
+## Credits
+
+Thanks to all the contributors who have helped make Davinci Sign better:
+
+<!-- Contributors list will be updated -->
+
+## License
+
+[AGPL-3.0 License](https://github.com/documenso/documenso/blob/main/LICENSE.md)
