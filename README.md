@@ -2,7 +2,7 @@
 
 Professional electronic signature solution by Davinci AI Solutions.
 
-> **Note:** This project is a modified fork of [Documenso](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Documenso team for their excellent work. The complete corresponding source for this fork is available in this repository.
+> **Note:** This project is a modified fork of [Davinci Sign](https://github.com/documenso/documenso), an open-source document signing platform licensed under the AGPL-3.0. We extend our gratitude to the Davinci Sign team for their excellent work. The complete corresponding source for this fork is available in this repository.
 
 <p align="center" style="margin-top: 20px">
   <p align="center">
@@ -94,7 +94,7 @@ To run Davinci Sign locally, you will need
 After forking the repository, clone it to your local device by using the following command:
 
 ```sh
-git clone https://github.com/<your-username>/documenso
+git clone https://github.com/documenso/documenso
 ```
 
 2. Set up your `.env` file using the recommendations in the `.env.example` file. Alternatively, just run `cp .env.example .env` to get started with our handpicked defaults.
@@ -102,6 +102,21 @@ git clone https://github.com/<your-username>/documenso
 3. Run `npm run dx` in the root directory
 
 4. Run `npm run dev` in the root directory
+
+5. Want it even faster? Just use
+
+```sh
+npm run d
+```
+
+#### Access Points for Your Application
+
+1. **App** - http://localhost:3000
+2. **Incoming Mail Access** - http://localhost:9000
+3. **Database Connection Details**
+
+   - **Port**: 54320
+   - **Connection**: Use your favorite database client to connect using the provided port.
 
 ## Developer Setup
 
@@ -114,7 +129,7 @@ Follow these steps to setup Davinci Sign on your local machine, or refer to the 
 After forking the repository, clone it to your local device by using the following command:
 
 ```sh
-git clone https://github.com/<your-username>/documenso
+git clone https://github.com/documenso/documenso
 ```
 
 2. Run `npm i` in the root directory
@@ -136,31 +151,4 @@ git clone https://github.com/<your-username>/documenso
 
 7. Run `npm run dev` in the root directory to start
 
-8. Register a new user at http://localhost:3000/signup
-
----
-
-- Optional: Seed the database using `npm run prisma:seed -w @documenso/prisma` to create a test user and document.
-- Optional: Create your own signing certificate. See **[Create your own signing certificate](./SIGNING.md)**.
-
-### Run in Gitpod
-
-- Click below to launch a ready-to-use Gitpod workspace in your browser.
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/documenso/documenso)
-
-## Docker
-
-Docker containers are available for running Davinci Sign. We support official Docker images for Davinci Sign on [DockerHub](https://hub.docker.com/r/davinci/davinci-sign) and [GitHub Container Registry](https://ghcr.io/davinci/davinci-sign).
-
-For setup instructions, see the [Docker Deployment](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker) and [Docker Compose](https://docs.davincisolutions.ai/docs/self-hosting/deployment/docker-compose) guides.
-
-### Support IPv6
-
-If you are deploying to a cluster that uses only IPv6, you can use a custom command to pass a parameter to the Remix start command.
-
-For local docker run:
-
-```bash
-docker run -it davinci/davinci-sign:latest npm run start -- -H ::
-```
+8. Register a new user at `http://localhost:3000/signup`
