@@ -6,7 +6,7 @@ import { createElement } from 'react';
 
 import { getI18nInstance } from '../../../client-only/providers/i18n-server';
 import { NEXT_PUBLIC_WEBAPP_URL, SUPPORT_EMAIL } from '../../../constants/app';
-import { DOCUMENSO_INTERNAL_EMAIL } from '../../../constants/email';
+import { DAVINCI_INTERNAL_EMAIL } from '../../../constants/email';
 import { renderEmailWithI18N } from '../../../utils/render-email-with-i18n';
 import type { JobRunIO } from '../../client/_internal/job';
 import type { TSendAccountDisabledEmailJobDefinition } from './send-account-disabled-email';
@@ -50,7 +50,7 @@ export const run = async ({ payload, io }: { payload: TSendAccountDisabledEmailJ
         address: user.email,
         name: user.name || '',
       },
-      from: DOCUMENSO_INTERNAL_EMAIL,
+      from: DAVINCI_INTERNAL_EMAIL,
       subject: i18n._(msg`Your Documenso account has been disabled`),
       html,
       text,
@@ -60,7 +60,7 @@ export const run = async ({ payload, io }: { payload: TSendAccountDisabledEmailJ
   await io.runTask('send-account-disabled-support-email', async () => {
     await mailer.sendMail({
       to: SUPPORT_EMAIL,
-      from: DOCUMENSO_INTERNAL_EMAIL,
+      from: DAVINCI_INTERNAL_EMAIL,
       subject: i18n._(msg`An account was automatically disabled`),
       text: `
         An account was automatically disabled and the user has been notified.
