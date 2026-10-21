@@ -20,7 +20,7 @@ type LoginOptions = {
 
 export const apiSignin = async ({
   page,
-  email = 'example@documenso.com',
+  email = 'example@davincisolutions.ai',
   password = 'password',
   redirectPath = '/',
 }: LoginOptions) => {

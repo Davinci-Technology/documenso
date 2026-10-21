@@ -27,7 +27,7 @@ const seedRecipient = async () => {
   const { recipients } = await seedPendingDocumentWithFullFields({
     owner,
     teamId: team.id,
-    recipients: ['persist-api-signer@test.documenso.com'],
+    recipients: ['persist-api-signer@test.davincisolutions.ai'],
     fields: [FieldType.SIGNATURE],
     updateDocumentOptions: { internalVersion: 2 },
   });
