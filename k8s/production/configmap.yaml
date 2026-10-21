@@ -26,7 +26,7 @@ data:
 
   # MinIO (in-cluster dedicated storage)
   NEXT_PUBLIC_UPLOAD_TRANSPORT: "s3"
-  NEXT_PRIVATE_UPLOAD_ENDPOINT: "http://minio:9000"
+  NEXT_PRIVATE_UPLOAD_ENDPOINT: "http://minio.davinci-sign-production.svc.cluster.local:9000"
   NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE: "true"
   NEXT_PRIVATE_UPLOAD_REGION: "us-east-1"
   NEXT_PRIVATE_UPLOAD_BUCKET: "davinci-sign"
@@ -37,7 +37,7 @@ data:
   NEXT_PRIVATE_SMTP_HOST: "smtp.sendgrid.net"
   NEXT_PRIVATE_SMTP_PORT: "587"
   NEXT_PRIVATE_SMTP_USERNAME: "apikey"
-  NEXT_PRIVATE_SMTP_FROM_NAME: "Davinci Sign"
+  NEXT_PRIVATE_SMTP_FROM_NAME: "Davinci AI Solutions"
   NEXT_PRIVATE_SMTP_FROM_ADDRESS: "noreply@davincisolutions.ai"
   NEXT_PRIVATE_SMTP_SECURE: "false"
 
