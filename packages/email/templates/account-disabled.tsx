@@ -11,7 +11,7 @@ export type AccountDisabledEmailTemplateProps = Partial<TemplateAccountDisabledP
 
 export const AccountDisabledEmailTemplate = ({
   assetBaseUrl = 'http://localhost:3002',
-  supportEmail = 'support@documenso.com',
+  supportEmail = 'support@davincisolutions.ai',
 }: AccountDisabledEmailTemplateProps) => {
   const { _ } = useLingui();
 

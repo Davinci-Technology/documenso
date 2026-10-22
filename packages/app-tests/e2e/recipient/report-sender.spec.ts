@@ -44,7 +44,7 @@ const reportSender = async (page: Page, token: string) => {
 test('[REPORT_SENDER]: only reports the sender after the button is clicked', async ({ page }) => {
   const { user, team, organisation } = await seedUser();
 
-  const document = await seedPendingDocument(user, team.id, ['recipient@documenso.com']);
+  const document = await seedPendingDocument(user, team.id, ['recipient@davincisolutions.ai']);
   const token = document.recipients[0].token;
 
   expect(await getEmailReports(organisation.id)).toBe(0);
@@ -65,7 +65,7 @@ test('[REPORT_SENDER]: does not double count within the rate limit window', asyn
 
   const { user, team, organisation } = await seedUser();
 
-  const document = await seedPendingDocument(user, team.id, ['recipient@documenso.com']);
+  const document = await seedPendingDocument(user, team.id, ['recipient@davincisolutions.ai']);
   const token = document.recipients[0].token;
 
   await reportSender(page, token);
@@ -83,7 +83,7 @@ test('[REPORT_SENDER]: does not disable a reported free plan sender outside of D
 
   const { user, team } = await seedUser();
 
-  const document = await seedPendingDocument(user, team.id, ['recipient@documenso.com']);
+  const document = await seedPendingDocument(user, team.id, ['recipient@davincisolutions.ai']);
   const token = document.recipients[0].token;
 
   await reportSender(page, token);
@@ -99,7 +99,7 @@ test('[REPORT_SENDER]: disables a reported free plan sender on Documenso Cloud',
 
   const { user, team } = await seedUser();
 
-  const document = await seedPendingDocument(user, team.id, ['recipient@documenso.com']);
+  const document = await seedPendingDocument(user, team.id, ['recipient@davincisolutions.ai']);
   const token = document.recipients[0].token;
 
   await reportSender(page, token);
@@ -115,7 +115,7 @@ test('[REPORT_SENDER]: never disables an instance admin on Documenso Cloud', asy
 
   const { user, team } = await seedUser({ isAdmin: true });
 
-  const document = await seedPendingDocument(user, team.id, ['recipient@documenso.com']);
+  const document = await seedPendingDocument(user, team.id, ['recipient@davincisolutions.ai']);
   const token = document.recipients[0].token;
 
   await reportSender(page, token);
