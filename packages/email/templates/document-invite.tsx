@@ -12,6 +12,7 @@ import { TemplateCustomMessageBody } from '../template-components/template-custo
 import type { TemplateDocumentInviteProps } from '../template-components/template-document-invite';
 import { TemplateDocumentInvite } from '../template-components/template-document-invite';
 import { TemplateFooter } from '../template-components/template-footer';
+import { TemplateNewAccountWarning } from '../template-components/template-new-account-warning';
 
 export type DocumentInviteEmailTemplateProps = Partial<TemplateDocumentInviteProps> & {
   customBody?: string;
@@ -22,6 +23,12 @@ export type DocumentInviteEmailTemplateProps = Partial<TemplateDocumentInvitePro
   includeSenderDetails?: boolean;
   organisationType?: OrganisationType;
   reportUrl?: string;
+
+  /**
+   * The user's own email, not a team email, so the recipient can verify who
+   * actually contacted them.
+   */
+  newAccountWarningSenderEmail?: string;
 };
 
 export const DocumentInviteEmailTemplate = ({
@@ -37,6 +44,7 @@ export const DocumentInviteEmailTemplate = ({
   includeSenderDetails,
   organisationType,
   reportUrl,
+  newAccountWarningSenderEmail,
 }: DocumentInviteEmailTemplateProps) => {
   const { _ } = useLingui();
   const branding = useBranding();
@@ -62,7 +70,11 @@ export const DocumentInviteEmailTemplate = ({
         <Preview>{_(previewText)}</Preview>
 
         <Section>
-          <Container className="mx-auto mb-2 mt-8 max-w-xl rounded-lg border border-solid border-border p-4 backdrop-blur-sm">
+          {newAccountWarningSenderEmail && (
+            <TemplateNewAccountWarning senderEmail={newAccountWarningSenderEmail} reportUrl={reportUrl} />
+          )}
+
+          <Container className="mx-auto mt-8 mb-2 max-w-xl rounded-lg border border-solid border-border p-4 backdrop-blur-sm">
             <Section>
               {branding.brandingEnabled && branding.brandingLogo ? (
                 <Img src={branding.brandingLogo} alt="Branding Logo" className="mb-4 h-6" />
