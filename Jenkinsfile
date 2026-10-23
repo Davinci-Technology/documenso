@@ -32,7 +32,7 @@ spec:
     image: node:24-alpine3.23
     command: ['sleep', '9999']
     resources:
-      requests: {memory: 4Gi, cpu: '1'}
+      requests: {memory: 4Gi, cpu: 500m}
       limits: {memory: 10Gi, cpu: '2'}
   - name: postgres-tests
     image: postgres:15@sha256:baa22e6286bf832cb147b8bb5aa9d8bc999846d69c21d11bf63f58fbeed1fa48
@@ -88,7 +88,7 @@ spec:
     image: gcr.io/kaniko-project/executor:v1.23.2-debug
     command: ['sleep', '9999']
     resources:
-      requests: {memory: 10Gi, cpu: '1'}
+      requests: {memory: 10Gi, cpu: 500m}
       limits: {memory: 16Gi, cpu: '2'}
 '''
                 }
