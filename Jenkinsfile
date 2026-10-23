@@ -77,6 +77,11 @@ spec:
                     '''
                 }
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'packages/app-tests/test-results/**', allowEmptyArchive: true
+                }
+            }
         }
         stage('Build staging release once') {
             when {

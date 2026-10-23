@@ -1,4 +1,6 @@
 import { createHash, createHmac, randomUUID, sign as signEvent } from 'node:crypto';
+import { once } from 'node:events';
+import { connect } from 'node:net';
 import { emailDeliveryContext } from '@documenso/email/delivery-context';
 import { withDeliveryTracking } from '@documenso/email/tracked-transport';
 import { sign } from '@documenso/lib/server-only/crypto/sign';
@@ -8,7 +10,7 @@ import { Hono } from 'hono';
 import { setSignedCookie } from 'hono/cookie';
 import { createTransport } from 'nodemailer';
 
-import { cacheTask, createParent, seedEnvelope, test } from './fixtures';
+import { cacheTask, createParent, seedEnvelope, startSmtpSink, test } from './fixtures';
 
 test('SMTP loss of final DATA acknowledgement quarantines the intent; explicit451 can retry', async ({ runtime }) => {
   const transport = withDeliveryTracking(
@@ -174,10 +176,13 @@ test('leased pending recovery and signed persisted-payload binding use actual HT
   runtime,
 }) => {
   const seeded = await seedEnvelope(runtime.callbackUrl);
-  const parent = await createParent('internal.process-recipient-expired', { recipientId: seeded.recipient.id });
-  await prisma.backgroundJob.update({
-    where: { id: parent.id },
+  const parent = await prisma.backgroundJob.create({
     data: {
+      id: randomUUID(),
+      jobId: 'internal.process-recipient-expired',
+      name: 'Synthetic stopped worker',
+      version: '1.0.0',
+      payload: { recipientId: seeded.recipient.id },
       status: 'PROCESSING',
       leaseOwner: 'synthetic-stopped-worker',
       leaseExpiresAt: new Date(0),
@@ -333,4 +338,35 @@ test('concurrent production sweeps deduplicate one reminder occurrence and prese
       where: { jobId: { in: occurrences.map((job) => job.id) }, status: 'ACCEPTED' },
     }),
   ).toBe(2);
+});
+
+test('SMTP sink records intentional peer resets and rejects unexpected active resets', async () => {
+  const sink = await startSmtpSink();
+  try {
+    const intentional = connect(sink.port, '127.0.0.1');
+    await once(intentional, 'data');
+    sink.expectPeerShutdown();
+    intentional.resetAndDestroy();
+    await expect.poll(() => sink.socketEvents().filter((event) => event.event === 'error').length).toBe(1);
+    expect(sink.socketEvents().find((event) => event.event === 'error')).toMatchObject({
+      code: 'ECONNRESET',
+      expected: true,
+    });
+    expect(() => sink.assertNoUnexpectedErrors()).not.toThrow();
+
+    // A later connection is outside the exact pre-shutdown snapshot.
+    const unexpected = connect(sink.port, '127.0.0.1');
+    await once(unexpected, 'data');
+    unexpected.resetAndDestroy();
+    await expect.poll(() => sink.socketEvents().filter((event) => event.event === 'error').length).toBe(2);
+    expect(
+      sink
+        .socketEvents()
+        .filter((event) => event.event === 'error')
+        .at(-1),
+    ).toMatchObject({ code: 'ECONNRESET', expected: false });
+    expect(() => sink.assertNoUnexpectedErrors()).toThrow('Unexpected SMTP sink socket error');
+  } finally {
+    await sink.close();
+  }
 });

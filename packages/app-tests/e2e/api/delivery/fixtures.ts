@@ -15,9 +15,38 @@ export const startSmtpSink = async () => {
   let accepted = 0;
   let rejected = false;
   const sockets = new Set<Socket>();
+  const shutdownSockets = new WeakSet<Socket>();
+  const connectionIds = new WeakMap<Socket, number>();
+  const socketEvents: Array<{ connectionId: number; event: string; code?: string; expected?: boolean }> = [];
+  const unexpectedErrors: Error[] = [];
+  let nextConnectionId = 0;
+  const expectPeerShutdown = () => {
+    for (const socket of sockets) {
+      shutdownSockets.add(socket);
+      socketEvents.push({ connectionId: connectionIds.get(socket) ?? 0, event: 'intentional-peer-shutdown' });
+    }
+  };
+  const assertNoUnexpectedErrors = () => {
+    if (unexpectedErrors.length) {
+      throw new Error('Unexpected SMTP sink socket error', { cause: unexpectedErrors[0] });
+    }
+  };
   const server = createTcpServer((socket) => {
+    const connectionId = ++nextConnectionId;
     sockets.add(socket);
-    socket.on('close', () => sockets.delete(socket));
+    connectionIds.set(socket, connectionId);
+    socketEvents.push({ connectionId, event: 'open' });
+    socket.on('error', (error: NodeJS.ErrnoException) => {
+      const expected = shutdownSockets.has(socket) && error.code === 'ECONNRESET';
+      socketEvents.push({ connectionId, event: 'error', code: error.code, expected });
+      if (!expected) {
+        unexpectedErrors.push(error);
+      }
+    });
+    socket.on('close', () => {
+      socketEvents.push({ connectionId, event: 'close' });
+      sockets.delete(socket);
+    });
     socket.write('220 local synthetic SMTP\r\n');
     let buffer = '';
     let inData = false;
@@ -65,7 +94,11 @@ export const startSmtpSink = async () => {
       rejected = false;
     },
     counts: () => ({ bodies, accepted }),
+    expectPeerShutdown,
+    assertNoUnexpectedErrors,
+    socketEvents: () => [...socketEvents],
     async close() {
+      expectPeerShutdown();
       for (const socket of sockets) {
         socket.destroy();
       }
@@ -112,6 +145,7 @@ export const test = base.extend<{
     const stop = async () => {
       if (child && child.exitCode === null) {
         const exited = once(child, 'exit');
+        smtp.expectPeerShutdown();
         child.kill('SIGTERM');
         await exited;
       }
@@ -175,15 +209,20 @@ export const test = base.extend<{
         },
       });
     } finally {
-      if (testInfo.status !== testInfo.expectedStatus) {
-        const file = testInfo.outputPath('synthetic-delivery-server.log');
-        await writeFile(file, diagnostics);
-        await testInfo.attach('synthetic-delivery-server.log', { path: file, contentType: 'text/plain' });
-      }
       await stop();
       await smtp.close();
       callback.closeAllConnections();
       await new Promise<void>((resolve) => callback.close(() => resolve()));
+      const socketEvents = smtp.socketEvents();
+      if (testInfo.status !== testInfo.expectedStatus || socketEvents.some((event) => event.event === 'error')) {
+        const file = testInfo.outputPath('synthetic-delivery-server.log');
+        await writeFile(
+          file,
+          `${diagnostics}\nSMTP socket lifecycle: ${JSON.stringify({ port: smtp.port, events: socketEvents })}\n`,
+        );
+        await testInfo.attach('synthetic-delivery-server.log', { path: file, contentType: 'text/plain' });
+      }
+      smtp.assertNoUnexpectedErrors();
     }
   },
 });
