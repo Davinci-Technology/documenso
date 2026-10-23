@@ -205,14 +205,14 @@ export const run = async ({ payload, io }: { payload: TSendSigningEmailJobDefini
       });
     } catch (_err) {
       io.logger.warn({
-        msg: 'Recipient signing email dropped: org rate limit exceeded',
+        msg: 'Recipient signing email deferred: org rate limit exceeded',
         organisationId,
         recipientId: recipient.id,
         envelopeId: envelope.id,
       });
 
-      // Job is consumed and NOT retried.
-      return;
+      // Preserve this work for bounded retry and terminal failure visibility.
+      throw new Error('EMAIL_QUOTA_DEFERRED');
     }
 
     await io.runTask('send-signing-email', async () => {

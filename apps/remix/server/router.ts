@@ -28,6 +28,7 @@ import type { Logger } from 'pino';
 import { aiRoute } from './api/ai/route';
 import { downloadRoute } from './api/download/download';
 import { filesRoute } from './api/files/files';
+import { deliveryOperationsRoute } from './api/operations/delivery';
 import { type AppContext, appContext } from './context';
 import { csrfMiddleware } from './csrf-middleware';
 import { appMiddleware } from './middleware';
@@ -132,6 +133,8 @@ app.route('/api/ai', aiRoute);
 
 // CSC OAuth routes (mounted from @documenso/ee).
 app.route('/api/csc', csc);
+
+app.route('/api', deliveryOperationsRoute);
 
 // API servers.
 app.route('/api/v1', tsRestHonoApp);

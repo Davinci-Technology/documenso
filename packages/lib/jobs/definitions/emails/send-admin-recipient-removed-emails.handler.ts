@@ -78,7 +78,7 @@ export const run = async ({
         });
       } catch (_err) {
         io.logger.warn({
-          msg: 'Admin recipient removed email dropped: org email limit exceeded',
+          msg: 'Admin recipient removed email deferred: org email limit exceeded',
           organisationId,
           envelopeId: envelope.id,
         });
@@ -122,7 +122,7 @@ export const run = async ({
   const ownerEmail = envelope.user.email;
 
   if (!isRecipientEmailValidForSending({ email: ownerEmail })) {
-    return;
+    throw new Error('EMAIL_QUOTA_DEFERRED');
   }
 
   const { branding, emailLanguage, senderEmail, emailTransport } = await getEmailContext({

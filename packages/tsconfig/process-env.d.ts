@@ -1,6 +1,8 @@
 declare namespace NodeJS {
   export interface ProcessEnv {
     PORT?: string;
+    NEXT_PRIVATE_WEBHOOK_ALLOWED_HOSTS?: string;
+    NEXT_PRIVATE_SENDGRID_WEBHOOK_VERIFICATION_KEY?: string;
     NEXT_PUBLIC_WEBAPP_URL?: string;
     NEXT_PRIVATE_DOCUMENSO_LICENSE_KEY?: string;
 

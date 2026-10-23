@@ -314,23 +314,12 @@ export async function loader(loaderArgs: Route.LoaderArgs) {
   if (foundRecipient.envelope.internalVersion === 2) {
     const payloadV2 = await handleV2Loader(loaderArgs);
 
-    // V2 payload may carry a one-shot `Set-Cookie` header (used to clear the
-    // CSC blocking-error cookie after the loader reads it). Forward it via
-    // the `superLoaderJson` response init so the browser actually applies the
-    // header. The field stays on the payload — it's just a `Max-Age=0` clear
-    // directive, not sensitive — and isn't read by any consumer.
-    const responseHeaders =
-      'responseHeaders' in payloadV2 && payloadV2.responseHeaders ? payloadV2.responseHeaders : undefined;
-
-    return superLoaderJson(
-      {
-        isSenderDisabled: false,
-        version: 2,
-        payload: payloadV2,
-        branding,
-      } as const,
-      responseHeaders ? { headers: responseHeaders } : undefined,
-    );
+    return superLoaderJson({
+      isSenderDisabled: false,
+      version: 2,
+      payload: payloadV2,
+      branding,
+    } as const);
   }
 
   const payloadV1 = await handleV1Loader(loaderArgs);

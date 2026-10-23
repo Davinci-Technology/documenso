@@ -1154,6 +1154,14 @@ model BackgroundJob {
   completedAt   DateTime?
   lastRetriedAt DateTime?
 
+  availableAt DateTime @default(now())
+  leaseOwner String?
+  leaseExpiresAt DateTime?
+  lastError String?
+
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+
   tasks BackgroundJobTask[]
 }
 
@@ -1309,4 +1317,30 @@ model RateLimit {
 
   @@id([key, action, bucket])
   @@index([createdAt])
+}
+
+// Minimal operational metadata only; no addresses, content or signing tokens.
+model EmailDelivery {
+  id String @id
+  jobId String?
+  taskId String?
+  envelopeId String?
+  messageId String @unique
+  providerMessageId String?
+  status String @default("SUBMITTING")
+  errorCode String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events EmailDeliveryEvent[]
+  @@index([status, updatedAt])
+  @@index([envelopeId])
+}
+
+model EmailDeliveryEvent {
+  id String @id
+  deliveryId String
+  event String
+  occurredAt DateTime
+  createdAt DateTime @default(now())
+  delivery EmailDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
 }
