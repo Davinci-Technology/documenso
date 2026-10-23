@@ -106,7 +106,14 @@ spec:
                 }
             }
             steps {
-                checkout scm
+                script {
+                    def checkoutResult = checkout(scm)
+                    def revision = checkoutResult.GIT_COMMIT
+                    if (!(revision ==~ /[0-9a-fA-F]{40}/)) {
+                        error('Image checkout did not return a full forty-character hexadecimal GIT_COMMIT')
+                    }
+                    env.GIT_COMMIT = revision
+                }
                 withCredentials([string(credentialsId: 'REGISTRY_TOKEN', variable: 'REGISTRY_TOKEN')]) {
                     container('kaniko') {
                         sh '''
