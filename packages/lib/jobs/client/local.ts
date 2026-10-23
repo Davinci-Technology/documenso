@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 
 import { emailDeliveryContext } from '@documenso/email/delivery-context';
@@ -36,6 +37,8 @@ type CronJobEntry = {
   cron: string;
   lastTickAt: Date;
 };
+
+const executionContext = new AsyncLocalStorage<{ jobId: string; taskId?: string }>();
 
 const LEASE_MS = 120_000;
 const recoveryDelay = (attempt: number) => Math.min(30_000 * 2 ** Math.max(0, attempt - 1), 300_000);
@@ -191,8 +194,8 @@ export class LocalJobProvider extends BaseJobProvider {
       take: 100,
     });
     for (const job of stale) {
-      const legacyMail = !job.leaseOwner && (job.jobId.includes('send') || job.jobId.includes('reminder'));
-      const exhausted = job.retried >= job.maxRetries || legacyMail;
+      const legacyUnfenced = !job.leaseOwner;
+      const exhausted = job.retried >= job.maxRetries || legacyUnfenced;
       await prisma.backgroundJob.updateMany({
         where: {
           id: job.id,
@@ -205,8 +208,8 @@ export class LocalJobProvider extends BaseJobProvider {
           leaseOwner: null,
           leaseExpiresAt: null,
           availableAt: new Date(now.getTime() + recoveryDelay(job.retried)),
-          lastError: legacyMail
-            ? 'LEGACY_MAIL_RECONCILIATION_REQUIRED'
+          lastError: legacyUnfenced
+            ? 'LEGACY_JOB_RECONCILIATION_REQUIRED'
             : exhausted
               ? 'RECOVERY_RETRIES_EXHAUSTED'
               : 'WORKER_LEASE_EXPIRED',
@@ -215,7 +218,11 @@ export class LocalJobProvider extends BaseJobProvider {
       });
       console.error('[JOBS_ALERT]', {
         jobId: job.id,
-        reason: exhausted ? 'RECOVERY_RETRIES_EXHAUSTED' : 'WORKER_LEASE_EXPIRED',
+        reason: legacyUnfenced
+          ? 'LEGACY_JOB_RECONCILIATION_REQUIRED'
+          : exhausted
+            ? 'RECOVERY_RETRIES_EXHAUSTED'
+            : 'WORKER_LEASE_EXPIRED',
       });
     }
     const pending = await prisma.backgroundJob.findMany({
@@ -276,6 +283,15 @@ export class LocalJobProvider extends BaseJobProvider {
   }
 
   public async triggerJob(options: SimpleTriggerJobOptions) {
+    const parent = executionContext.getStore();
+    if (parent && !options.id) {
+      // Global jobs.triggerJob calls in production handler tails must inherit the
+      // same receipt identity as io.triggerJob, independent of lease/attempt.
+      options = {
+        ...options,
+        id: JSON.stringify([parent.jobId, parent.taskId ?? 'handler', options.name, options.payload]),
+      };
+    }
     const eligibleJobs = Object.values(this._jobDefinitions).filter((job) => job.trigger.name === options.name);
 
     await Promise.all(
@@ -411,11 +427,13 @@ export class LocalJobProvider extends BaseJobProvider {
       }, 30_000);
       heartbeat.unref();
       try {
-        await emailDeliveryContext.run({ jobId, sequence: 0 }, () =>
-          definition.handler({
-            payload,
-            io: this.createJobRunIO(jobId, leaseOwner),
-          }),
+        await executionContext.run({ jobId }, () =>
+          emailDeliveryContext.run({ jobId, sequence: 0 }, () =>
+            definition.handler({
+              payload,
+              io: this.createJobRunIO(jobId, leaseOwner),
+            }),
+          ),
         );
 
         backgroundJob = await prisma.backgroundJob.update({
@@ -484,7 +502,10 @@ export class LocalJobProvider extends BaseJobProvider {
     data: SimpleTriggerJobOptions;
     isRetry?: boolean;
   }) {
-    const { jobId, jobDefinitionId, data, isRetry } = options;
+    const { jobId, jobDefinitionId, isRetry } = options;
+    // The receiver validates before verifying. Sign the same schema-ordered
+    // representation, including IDs introduced by durable parent receipts.
+    const data = ZSimpleTriggerJobOptionsSchema.parse(options.data);
 
     const endpoint = `${NEXT_PRIVATE_INTERNAL_WEBAPP_URL()}/api/jobs/${jobDefinitionId}/${jobId}`;
     const signature = sign(data);
@@ -555,8 +576,11 @@ export class LocalJobProvider extends BaseJobProvider {
           throw new BackgroundTaskExceededRetriesError('Task exceeded retries');
         }
 
+        const taskId = task.id;
         try {
-          const result = await emailDeliveryContext.run({ jobId, taskId: task.id, sequence: 0 }, callback);
+          const result = await executionContext.run({ jobId, taskId }, () =>
+            emailDeliveryContext.run({ jobId, taskId, sequence: 0 }, callback),
+          );
 
           task = await prisma.backgroundJobTask.update({
             where: {

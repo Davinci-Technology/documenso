@@ -15,7 +15,9 @@ export const classifyMailFailure = (error: unknown): 'RETRYABLE' | 'FAILED' | 'A
   if (value.responseCode && value.responseCode >= 500) {
     return 'FAILED';
   }
-  if (['EDNS', 'ECONNECTION'].includes(value.code ?? '') || value.command === 'CONN') {
+  // Nodemailer may report ECONNECTION/CONN after the server consumed DATA.
+  // Only DNS failure positively establishes that no SMTP connection was made.
+  if (value.code === 'EDNS') {
     return 'RETRYABLE';
   }
   return 'AMBIGUOUS';
