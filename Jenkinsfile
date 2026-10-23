@@ -37,10 +37,10 @@ spec:
   - name: postgres-tests
     image: postgres:15@sha256:baa22e6286bf832cb147b8bb5aa9d8bc999846d69c21d11bf63f58fbeed1fa48
     env:
-    - {name: POSTGRES_DB, value: sign_delivery_ci}
+    - {name: POSTGRES_DB, value: sign_delivery_test_ci}
     - {name: POSTGRES_HOST_AUTH_METHOD, value: trust}
     readinessProbe:
-      exec: {command: [pg_isready, -U, postgres, -d, sign_delivery_ci]}
+      exec: {command: [pg_isready, -U, postgres, -d, sign_delivery_test_ci]}
       initialDelaySeconds: 2
       periodSeconds: 2
     resources:
@@ -50,8 +50,8 @@ spec:
                 }
             }
             environment {
-                NEXT_PRIVATE_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_ci'
-                NEXT_PRIVATE_DIRECT_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_ci'
+                NEXT_PRIVATE_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_test_ci'
+                NEXT_PRIVATE_DIRECT_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_test_ci'
                 SIGN_DELIVERY_TESTS = 'true'
                 CI = 'true'
             }
