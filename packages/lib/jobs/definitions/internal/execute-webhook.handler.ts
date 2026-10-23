@@ -2,11 +2,11 @@ import { executeWebhookCall } from '@documenso/lib/server-only/webhooks/execute-
 import { prisma } from '@documenso/prisma';
 import type { Prisma } from '@prisma/client';
 import { WebhookCallStatus } from '@prisma/client';
-
 import type { JobRunIO } from '../../client/_internal/job';
+import type { Json } from '../../client/_internal/json';
 import type { TExecuteWebhookJobDefinition } from './execute-webhook';
 
-export const run = async ({ payload, io: _io }: { payload: TExecuteWebhookJobDefinition; io: JobRunIO }) => {
+export const run = async ({ payload, io }: { payload: TExecuteWebhookJobDefinition; io: JobRunIO }) => {
   const { event, webhookId, data } = payload;
 
   const webhook = await prisma.webhook.findUniqueOrThrow({
@@ -17,12 +17,12 @@ export const run = async ({ payload, io: _io }: { payload: TExecuteWebhookJobDef
 
   const { webhookUrl: url, secret } = webhook;
 
-  const payloadData = {
+  const payloadData = await io.runTask('webhook-payload', async () => ({
     event,
-    payload: data,
+    payload: data as Json,
     createdAt: new Date().toISOString(),
     webhookEndpoint: url,
-  };
+  }));
 
   const result = await executeWebhookCall({ url, body: payloadData, secret });
 

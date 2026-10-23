@@ -24,7 +24,7 @@ export const run = async ({ io }: { payload: TSendSigningRemindersSweepJobDefini
         deletedAt: null,
       },
     },
-    select: { id: true },
+    select: { id: true, nextReminderAt: true },
     take: 1000,
   });
 
@@ -35,12 +35,14 @@ export const run = async ({ io }: { payload: TSendSigningRemindersSweepJobDefini
 
   io.logger.info(`Found ${recipients.length} recipients needing signing reminders`);
 
-  await Promise.allSettled(
+  await Promise.all(
     recipients.map(async (recipient) => {
       await jobs.triggerJob({
         name: 'internal.process-signing-reminder',
+        id: `reminder:${recipient.id}:${recipient.nextReminderAt?.toISOString()}`,
         payload: {
           recipientId: recipient.id,
+          scheduledFor: recipient.nextReminderAt?.toISOString(),
         },
       });
     }),

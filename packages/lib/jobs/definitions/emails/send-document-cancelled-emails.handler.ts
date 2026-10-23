@@ -69,14 +69,14 @@ export const run = async ({ payload, io }: { payload: TSendDocumentCancelledEmai
 
   if (maximumRecipientCount > 0 && envelope.recipients.length > maximumRecipientCount) {
     io.logger.warn({
-      msg: 'Cancellation email dropped: org recipient limit exceeded',
+      msg: 'Cancellation email deferred: org recipient limit exceeded',
       organisationId,
       recipientCount: envelope.recipients.length,
       maximumRecipientCount,
       envelopeId: envelope.id,
     });
 
-    return;
+    throw new Error('EMAIL_QUOTA_DEFERRED');
   }
 
   // Check if document cancellation emails are enabled
@@ -115,14 +115,14 @@ export const run = async ({ payload, io }: { payload: TSendDocumentCancelledEmai
           });
         } catch (_err) {
           io.logger.warn({
-            msg: 'Cancellation email dropped: org email limit exceeded',
+            msg: 'Cancellation email deferred: org email limit exceeded',
             organisationId,
             recipientId: recipient.id,
             envelopeId: envelope.id,
           });
 
-          // On rate/quota exceeded, skip this recipient and continue with the rest.
-          return;
+          // Preserve the failure for bounded retry.
+          throw new Error('EMAIL_QUOTA_DEFERRED');
         }
 
         const template = createElement(DocumentCancelTemplate, {

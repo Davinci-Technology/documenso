@@ -6,6 +6,7 @@ const PROCESS_SIGNING_REMINDER_JOB_DEFINITION_ID = 'internal.process-signing-rem
 
 const PROCESS_SIGNING_REMINDER_JOB_DEFINITION_SCHEMA = z.object({
   recipientId: z.number(),
+  scheduledFor: z.string().datetime().optional(),
 });
 
 export type TProcessSigningReminderJobDefinition = z.infer<typeof PROCESS_SIGNING_REMINDER_JOB_DEFINITION_SCHEMA>;

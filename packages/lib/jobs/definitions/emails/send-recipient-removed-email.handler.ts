@@ -66,12 +66,12 @@ export const run = async ({ payload, io }: { payload: TSendRecipientRemovedEmail
     });
   } catch (_err) {
     io.logger.warn({
-      msg: 'Recipient removed email dropped: org email limit exceeded',
+      msg: 'Recipient removed email deferred: org email limit exceeded',
       organisationId,
       envelopeId: envelope.id,
     });
 
-    return;
+    throw new Error('EMAIL_QUOTA_DEFERRED');
   }
 
   const assetBaseUrl = NEXT_PUBLIC_WEBAPP_URL() || 'http://localhost:3000';
