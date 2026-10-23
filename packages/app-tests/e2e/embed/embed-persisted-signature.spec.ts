@@ -6,7 +6,7 @@ import { FieldType } from '@prisma/client';
 
 const PDF_PAGE_SELECTOR = 'img[data-page-number]';
 
-const SIGNER_EMAIL = 'persisted-signer@test.documenso.com';
+const SIGNER_EMAIL = 'persisted-signer@test.davincisolutions.ai';
 const CLIENT_USER_ID = 'usr_8f2c1b4e';
 
 // Distinct from both the fixture default and the recipient name, which the
