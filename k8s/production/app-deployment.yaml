@@ -31,7 +31,7 @@ spec:
       # Init container to create MinIO bucket
       initContainers:
         - name: create-bucket
-          image: davinciai.azurecr.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+          image: davinciai.azurecr.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
           command:
             - sh
             - -c
@@ -149,6 +149,14 @@ spec:
                 secretKeyRef:
                   name: davinci-sign-secrets
                   key: OIDC_CLIENT_SECRET
+
+            # Public provider verification key, never the SMTP API credential.
+            - name: NEXT_PRIVATE_SENDGRID_WEBHOOK_VERIFICATION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: davinci-sign-secrets
+                  key: SENDGRID_WEBHOOK_VERIFICATION_KEY
+                  optional: true
 
           volumeMounts:
             - name: certificate

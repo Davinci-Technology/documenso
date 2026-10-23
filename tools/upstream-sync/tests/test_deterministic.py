@@ -106,3 +106,12 @@ def test_full_readme_excerpt():
     # Bare domain: replaced.
     assert "documenso.com" not in out
     assert "davincisolutions.ai" in out
+
+
+def test_authentication_headers_are_not_cosmetic_branding():
+    src = 'Documenso headers: X-Documenso-Secret X-Documenso-Signature x-documenso-secret X-Davinci-Secret'
+    assert apply_substitutions(src) == src.replace('Documenso headers', 'Davinci Sign headers')
+
+
+def test_custom_rules_cannot_rebrand_protocol_headers():
+    assert apply_substitutions('X-Documenso-Secret', [('X-Documenso-Secret', 'X-Davinci-Secret')], []) == 'X-Documenso-Secret'

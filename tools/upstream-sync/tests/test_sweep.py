@@ -75,3 +75,17 @@ def test_sweep_no_write_leaves_file_untouched(tmp_path):
     result = sweep_repo_files(tmp_path, ["a.ts"], write=False)
     assert "a.ts" in result.modified  # reported as would-change
     assert f.read_text(encoding="utf-8") == "x = DOCUMENSO_INTERNAL_EMAIL;\n"
+
+
+def test_sweep_preserves_authentication_wire_contracts():
+    src = 'X-Documenso-Secret X-Documenso-Signature X-Davinci-Secret'
+    assert sweep_content(src) == src
+    assert find_residual_leaks(src) == []
+
+
+def test_yaml_rules_do_not_rebrand_authentication_headers():
+    from pathlib import Path
+
+    import yaml
+    config = yaml.safe_load((Path(__file__).parents[1] / 'config.yaml').read_text())
+    assert not any(rule['old'].lower().startswith('x-documenso-') for rule in config['classification']['branding_replacements'])
