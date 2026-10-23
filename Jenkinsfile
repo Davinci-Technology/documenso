@@ -60,7 +60,7 @@ spec:
                 container('node') {
                     sh '''
                         set -eu
-                        apk add --no-cache openssl libc6-compat python3 py3-pip py3-yaml
+                        apk add --no-cache openssl libc6-compat python3 py3-pip py3-yaml jq make cmake g++ bash font-freefont
                         python3 -m venv /tmp/ops-tests
                         /tmp/ops-tests/bin/pip install -r tools/upstream-sync/requirements.txt pytest
                         /tmp/ops-tests/bin/python -m pytest tools/upstream-sync/tests/test_deterministic.py tools/upstream-sync/tests/test_sweep.py tools/upstream-sync/tests/test_validator_branding.py tools/delivery/tests -q
