@@ -9,7 +9,9 @@
     "transports/",
     "mailer.ts",
     "render.ts",
-    "index.ts"
+    "index.ts",
+    "delivery-context.ts",
+    "tracked-transport.ts"
   ],
   "scripts": {
     "dev": "react-router dev --config preview/vite.config.ts",
@@ -22,7 +24,8 @@
     "@react-email/render": "2.1.0",
     "nodemailer": "^9.0.0",
     "react-email": "^6.9.0",
-    "resend": "^6.5.2"
+    "resend": "^6.5.2",
+    "@documenso/prisma": "*"
   },
   "devDependencies": {
     "@documenso/tsconfig": "*",

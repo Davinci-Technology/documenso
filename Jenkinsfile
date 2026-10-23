@@ -1,122 +1,93 @@
+// Source checks run on all branches. Only staging builds a release image.
+// main selects a specific archived staging artifact; production never rebuilds.
 pipeline {
-    agent none  // Use per-stage pod agents for K8s dynamic scaling
-
+    agent none
     options {
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-        timeout(time: 60, unit: 'MINUTES')
-        withFolderProperties()  // Inherit REGISTRY_HOSTNAME, REGISTRY_USERNAME from Davinci folder
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+        timeout(time: 90, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        withFolderProperties()
+        skipDefaultCheckout(true)
     }
-
-    triggers {
-        githubPush()
+    triggers { githubPush() }
+    parameters {
+        string(name: 'STAGING_RELEASE_BUILD', defaultValue: '', description: 'Exact trusted staging build number for production promotion')
     }
-
     environment {
-        // Production namespace
-        NAMESPACE = 'davinci-sign-production'
-
-        // Image configuration
         IMAGE_NAME = 'davinci-sign'
-
-        // Git credential
-        GIT_CREDENTIAL_ID = 'f1b484af-24eb-4f28-a57a-66db51117a73'
-
-        // Kubeconfig credential
         KUBECONFIG_CREDENTIAL_ID = 'cd3307d1-f27a-45b4-ad79-ee227bd802c6'
+        STAGING_JOB = 'Davinci/Web-Apps/Davinci-Sign/staging'
     }
-
     stages {
-        stage('Checkout') {
+        stage('Source checks') {
+            when {
+                beforeAgent true
+                not { branch 'main' }
+            }
             agent {
                 kubernetes {
-                    yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: jnlp
-    image: jenkins/inbound-agent:3345.v03dee9b_f88fc-6
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "100m"
-"""
-                }
-            }
-            steps {
-                // Add GitHub host keys before checkout
-                sh '''
-                    mkdir -p ~/.ssh
-                    ssh-keyscan -t rsa,ecdsa,ed25519 github.com > ~/.ssh/known_hosts 2>/dev/null
-                    chmod 600 ~/.ssh/known_hosts
-                '''
-                checkout([
-                    $class: 'GitSCM',
-                    branches: scm.branches,
-                    extensions: scm.extensions,
-                    userRemoteConfigs: [[
-                        url: scm.userRemoteConfigs[0].url,
-                        credentialsId: env.GIT_CREDENTIAL_ID
-                    ]]
-                ])
-                script {
-                    env.IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
-                }
-                stash includes: '**', name: 'source'
-            }
-        }
-
-        stage('Build Check') {
-            agent {
-                kubernetes {
-                    yaml """
+                    yaml '''
 apiVersion: v1
 kind: Pod
 spec:
   containers:
   - name: node
-    image: node:22-alpine
+    image: node:24-alpine3.23
     command: ['sleep', '9999']
-    env:
-    - name: NEXT_PRIVATE_ENCRYPTION_KEY
-      value: "0000000000000000000000000000000000000000000000000000000000000000"
-    - name: NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY
-      value: "1111111111111111111111111111111111111111111111111111111111111111"
     resources:
-      requests:
-        memory: "4Gi"
-        cpu: "1000m"
-      limits:
-        memory: "10Gi"
-        cpu: "2000m"
-"""
+      requests: {memory: 4Gi, cpu: 500m}
+      limits: {memory: 10Gi, cpu: '2'}
+  - name: postgres-tests
+    image: postgres:15@sha256:baa22e6286bf832cb147b8bb5aa9d8bc999846d69c21d11bf63f58fbeed1fa48
+    env:
+    - {name: POSTGRES_DB, value: sign_delivery_test_ci}
+    - {name: POSTGRES_HOST_AUTH_METHOD, value: trust}
+    readinessProbe:
+      exec: {command: [pg_isready, -U, postgres, -d, sign_delivery_test_ci]}
+      initialDelaySeconds: 2
+      periodSeconds: 2
+    resources:
+      requests: {memory: 128Mi, cpu: 100m}
+      limits: {memory: 1Gi, cpu: '1'}
+'''
                 }
             }
+            environment {
+                NODE_OPTIONS = '--max-old-space-size=8192'
+                NEXT_PRIVATE_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_test_ci'
+                NEXT_PRIVATE_DIRECT_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_test_ci'
+                SIGN_DELIVERY_TESTS = 'true'
+                CI = 'true'
+            }
             steps {
-                unstash 'source'
+                checkout scm
                 container('node') {
                     sh '''
-                        apk add --no-cache openssl libc6-compat jq
-                        # node:22-alpine ships npm 10.9.8, but this repo requires
-                        # npm >=11.11.0 (see package.json engines). npm 10 mis-resolves
-                        # the apps/docs typescript ^5.9.3 / root 5.6.2 overlap and fails
-                        # `npm ci` with "Missing: typescript@5.9.3 from lock file".
-                        npm install -g npm@11.11.0
+                        set -eu
+                        apk add --no-cache openssl libc6-compat python3 py3-pip py3-yaml jq make cmake g++ bash font-freefont
+                        python3 -m venv /tmp/ops-tests
+                        /tmp/ops-tests/bin/pip install -r tools/upstream-sync/requirements.txt pytest
+                        /tmp/ops-tests/bin/python -m pytest tools/upstream-sync/tests/test_deterministic.py tools/upstream-sync/tests/test_sweep.py tools/upstream-sync/tests/test_validator_branding.py tools/delivery/tests -q
                         npm ci
+                        npm run prisma:generate -w @documenso/prisma
                         npm run translate:compile
-                        # The monorepo typecheck (tsc) exhausts Node's default heap and
-                        # aborts with "JavaScript heap out of memory" (exit 134). Raise
-                        # the old-space limit; the pod allows up to 10Gi.
-                        export NODE_OPTIONS="--max-old-space-size=8192"
-                        npm run build
+                        npx prisma migrate deploy --schema packages/prisma/schema.prisma
+                        npm run test -w @documenso/lib
+                        npm run build:server -w @documenso/remix
+                        npm run test:dev -w @documenso/app-tests -- --config playwright.delivery.config.ts
                     '''
                 }
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'packages/app-tests/test-results/**', allowEmptyArchive: true
+                }
+            }
         }
-
-        stage('Build Docker Image') {
+        stage('Build staging release once') {
             when {
-                branch 'main'
+                beforeAgent true
+                branch 'staging'
             }
             agent {
                 kubernetes {
@@ -129,202 +100,152 @@ spec:
     image: gcr.io/kaniko-project/executor:v1.23.2-debug
     command: ['sleep', '9999']
     resources:
-      requests:
-        memory: "10Gi"
-        cpu: "1000m"
-      limits:
-        memory: "16Gi"
-        cpu: "2000m"
+      requests: {memory: 10Gi, cpu: 500m}
+      limits: {memory: 16Gi, cpu: '2'}
 '''
                 }
             }
             steps {
-                unstash 'source'
-                withCredentials([
-                    string(credentialsId: 'REGISTRY_TOKEN', variable: 'REGISTRY_TOKEN')
-                ]) {
+                checkout scm
+                withCredentials([string(credentialsId: 'REGISTRY_TOKEN', variable: 'REGISTRY_TOKEN')]) {
                     container('kaniko') {
                         sh '''
-                            # Create docker config for Kaniko
+                            set -eu
+                            set +x
                             mkdir -p /kaniko/.docker
-                            AUTH=$(echo -n "${REGISTRY_USERNAME}:${REGISTRY_TOKEN}" | base64 | tr -d '\\n')
-                            cat > /kaniko/.docker/config.json << EOF
-{
-    "auths": {
-        "${REGISTRY_HOSTNAME}": {
-            "auth": "${AUTH}"
-        }
-    }
-}
-EOF
-                            # Build and push Davinci Sign image
-                            # --single-snapshot reduces memory usage by taking one final snapshot
-                            /kaniko/executor \
-                                --context=. \
-                                --dockerfile=./docker/Dockerfile \
-                                --destination=${REGISTRY_HOSTNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
-                                --destination=${REGISTRY_HOSTNAME}/${IMAGE_NAME}:production \
-                                --cache=true \
-                                --cache-ttl=168h \
-                                --cache-repo=${REGISTRY_HOSTNAME}/${IMAGE_NAME}-cache \
-                                --single-snapshot
+                            AUTH=$(printf '%s' "${REGISTRY_USERNAME}:${REGISTRY_TOKEN}" | base64 | tr -d '\n')
+                            printf '{"auths":{"%s":{"auth":"%s"}}}' "$REGISTRY_HOSTNAME" "$AUTH" > /kaniko/.docker/config.json
+                            trap 'rm -f /kaniko/.docker/config.json' EXIT
+                            /kaniko/executor --context=. --dockerfile=./docker/Dockerfile \
+                              --destination="${REGISTRY_HOSTNAME}/${IMAGE_NAME}:staging-${BUILD_NUMBER}-${GIT_COMMIT}" \
+                              --digest-file=image-digest.txt --cache=true --cache-ttl=168h \
+                              --cache-repo="${REGISTRY_HOSTNAME}/${IMAGE_NAME}-cache" --single-snapshot
                         '''
                     }
                 }
+                stash name: 'image-digest', includes: 'image-digest.txt'
             }
         }
-
-        stage('Deploy to Production') {
+        stage('Deploy and verify isolated staging') {
             when {
-                branch 'main'
+                beforeAgent true
+                branch 'staging'
             }
             agent {
                 kubernetes {
-                    yaml """
+                    yaml '''
 apiVersion: v1
 kind: Pod
 spec:
   containers:
   - name: kubectl
-    image: alpine/k8s:1.32.1
-    command: [cat]
-    tty: true
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
+    command: ['sleep', '9999']
     resources:
-      requests:
-        memory: "256Mi"
-        cpu: "100m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
-"""
+      requests: {memory: 256Mi, cpu: 100m}
+      limits: {memory: 512Mi, cpu: 500m}
+'''
                 }
             }
             steps {
-                unstash 'source'
+                checkout scm
+                unstash 'image-digest'
                 withCredentials([
                     file(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE'),
-                    string(credentialsId: 'davinci-sign-nextauth-secret', variable: 'NEXTAUTH_SECRET'),
-                    string(credentialsId: 'davinci-sign-encryption-key', variable: 'ENCRYPTION_KEY'),
-                    string(credentialsId: 'davinci-sign-encryption-key-2', variable: 'ENCRYPTION_KEY_2'),
-                    string(credentialsId: 'davinci-sign-postgres-password', variable: 'POSTGRES_PASSWORD'),
-                    string(credentialsId: 'davinci-sign-minio-password', variable: 'MINIO_PASSWORD'),
-                    string(credentialsId: 'davinci-sign-smtp-password', variable: 'SMTP_PASSWORD'),
-                    string(credentialsId: 'davinci-sign-cert-passphrase', variable: 'CERT_PASSPHRASE'),
-                    string(credentialsId: 'davinci-sign-oidc-client-id', variable: 'OIDC_CLIENT_ID'),
-                    string(credentialsId: 'davinci-sign-oidc-client-secret', variable: 'OIDC_CLIENT_SECRET'),
-                    file(credentialsId: 'davinci-sign-certificate-p12', variable: 'CERT_FILE')
+                    string(credentialsId: 'REGISTRY_TOKEN', variable: 'REGISTRY_TOKEN')
                 ]) {
                     container('kubectl') {
                         sh '''
-                            export KUBECONFIG=${KUBECONFIG_FILE}
-                            set -e  # Exit on first error
-
-                            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                            echo "🚀 Deploying Davinci Sign to Production"
-                            echo "  Namespace: ${NAMESPACE}"
-                            echo "  Image Tag: ${IMAGE_TAG}"
-                            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-                            # Verify cluster connection
-                            kubectl cluster-info
-
-                            # Create namespace if not exists
-                            kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-
-                            # Create/update secrets
-                            echo "🔐 Creating secrets..."
-                            kubectl create secret generic davinci-sign-secrets \
-                                --namespace=${NAMESPACE} \
-                                --from-literal=NEXTAUTH_SECRET="${NEXTAUTH_SECRET}" \
-                                --from-literal=NEXT_PRIVATE_ENCRYPTION_KEY="${ENCRYPTION_KEY}" \
-                                --from-literal=NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY="${ENCRYPTION_KEY_2}" \
-                                --from-literal=POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
-                                --from-literal=MINIO_ROOT_PASSWORD="${MINIO_PASSWORD}" \
-                                --from-literal=NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY="${MINIO_PASSWORD}" \
-                                --from-literal=NEXT_PRIVATE_SMTP_PASSWORD="${SMTP_PASSWORD}" \
-                                --from-literal=NEXT_PRIVATE_SIGNING_PASSPHRASE="${CERT_PASSPHRASE}" \
-                                --from-literal=OIDC_CLIENT_ID="${OIDC_CLIENT_ID}" \
-                                --from-literal=OIDC_CLIENT_SECRET="${OIDC_CLIENT_SECRET}" \
-                                --dry-run=client -o yaml | kubectl apply -f -
-
-                            # Create certificate secret from file
-                            kubectl create secret generic davinci-sign-certificate \
-                                --namespace=${NAMESPACE} \
-                                --from-file=cert.p12=${CERT_FILE} \
-                                --dry-run=client -o yaml | kubectl apply -f -
-
-                            # Apply K8s manifests
-                            echo "📦 Applying Kubernetes manifests..."
-                            kubectl apply -f k8s/production/namespace.yaml
-                            kubectl apply -f k8s/production/configmap.yaml
-                            kubectl apply -f k8s/production/minio-pvc.yaml
-                            kubectl apply -f k8s/production/minio-statefulset.yaml
-                            kubectl apply -f k8s/production/app-deployment.yaml
-                            kubectl apply -f k8s/production/ingress.yaml
-                            kubectl apply -f k8s/production/pdb.yaml
-
-                            # Wait for MinIO to be ready
-                            echo "⏳ Waiting for MinIO..."
-                            kubectl rollout status statefulset/minio -n ${NAMESPACE} --timeout=3m || true
-
-                            # Update image tag in deployment
-                            echo "🔄 Updating image to ${IMAGE_TAG}..."
-                            kubectl set image deployment/davinci-sign \
-                                app=${REGISTRY_HOSTNAME}/${IMAGE_NAME}:${IMAGE_TAG} \
-                                -n ${NAMESPACE}
-
-                            # Wait for rollout
-                            echo "⏳ Waiting for deployment rollout..."
-                            kubectl rollout status deployment/davinci-sign -n ${NAMESPACE} --timeout=10m
-
-                            # Health check verification
-                            echo "🏥 Verifying health..."
-                            HEALTH_OK=false
-                            for i in $(seq 1 30); do
-                                if kubectl exec deployment/davinci-sign -n ${NAMESPACE} -- \
-                                    wget -q -O- http://localhost:3000/api/health 2>/dev/null | grep -q ok; then
-                                    echo "✅ Health check passed"
-                                    HEALTH_OK=true
-                                    break
-                                fi
-                                echo "Waiting for health... ($i/30)"
-                                sleep 10
-                            done
-
-                            if [ "$HEALTH_OK" != "true" ]; then
-                                echo "❌ Health check failed - rolling back"
-                                kubectl rollout undo deployment/davinci-sign -n ${NAMESPACE}
-                                exit 1
-                            fi
-
-                            # Final verification
-                            echo ""
-                            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                            echo "✅ Deployment Complete!"
-                            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                            echo ""
-                            echo "Pod Status:"
-                            kubectl get pods -n ${NAMESPACE}
-                            echo ""
-                            echo "🌐 URL: https://sign.davincisolutions.ai"
+                            set -eu
+                            set +x
+                            apk add --no-cache python3 py3-yaml openssl git curl
+                            python3 tools/delivery/bootstrap-staging.py --context k8s-01 --kubeconfig "$KUBECONFIG_FILE" --apply
+                            RELEASE_IMAGE="davinciai.azurecr.io/davinci-sign@$(cat image-digest.txt)"
+                            python3 tools/delivery/release.py deploy --context k8s-01 --kubeconfig "$KUBECONFIG_FILE" --image "$RELEASE_IMAGE" --apply
+                            python3 tools/delivery/release.py record --context k8s-01 --kubeconfig "$KUBECONFIG_FILE" --image "$RELEASE_IMAGE" --source-checks-passed --job "$STAGING_JOB" --build "$BUILD_NUMBER" --apply
+                        '''
+                    }
+                }
+                archiveArtifacts artifacts: 'release.json,image-digest.txt', fingerprint: true
+            }
+        }
+        stage('Select tested production release') {
+            when {
+                beforeAgent true
+                branch 'main'
+            }
+            agent {
+                kubernetes {
+                    yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kubectl
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
+    command: ['sleep', '9999']
+'''
+                }
+            }
+            steps {
+                checkout scm
+                script {
+                    if (!(params.STAGING_RELEASE_BUILD ==~ /[1-9][0-9]*/)) {
+                        error('Select an exact verified STAGING_RELEASE_BUILD; production cannot rebuild or select latest')
+                    }
+                }
+                // Copy Artifact plugin must be installed and staging must grant this job read access.
+                copyArtifacts projectName: env.STAGING_JOB, selector: specific(params.STAGING_RELEASE_BUILD), filter: 'release.json,image-digest.txt'
+                container('kubectl') {
+                    sh '''
+                        set -eu
+                        apk add --no-cache python3 py3-yaml git curl
+                        python3 tools/delivery/release.py select --environment production --context k8s-01 --kubeconfig /dev/null
+                    '''
+                    script {
+                        env.RELEASE_SOURCE = sh(script: "python3 -c 'import json; print(json.load(open(\"release.json\"))[\"source\"])'", returnStdout: true).trim()
+                    }
+                }
+                stash name: 'selected-release', includes: 'release.json,image-digest.txt'
+            }
+        }
+        stage('Promote selected release to production') {
+            when {
+                beforeAgent true
+                beforeInput true
+                branch 'main'
+            }
+            // Stage input is evaluated before acquiring an executor.
+            input {
+                message "Promote the exact verified staging build ${params.STAGING_RELEASE_BUILD} to sign.davincisolutions.ai? Requires the owner's release approval recorded through Studio ship."
+                ok 'Promote approved release'
+            }
+            agent {
+                kubernetes {
+                    yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kubectl
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
+    command: ['sleep', '9999']
+'''
+                }
+            }
+            steps {
+                checkout scm
+                unstash 'selected-release'
+                withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
+                    container('kubectl') {
+                        sh '''
+                            set -eu
+                            apk add --no-cache python3 py3-yaml git curl
+                            python3 tools/delivery/release.py deploy --environment production --context k8s-01 --kubeconfig "$KUBECONFIG_FILE" --approval "promote:$RELEASE_SOURCE" --apply
                         '''
                     }
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "✅ Pipeline Successful!"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        }
-        failure {
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "❌ Pipeline Failed!"
-            echo "Check the logs above for details."
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         }
     }
 }

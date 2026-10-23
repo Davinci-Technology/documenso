@@ -14,11 +14,11 @@ import { createElement } from 'react';
 
 import { getI18nInstance } from '../../../client-only/providers/i18n-server';
 import { NEXT_PUBLIC_WEBAPP_URL } from '../../../constants/app';
+import { resolveNextReminderAt, ZEnvelopeReminderSettings } from '../../../constants/envelope-reminder';
 import { RECIPIENT_ROLES_DESCRIPTION } from '../../../constants/recipient-roles';
 import { buildEnvelopeEmailHeaders } from '../../../server-only/email/build-envelope-email-headers';
 import { getEmailContext } from '../../../server-only/email/get-email-context';
 import { assertOrganisationRatesAndLimits } from '../../../server-only/rate-limit/assert-organisation-rates-and-limits';
-import { updateRecipientNextReminder } from '../../../server-only/recipient/update-recipient-next-reminder';
 import { triggerWebhook } from '../../../server-only/webhooks/trigger/trigger-webhook';
 import { DOCUMENT_AUDIT_LOG_TYPE, DOCUMENT_EMAIL_TYPE } from '../../../types/document-audit-logs';
 import { extractDerivedDocumentEmailSettings } from '../../../types/document-email';
@@ -26,40 +26,13 @@ import { mapEnvelopeToWebhookDocumentPayload, ZWebhookDocumentSchema } from '../
 import { createDocumentAuditLogData } from '../../../utils/document-audit-logs';
 import { renderCustomEmailTemplate } from '../../../utils/render-custom-email-template';
 import { renderEmailWithI18N } from '../../../utils/render-email-with-i18n';
+import { shouldShowNewAccountWarning } from '../../../utils/sender-trust';
 import type { JobRunIO } from '../../client/_internal/job';
 import type { TProcessSigningReminderJobDefinition } from './process-signing-reminder';
 
 export const run = async ({ payload, io }: { payload: TProcessSigningReminderJobDefinition; io: JobRunIO }) => {
-  const { recipientId } = payload;
+  const { recipientId, scheduledFor } = payload;
   const now = new Date();
-
-  // Atomically claim this reminder by setting lastReminderSentAt and clearing
-  // nextReminderAt so no other sweep picks it up. The expiration filter
-  // guards against races where the expiration sweep hasn't yet flagged
-  // a recipient whose deadline has already passed.
-  const updatedCount = await prisma.recipient.updateMany({
-    where: {
-      id: recipientId,
-      signingStatus: SigningStatus.NOT_SIGNED,
-      sendStatus: SendStatus.SENT,
-      role: { not: RecipientRole.CC },
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      envelope: {
-        status: DocumentStatus.PENDING,
-        deletedAt: null,
-      },
-    },
-    data: {
-      lastReminderSentAt: now,
-      nextReminderAt: null,
-      reminderCount: { increment: 1 },
-    },
-  });
-
-  if (updatedCount.count === 0) {
-    io.logger.info(`Recipient ${recipientId} no longer eligible for reminder, skipping`);
-    return;
-  }
 
   const recipient = await prisma.recipient.findFirst({
     where: { id: recipientId },
@@ -79,8 +52,16 @@ export const run = async ({ payload, io }: { payload: TProcessSigningReminderJob
     },
   });
 
-  if (!recipient) {
-    io.logger.warn(`Recipient ${recipientId} not found`);
+  if (
+    !recipient ||
+    recipient.signingStatus !== SigningStatus.NOT_SIGNED ||
+    recipient.sendStatus !== SendStatus.SENT ||
+    recipient.role === RecipientRole.CC ||
+    (recipient.expiresAt && recipient.expiresAt <= now) ||
+    recipient.envelope.status !== DocumentStatus.PENDING ||
+    recipient.envelope.deletedAt ||
+    (scheduledFor && recipient.nextReminderAt?.toISOString() !== scheduledFor)
+  ) {
     return;
   }
 
@@ -171,19 +152,24 @@ export const run = async ({ payload, io }: { payload: TProcessSigningReminderJob
     .then(() => false)
     .catch((_err) => {
       io.logger.warn({
-        msg: 'Signing reminder dropped: org email limit exceeded',
+        msg: 'Signing reminder deferred: org email limit exceeded',
         organisationId,
         recipientId: recipient.id,
         envelopeId: envelope.id,
       });
 
-      return true;
+      throw new Error('EMAIL_QUOTA_DEFERRED');
     });
 
   if (!isRateLimited) {
-    io.logger.info(
-      `Sending signing reminder for envelope ${envelope.id} to recipient ${recipient.id} (${recipient.email})`,
-    );
+    io.logger.info(`Sending signing reminder for envelope ${envelope.id} to recipient ${recipient.id}`);
+
+    const showNewAccountWarning =
+      recipient.email !== envelope.user.email &&
+      shouldShowNewAccountWarning({
+        userCreatedAt: envelope.user.createdAt,
+        organisationClaim: claims,
+      });
 
     const template = createElement(DocumentReminderEmailTemplate, {
       recipientName: recipient.name,
@@ -193,6 +179,7 @@ export const run = async ({ payload, io }: { payload: TProcessSigningReminderJob
       customBody: emailMessage,
       role: recipient.role,
       reportUrl,
+      newAccountWarningSenderEmail: showNewAccountWarning ? envelope.user.email : undefined,
     });
 
     const [html, text] = await Promise.all([
@@ -244,15 +231,22 @@ export const run = async ({ payload, io }: { payload: TProcessSigningReminderJob
     });
   }
 
-  // reminderCount was incremented in the atomic claim above, so the value read
-  // here includes the reminder we just sent and gates the next one.
-  if (recipient.sentAt) {
-    await updateRecipientNextReminder({
-      recipientId: recipient.id,
-      envelopeId: envelope.id,
-      sentAt: recipient.sentAt,
-      lastReminderSentAt: now,
-      reminderCount: recipient.reminderCount,
+  // Advance the occurrence only after provider acceptance. A crash before this
+  // point retries the same durable job and the mail ledger suppresses resubmission.
+  await io.runTask('advance-reminder-occurrence', async () => {
+    const nextReminderAt = recipient.sentAt
+      ? resolveNextReminderAt({
+          config: envelope.documentMeta?.reminderSettings
+            ? ZEnvelopeReminderSettings.parse(envelope.documentMeta.reminderSettings)
+            : null,
+          sentAt: recipient.sentAt,
+          lastReminderSentAt: now,
+          reminderCount: recipient.reminderCount + 1,
+        })
+      : null;
+    await prisma.recipient.updateMany({
+      where: { id: recipient.id, nextReminderAt: recipient.nextReminderAt },
+      data: { lastReminderSentAt: now, nextReminderAt, reminderCount: { increment: 1 } },
     });
-  }
+  });
 };

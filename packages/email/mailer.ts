@@ -3,6 +3,8 @@ import { ResendTransport } from '@documenso/nodemailer-resend';
 import type { Transporter } from 'nodemailer';
 import { createTransport } from 'nodemailer';
 
+import { withDeliveryTracking } from './tracked-transport';
+
 import { MailChannelsTransport } from './transports/mailchannels';
 
 /**
@@ -105,4 +107,4 @@ const getTransport = (): Transporter => {
   });
 };
 
-export const mailer = getTransport();
+export const mailer = withDeliveryTracking(getTransport());

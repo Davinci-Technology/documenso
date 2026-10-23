@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["e2e/api/delivery/**/*.ts", "playwright.delivery.config.ts"]
+}

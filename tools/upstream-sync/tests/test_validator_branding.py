@@ -55,3 +55,9 @@ def test_long_distance_brand_then_url_preserved():
     )
     errs = _errors(line)
     assert not [e for e in errs if "Documenso" in e]
+
+
+def test_wire_protocol_is_preserved_without_hiding_prose():
+    assert _errors('X-Documenso-Secret: example') == []
+    errors = _errors('Documenso sends X-Documenso-Secret')
+    assert len([error for error in errors if "Upstream brand string" in error]) == 1

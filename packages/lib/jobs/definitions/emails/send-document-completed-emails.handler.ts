@@ -192,14 +192,14 @@ export const run = async ({ payload, io }: { payload: TSendDocumentCompletedEmai
           });
         } catch (_err) {
           io.logger.warn({
-            msg: 'CC completion email dropped: org email limit exceeded',
+            msg: 'CC completion email deferred: org email limit exceeded',
             organisationId,
             recipientId: recipient.id,
             envelopeId: envelope.id,
           });
 
-          // On rate/quota exceeded, early return to allow other recipients to be processed.
-          return;
+          // Preserve the failure for bounded retry.
+          throw new Error('EMAIL_QUOTA_DEFERRED');
         }
       }
 
