@@ -11,6 +11,8 @@ without another round-trip. Pure regex/string work — no I/O, no LLM.
 
 from __future__ import annotations
 
+import re
+
 from .config import BRANDING_PRESERVATIONS, BRANDING_SUBSTITUTIONS
 
 
@@ -24,6 +26,12 @@ def _preserved_ranges(content: str, preservations: list[str]) -> list[tuple[int,
                 break
             ranges.append((idx, idx + len(pres)))
             start = idx + len(pres)
+    # Preserve complete technical header tokens, including future protocol headers.
+    # Case-insensitive matching protects canonical and lower-case HTTP spellings.
+    ranges.extend(
+        match.span()
+        for match in re.finditer(r"(?i)\bX-(?:Documenso|Davinci)-[A-Za-z0-9-]+", content)
+    )
     return ranges
 
 

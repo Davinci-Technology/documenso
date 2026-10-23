@@ -1,0 +1,182 @@
+# Ephemeral synthetic staging only: storage-pod replacement resets data.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: davinci-sign-staging
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16.10-alpine3.22@sha256:029660641a0cfc575b14f336ba448fb8a75fd595d42e1fa316b9fb4378742297
+        env:
+        - name: POSTGRES_USER
+          value: davinci_sign_staging
+        - name: POSTGRES_DB
+          value: davinci_sign_staging
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: davinci-sign-secrets
+              key: POSTGRES_PASSWORD
+        ports:
+        - containerPort: 5432
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+      volumes:
+      - name: data
+        emptyDir:
+          sizeLimit: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: davinci-sign-staging
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+  namespace: davinci-sign-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      containers:
+      - name: mailpit
+        image: axllent/mailpit:v1.27.10@sha256:b1f1be18af530d939a11ee8820b379e0c88eeec204d904bfad68862adced3a5a
+        env:
+        - name: MP_SMTP_AUTH_ACCEPT_ANY
+          value: 'true'
+        - name: MP_SMTP_AUTH_ALLOW_INSECURE
+          value: 'true'
+        ports:
+        - containerPort: 1025
+        - containerPort: 8025
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+  namespace: davinci-sign-staging
+spec:
+  selector:
+    app: mailpit
+  ports:
+  - name: smtp
+    port: 1025
+    targetPort: 1025
+  - name: ui
+    port: 8025
+    targetPort: 8025
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-sink
+  namespace: davinci-sign-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-sink
+  template:
+    metadata:
+      labels:
+        app: webhook-sink
+    spec:
+      containers:
+      - name: sink
+        image: hashicorp/http-echo:1.0.0@sha256:fcb75f691c8b0414d670ae570240cbf95502cc18a9ba57e982ecac589760a186
+        args:
+        - -listen=:8080
+        - -text=accepted
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-sink
+  namespace: davinci-sign-staging
+spec:
+  selector:
+    app: webhook-sink
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isolate-sign-egress
+  namespace: davinci-sign-staging
+spec:
+  podSelector:
+    matchLabels:
+      app: davinci-sign
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector: {}
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

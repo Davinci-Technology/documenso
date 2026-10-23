@@ -1,0 +1,40 @@
+{
+  "schema": "studio-ladder/1",
+  "company": "davinci",
+  "kind": "service",
+  "reason": null,
+  "repository": "Davinci-Technology/documenso",
+  "workshop": null,
+  "review": {
+    "base": "staging",
+    "checks": [
+      "continuous-integration/jenkins/pr-merge"
+    ],
+    "merge_method": "merge",
+    "ci": {
+      "system": "jenkins",
+      "instance": "davinci",
+      "job": "Davinci/Web-Apps/Davinci-Sign"
+    }
+  },
+  "staging": {
+    "branch": "staging",
+    "url": "https://staging-sign.davincisolutions.ai",
+    "health": "https://staging-sign.davincisolutions.ai/api/health",
+    "deploy_check": "continuous-integration/jenkins/branch"
+  },
+  "production": {
+    "branch": "main",
+    "promotion": "pull-request",
+    "merge_method": "merge",
+    "url": "https://sign.davincisolutions.ai",
+    "health": "https://sign.davincisolutions.ai/api/health",
+    "deploy_check": "continuous-integration/jenkins/branch",
+    "uat_check": null
+  },
+  "notes": [
+    "Proposed onboarding ladder; origin main has no authoritative ladder as of 2026-10-23. Lead must resolve onboarding authority before moving delivery branches.",
+    "PR144 and PR143 observed continuous-integration/jenkins/pr-merge (ERROR); main95 observed continuous-integration/jenkins/branch (success). Proposed staging deploy check remains unproven until rollout.",
+    "Production requires explicit release approval and exact archived staging image digest. Never rebuild production."
+  ]
+}

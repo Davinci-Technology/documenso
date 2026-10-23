@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: davinci-sign-config
+  namespace: davinci-sign-staging
+  labels:
+    app: davinci-sign
+    environment: staging
+data:
+  PORT: '3000'
+  NODE_ENV: production
+  LOG_LEVEL: info
+  NEXT_PUBLIC_WEBAPP_URL: https://staging-sign.davincisolutions.ai
+  NEXT_PRIVATE_INTERNAL_WEBAPP_URL: http://davinci-sign:3000
+  POSTGRES_USER: davinci_sign_staging
+  POSTGRES_DB: davinci_sign_staging
+  DB_HOST: postgres.davinci-sign-staging.svc.cluster.local
+  DB_PORT: '5432'
+  DB_SSLMODE: disable
+  NEXT_PUBLIC_UPLOAD_TRANSPORT: s3
+  NEXT_PRIVATE_UPLOAD_ENDPOINT: http://minio.davinci-sign-staging.svc.cluster.local:9000
+  NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE: 'true'
+  NEXT_PRIVATE_UPLOAD_REGION: us-east-1
+  NEXT_PRIVATE_UPLOAD_BUCKET: davinci-sign
+  NEXT_PRIVATE_UPLOAD_ACCESS_KEY_ID: davinci-sign
+  NEXT_PRIVATE_SMTP_TRANSPORT: smtp-auth
+  NEXT_PRIVATE_SMTP_HOST: mailpit.davinci-sign-staging.svc.cluster.local
+  NEXT_PRIVATE_SMTP_PORT: '1025'
+  NEXT_PRIVATE_SMTP_USERNAME: staging
+  NEXT_PRIVATE_SMTP_FROM_NAME: Davinci AI Solutions
+  NEXT_PRIVATE_SMTP_FROM_ADDRESS: noreply@davincisolutions.ai
+  NEXT_PRIVATE_SMTP_SECURE: 'false'
+  NEXT_PRIVATE_SIGNING_TRANSPORT: local
+  NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: /opt/davinci-sign/cert.p12
+  NEXT_PUBLIC_FEATURE_BILLING_ENABLED: 'false'
+  NEXT_PUBLIC_DISABLE_SIGNUP: 'false'
+  NEXT_PUBLIC_DISABLE_ONBOARDING: 'false'
+  NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS: davincisolutions.ai
+  NEXT_PUBLIC_DOCUMENT_LINK_ENABLED: 'true'
+  NEXT_PUBLIC_DOCUMENT_SIZE_UPLOAD_LIMIT: '50'
+  DOCUMENSO_DISABLE_TELEMETRY: 'true'
+  NEXT_PRIVATE_WEBHOOK_ALLOWED_HOSTS: webhook-sink.davinci-sign-staging.svc.cluster.local

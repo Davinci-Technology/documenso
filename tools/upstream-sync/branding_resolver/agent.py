@@ -196,14 +196,16 @@ When resolving conflicts, apply these brand substitutions:
 
 ## Symbol Renames
 - DOCUMENSO_INTERNAL_EMAIL -> DAVINCI_INTERNAL_EMAIL
-- X-Documenso-Secret -> X-Davinci-Secret
 
 ## Critical Preservation Rules
 1. NEVER change `@documenso/*` package scopes — these are internal and must remain.
 2. NEVER remove upstream credit links (github.com/documenso, documenso.com/oss, etc.).
 3. The Tailwind color KEY is named `documenso` internally — do NOT rename it.
    Only the color VALUES should be Davinci Blue (#1A98CF and its palette).
-4. Keep HSL values: Primary 197 79% 46%, foreground 197 79% 10%.
+4. NEVER rename authentication protocol headers (X-Documenso-Secret,
+   X-Documenso-Signature, X-Davinci-Secret or future X-Documenso-* headers).
+   Cosmetic branding never changes wire contracts.
+5. Keep HSL values: Primary 197 79% 46%, foreground 197 79% 10%.
 
 ## UI Customisations
 These are intentional application-level branding changes in our fork:
