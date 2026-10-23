@@ -34,8 +34,26 @@ spec:
     resources:
       requests: {memory: 4Gi, cpu: '1'}
       limits: {memory: 10Gi, cpu: '2'}
+  - name: postgres-tests
+    image: postgres:15@sha256:baa22e6286bf832cb147b8bb5aa9d8bc999846d69c21d11bf63f58fbeed1fa48
+    env:
+    - {name: POSTGRES_DB, value: sign_delivery_ci}
+    - {name: POSTGRES_HOST_AUTH_METHOD, value: trust}
+    readinessProbe:
+      exec: {command: [pg_isready, -U, postgres, -d, sign_delivery_ci]}
+      initialDelaySeconds: 2
+      periodSeconds: 2
+    resources:
+      requests: {memory: 128Mi, cpu: 100m}
+      limits: {memory: 1Gi, cpu: '1'}
 '''
                 }
+            }
+            environment {
+                NEXT_PRIVATE_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_ci'
+                NEXT_PRIVATE_DIRECT_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_ci'
+                SIGN_DELIVERY_TESTS = 'true'
+                CI = 'true'
             }
             steps {
                 checkout scm
@@ -49,7 +67,10 @@ spec:
                         npm ci
                         npm run prisma:generate -w @documenso/prisma
                         npm run translate:compile
-                        npm run test -w @documenso/lib -- jobs/client/local.test.ts server-only/webhooks/execute-webhook-call.test.ts server-only/email/sendgrid-events.test.ts server-only/email/tracked-transport.test.ts server-only/email/delivery-route.test.ts
+                        npx prisma migrate deploy --schema packages/prisma/schema.prisma
+                        npm run test -w @documenso/lib
+                        npm run build:server -w @documenso/remix
+                        npm run test:dev -w @documenso/app-tests -- --config playwright.delivery.config.ts
                     '''
                 }
             }

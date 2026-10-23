@@ -134,3 +134,9 @@ index digest. MinIO and mc are carried forward from the observed production pod
 imageIDs on2026-10-23; both staging and future production manifests pin those
 exact existing bytes. Release records include the complete support-image set
 as well as the shared web/migration image. No MinIO upgrade is included.
+
+## Production-matching database and regression gates
+
+Azure metadata confirms production signing uses PostgreSQL15. Staging and the isolated CI sidecar use the verified PostgreSQL15 image digest. The source gate migrates a disposable loopback-only database and runs the delivery Playwright configuration against actual database, HTTP and SMTP listeners; Vitest is retained for pure library behavior. No production connection string or data is used.
+
+Production database metadata reports seven-day point-in-time retention. This is configuration evidence, not a successful production restore drill. Production high availability is currently disabled; enabling it or adding durable cloud staging storage requires a concrete cost decision.
