@@ -53,6 +53,7 @@ spec:
                 }
             }
             environment {
+                NODE_OPTIONS = '--max-old-space-size=8192'
                 NEXT_PRIVATE_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_test_ci'
                 NEXT_PRIVATE_DIRECT_DATABASE_URL = 'postgresql://postgres@127.0.0.1:5432/sign_delivery_test_ci'
                 SIGN_DELIVERY_TESTS = 'true'
