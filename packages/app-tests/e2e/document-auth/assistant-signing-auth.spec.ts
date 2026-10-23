@@ -4,6 +4,7 @@ import { type APIRequestContext, expect, test } from '@playwright/test';
 import { FieldType, SigningStatus } from '@prisma/client';
 
 import { apiSeedPendingDocument } from '../fixtures/api-seeds';
+import { WEBAPP_ORIGIN_HEADERS } from '../fixtures/authentication';
 
 const WEBAPP_BASE_URL = NEXT_PUBLIC_WEBAPP_URL();
 
@@ -25,13 +26,13 @@ const seedTwoPendingEnvelopes = async (request: APIRequestContext): Promise<Seed
     title: '[TEST] Envelope A',
     recipients: [
       {
-        email: `assistant-${Date.now()}@documenso.com`,
+        email: `assistant-${Date.now()}@davincisolutions.ai`,
         name: 'Assistant',
         role: 'ASSISTANT',
         signingOrder: 1,
       },
       {
-        email: `signer-a-${Date.now()}@documenso.com`,
+        email: `signer-a-${Date.now()}@davincisolutions.ai`,
         name: 'Signer A',
         role: 'SIGNER',
         signingOrder: 2,
@@ -54,7 +55,7 @@ const seedTwoPendingEnvelopes = async (request: APIRequestContext): Promise<Seed
     title: '[TEST] Envelope B',
     recipients: [
       {
-        email: `signer-b-${Date.now()}@documenso.com`,
+        email: `signer-b-${Date.now()}@davincisolutions.ai`,
         name: 'Signer B',
         role: 'SIGNER',
         signingOrder: 1,
@@ -90,7 +91,7 @@ const seedTwoPendingEnvelopes = async (request: APIRequestContext): Promise<Seed
 
 const trpcMutation = async (request: APIRequestContext, procedure: string, input: Record<string, unknown>) => {
   return await request.post(`${WEBAPP_BASE_URL}/api/trpc/${procedure}`, {
-    headers: { 'content-type': 'application/json' },
+    headers: { ...WEBAPP_ORIGIN_HEADERS, 'content-type': 'application/json' },
     data: JSON.stringify({ json: input }),
   });
 };

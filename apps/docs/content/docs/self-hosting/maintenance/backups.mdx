@@ -129,7 +129,7 @@ echo $NEXT_PRIVATE_SIGNING_LOCAL_FILE_CONTENTS
 Copy the certificate to a secure backup location:
 
 ```bash
-cp /opt/documenso/cert.p12 /backup/documenso/cert.p12
+cp /opt/davinci-sign/cert.p12 /backup/documenso/cert.p12
 ```
 
 </Tab>
@@ -159,7 +159,7 @@ Document the certificate passphrase (`NEXT_PRIVATE_SIGNING_PASSPHRASE`) in a sec
 
 If using S3 storage (`NEXT_PUBLIC_UPLOAD_TRANSPORT=s3`), back up your S3 bucket.
 
-<Tabs items={['AWS S3', 'S3-Compatible (MinIO, etc.)']}>
+<Tabs items={['AWS S3', 'S3-Compatible']}>
 <Tab value="AWS S3">
 
 Enable versioning on your bucket:
@@ -179,7 +179,7 @@ aws s3 sync s3://your-documenso-bucket /backup/documenso/documents/
 ```
 
 </Tab>
-<Tab value="S3-Compatible (MinIO, etc.)">
+<Tab value="S3-Compatible">
 
 Use the same commands with the `--endpoint-url` flag:
 
@@ -234,9 +234,9 @@ PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -F c
   -f "$BACKUP_DIR/$TIMESTAMP/database.dump"
 
 # Certificate backup (if file exists)
-if [ -f "/opt/documenso/cert.p12" ]; then
+if [ -f "/opt/davinci-sign/cert.p12" ]; then
   echo "Backing up certificate..."
-  cp /opt/documenso/cert.p12 "$BACKUP_DIR/$TIMESTAMP/cert.p12"
+  cp /opt/davinci-sign/cert.p12 "$BACKUP_DIR/$TIMESTAMP/cert.p12"
 fi
 
 # S3 backup (if configured)
@@ -272,7 +272,7 @@ set -e
 
 BACKUP_DIR="/backup/documenso"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-COMPOSE_PROJECT="documenso-production"
+COMPOSE_PROJECT="davinci-sign-production"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -284,7 +284,7 @@ docker compose -p "$COMPOSE_PROJECT" exec -T database \
 
 # Certificate backup (copy from container if needed)
 docker compose -p "$COMPOSE_PROJECT" cp \
-  documenso:/opt/documenso/cert.p12 "$BACKUP_DIR/cert_$TIMESTAMP.p12" 2>/dev/null || true
+  documenso:/opt/davinci-sign/cert.p12 "$BACKUP_DIR/cert_$TIMESTAMP.p12" 2>/dev/null || true
 
 echo "Backup completed"
 ```
@@ -432,9 +432,9 @@ gunzip -c documenso_backup.sql.gz | psql -h localhost -U documenso -d documenso
 Copy the certificate back to the expected location:
 
 ```bash
-cp /backup/documenso/cert.p12 /opt/documenso/cert.p12
-chmod 644 /opt/documenso/cert.p12
-chown 1001:1001 /opt/documenso/cert.p12
+cp /backup/documenso/cert.p12 /opt/davinci-sign/cert.p12
+chmod 644 /opt/davinci-sign/cert.p12
+chown 1001:1001 /opt/davinci-sign/cert.p12
 ```
 
 ### Restore S3 Documents
@@ -469,7 +469,7 @@ docker compose exec -T database pg_restore -U documenso -d documenso -c < backup
 ### Restore the certificate
 
 ```bash
-docker compose cp cert.p12 documenso:/opt/documenso/cert.p12
+docker compose cp cert.p12 documenso:/opt/davinci-sign/cert.p12
 ```
 
 </Step>

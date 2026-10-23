@@ -1,4 +1,3 @@
-import { getOptionalSession } from '@documenso/auth/server/lib/utils/get-session';
 import { useChildRouteFlags } from '@documenso/lib/client-only/hooks/use-child-route-flags';
 import { OrganisationProvider } from '@documenso/lib/client-only/providers/organisation';
 import { useSession } from '@documenso/lib/client-only/providers/session';
@@ -8,7 +7,7 @@ import { cn } from '@documenso/ui/lib/utils';
 import { Button } from '@documenso/ui/primitives/button';
 import { msg } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Link, Outlet, redirect } from 'react-router';
+import { Link, Outlet } from 'react-router';
 
 import { AppBanner } from '~/components/general/app-banner';
 import { Header } from '~/components/general/app-header';
@@ -17,6 +16,7 @@ import { OrganisationBillingBanner } from '~/components/general/organisations/or
 import { OrganisationQuotaBanner } from '~/components/general/organisations/organisation-quota-banner';
 import { SourceCodeFooter } from '~/components/general/source-code-footer';
 import { VerifyEmailBanner } from '~/components/general/verify-email-banner';
+import { authenticatedMiddleware } from '~/middleware/authenticated';
 import { TeamProvider } from '~/providers/team';
 
 import type { Route } from './+types/_layout';
@@ -28,15 +28,12 @@ import type { Route } from './+types/_layout';
  */
 export const shouldRevalidate = () => false;
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const [session, banner] = await Promise.all([
-    getOptionalSession(request),
-    getSiteSettings().then((settings) => settings.find((setting) => setting.id === SITE_SETTINGS_BANNER_ID)),
-  ]);
+export const middleware = [authenticatedMiddleware];
 
-  if (!session.isAuthenticated) {
-    throw redirect('/signin');
-  }
+export async function loader() {
+  const banner = await getSiteSettings().then((settings) =>
+    settings.find((setting) => setting.id === SITE_SETTINGS_BANNER_ID),
+  );
 
   return {
     banner,

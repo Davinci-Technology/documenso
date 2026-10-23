@@ -1,7 +1,7 @@
 import backgroundPattern from '@documenso/assets/images/background-pattern.png';
 import { Outlet } from 'react-router';
 
-import { SourceCodeFooter } from '~/components/general/source-code-footer';
+import { PublicLegalLinks } from '~/components/general/public-legal-links';
 
 export default function Layout() {
   return (
@@ -24,7 +24,9 @@ export default function Layout() {
         </div>
       </div>
 
-      <SourceCodeFooter className="relative" />
+      <footer className="z-10 mt-8 w-full">
+        <PublicLegalLinks />
+      </footer>
     </main>
   );
 }
