@@ -20,7 +20,10 @@ pipeline {
     }
     stages {
         stage('Source checks') {
-            when { not { branch 'main' } }
+            when {
+                beforeAgent true
+                not { branch 'main' }
+            }
             agent {
                 kubernetes {
                     yaml '''
@@ -76,7 +79,10 @@ spec:
             }
         }
         stage('Build staging release once') {
-            when { branch 'staging' }
+            when {
+                beforeAgent true
+                branch 'staging'
+            }
             agent {
                 kubernetes {
                     yaml '''
@@ -115,7 +121,10 @@ spec:
             }
         }
         stage('Deploy and verify isolated staging') {
-            when { branch 'staging' }
+            when {
+                beforeAgent true
+                branch 'staging'
+            }
             agent {
                 kubernetes {
                     yaml '''
@@ -124,7 +133,7 @@ kind: Pod
 spec:
   containers:
   - name: kubectl
-    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb95450321
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
     command: ['sleep', '9999']
     resources:
       requests: {memory: 256Mi, cpu: 100m}
@@ -155,7 +164,10 @@ spec:
             }
         }
         stage('Select tested production release') {
-            when { branch 'main' }
+            when {
+                beforeAgent true
+                branch 'main'
+            }
             agent {
                 kubernetes {
                     yaml '''
@@ -164,7 +176,7 @@ kind: Pod
 spec:
   containers:
   - name: kubectl
-    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb95450321
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
     command: ['sleep', '9999']
 '''
                 }
@@ -192,7 +204,11 @@ spec:
             }
         }
         stage('Promote selected release to production') {
-            when { branch 'main' }
+            when {
+                beforeAgent true
+                beforeInput true
+                branch 'main'
+            }
             // Stage input is evaluated before acquiring an executor.
             input {
                 message "Promote the exact verified staging build ${params.STAGING_RELEASE_BUILD} to sign.davincisolutions.ai? Requires the owner's release approval recorded through Studio ship."
@@ -206,7 +222,7 @@ kind: Pod
 spec:
   containers:
   - name: kubectl
-    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb95450321
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
     command: ['sleep', '9999']
 '''
                 }

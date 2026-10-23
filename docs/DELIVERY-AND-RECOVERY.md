@@ -17,7 +17,7 @@ The application image runs as UID1001; staging aligns its certificate group to10
 Production certificate paths, stored encryption keys, OIDC references, sender
 `Davinci AI Solutions`, and namespaced MinIO FQDN remain intact.
 
-Staging uses its own PostgreSQL16 StatefulSet and MinIO with bounded emptyDir
+Staging uses its own PostgreSQL15 StatefulSet and MinIO with bounded emptyDir
 volumes, fresh auth and
 encryption keys, a test-only certificate, Mailpit SMTP and an internal webhook
 sink. Never copy production data, signing certificates or provider credentials.

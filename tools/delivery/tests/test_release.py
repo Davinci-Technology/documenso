@@ -1,4 +1,5 @@
 import importlib.util
+import re
 from pathlib import Path
 
 import pytest
@@ -122,3 +123,47 @@ def test_staging_does_not_provision_billable_disks():
         assert workload["spec"]["template"]["spec"]["volumes"] == [
             {"name": "data", "emptyDir": {"sizeLimit": "5Gi"}}
         ]
+
+
+def test_ci_image_digest_pins_are_valid_oci_sha256():
+    pipeline = (release.ROOT / "Jenkinsfile").read_text()
+    images = re.findall(r"(?m)^\s*image:\s*(\S+)", pipeline)
+    assert images
+    pinned = [image for image in images if "@" in image]
+    assert pinned
+    for image in pinned:
+        assert re.fullmatch(r"[^@]+@sha256:[0-9a-f]{64}", image), image
+
+
+@pytest.mark.parametrize(
+    "stage_name",
+    [
+        "Source checks",
+        "Build staging release once",
+        "Deploy and verify isolated staging",
+        "Select tested production release",
+        "Promote selected release to production",
+    ],
+)
+def test_branch_conditions_are_evaluated_before_agent_allocation(stage_name):
+    pipeline = (release.ROOT / "Jenkinsfile").read_text()
+    stage = pipeline.split(f"stage('{stage_name}') {{", 1)[1].split(
+        "        stage(", 1
+    )[0]
+    condition = stage.split("            when {", 1)[1].split("            agent {", 1)[
+        0
+    ]
+    assert re.search(r"(?m)^\s*beforeAgent true\s*$", condition)
+
+
+def test_production_approval_is_gated_before_input_without_removing_owner_gate():
+    pipeline = (release.ROOT / "Jenkinsfile").read_text()
+    stage = pipeline.split("stage('Promote selected release to production') {", 1)[1]
+    condition = stage.split("            when {", 1)[1].split("            input {", 1)[
+        0
+    ]
+    assert re.search(r"(?m)^\s*beforeInput true\s*$", condition)
+    assert re.search(r"(?m)^\s*branch 'main'\s*$", condition)
+    assert "            input {" in stage
+    assert "ok 'Promote approved release'" in stage
+    assert stage.index("            input {") < stage.index("            agent {")
