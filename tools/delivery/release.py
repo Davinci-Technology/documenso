@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 import yaml
+from cluster_identity import resolve_context
 
 LOG = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
@@ -133,7 +134,7 @@ def kubectl(args, *command, **kwargs):
             "--kubeconfig",
             args.kubeconfig,
             "--context",
-            args.context,
+            args.resolved_context,
             "--namespace",
             f"davinci-sign-{args.environment}",
             *command,
@@ -264,6 +265,8 @@ def main():
     if args.action == "select":
         LOG.info("Validated selected release %s", image)
         return
+    if args.action in ["deploy", "verify", "record"]:
+        args.resolved_context = resolve_context(args.kubeconfig, args.context)
     rendered = yaml.safe_dump_all(manifests(args.environment, image), sort_keys=False)
     if args.action == "render":
         print(rendered, end="")

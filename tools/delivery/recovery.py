@@ -8,6 +8,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from cluster_identity import resolve_context
+
 LOG = logging.getLogger(__name__)
 
 
@@ -31,12 +33,17 @@ def main():
         args.action,
         args.apply,
     )
+    physical_context = (
+        resolve_context(args.kubeconfig, args.context)
+        if args.action == "inventory" or args.apply
+        else args.context
+    )
     prefix = [
         "kubectl",
         "--kubeconfig",
         args.kubeconfig,
         "--context",
-        args.context,
+        physical_context,
         "--namespace",
         namespace,
     ]

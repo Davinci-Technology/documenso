@@ -139,6 +139,7 @@ def test_ci_image_digest_pins_are_valid_oci_sha256():
     "stage_name",
     [
         "Source checks",
+        "Verify staging cluster identity",
         "Build staging release once",
         "Deploy and verify isolated staging",
         "Select tested production release",
