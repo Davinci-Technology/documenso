@@ -29,8 +29,8 @@ export const loader = async ({ params }: Route.LoaderArgs) => {
   const baseUrl = NEXT_PUBLIC_WEBAPP_URL();
 
   const [interSemiBold, interRegular, caveatRegular] = await Promise.all([
-    fetch(new URL(`${baseUrl}/fonts/inter-semibold.ttf`, import.meta.url)).then(async (res) => res.arrayBuffer()),
-    fetch(new URL(`${baseUrl}/fonts/inter-regular.ttf`, import.meta.url)).then(async (res) => res.arrayBuffer()),
+    fetch(new URL(`${baseUrl}/fonts/open-sans-semibold.ttf`, import.meta.url)).then(async (res) => res.arrayBuffer()),
+    fetch(new URL(`${baseUrl}/fonts/open-sans-regular.ttf`, import.meta.url)).then(async (res) => res.arrayBuffer()),
     fetch(new URL(`${baseUrl}/fonts/caveat-regular.ttf`, import.meta.url)).then(async (res) => res.arrayBuffer()),
   ]);
 
@@ -143,7 +143,7 @@ export const loader = async ({ params }: Route.LoaderArgs) => {
           style={{
             fontSize: '20px',
             color: '#828282',
-            fontFamily: 'Inter',
+            fontFamily: 'Open Sans',
             fontWeight: 700,
           }}
         >
@@ -161,12 +161,12 @@ export const loader = async ({ params }: Route.LoaderArgs) => {
           style: 'italic',
         },
         {
-          name: 'Inter',
+          name: 'Open Sans',
           data: interRegular,
           weight: 400,
         },
         {
-          name: 'Inter',
+          name: 'Open Sans',
           data: interSemiBold,
           weight: 600,
         },
