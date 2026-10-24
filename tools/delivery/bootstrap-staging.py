@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from cluster_identity import resolve_context
+
 LOG = logging.getLogger(__name__)
 
 
@@ -31,12 +33,13 @@ def main():
     )
     if not args.apply:
         return
+    physical_context = resolve_context(args.kubeconfig, args.context)
     prefix = [
         "kubectl",
         "--kubeconfig",
         args.kubeconfig,
         "--context",
-        args.context,
+        physical_context,
         "--namespace",
         ns,
     ]

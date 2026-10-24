@@ -64,7 +64,7 @@ spec:
                 container('node') {
                     sh '''
                         set -eu
-                        apk add --no-cache openssl libc6-compat python3 py3-pip py3-yaml jq make cmake g++ bash font-freefont
+                        apk add --no-cache openssl libc6-compat python3 py3-pip py3-yaml jq make cmake g++ bash font-freefont kubectl
                         python3 -m venv /tmp/ops-tests
                         /tmp/ops-tests/bin/pip install -r tools/upstream-sync/requirements.txt pytest
                         /tmp/ops-tests/bin/python -m pytest tools/upstream-sync/tests/test_deterministic.py tools/upstream-sync/tests/test_sweep.py tools/upstream-sync/tests/test_validator_branding.py tools/delivery/tests -q
@@ -81,6 +81,48 @@ spec:
             post {
                 always {
                     archiveArtifacts artifacts: 'packages/app-tests/test-results/**', allowEmptyArchive: true
+                }
+            }
+        }
+        stage('Verify staging cluster identity') {
+            when {
+                beforeAgent true
+                branch 'staging'
+            }
+            agent {
+                kubernetes {
+                    yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    runAsNonRoot: true
+  containers:
+  - name: kubectl
+    image: alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032
+    command: ['sleep', '9999']
+    resources:
+      requests: {memory: 128Mi, cpu: 50m}
+      limits: {memory: 256Mi, cpu: 250m}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities: {drop: ['ALL']}
+'''
+                }
+            }
+            steps {
+                checkout scm
+                withCredentials([file(credentialsId: env.KUBECONFIG_CREDENTIAL_ID, variable: 'KUBECONFIG_FILE')]) {
+                    container('kubectl') {
+                        sh '''
+                            set -eu
+                            set +x
+                            python3 tools/delivery/cluster_identity.py --context k8s-01 --kubeconfig "$KUBECONFIG_FILE" --check-access
+                        '''
+                    }
                 }
             }
         }

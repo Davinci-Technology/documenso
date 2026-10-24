@@ -140,3 +140,32 @@ as well as the shared web/migration image. No MinIO upgrade is included.
 Azure metadata confirms production signing uses PostgreSQL15. Staging and the isolated CI sidecar use the verified PostgreSQL15 image digest. The source gate migrates a disposable loopback-only database and runs the delivery Playwright configuration against actual database, HTTP and SMTP listeners; Vitest is retained for pure library behavior. No production connection string or data is used.
 
 Production database metadata reports seven-day point-in-time retention. This is configuration evidence, not a successful production restore drill. Production high availability is currently disabled; enabling it or adding durable cloud staging storage requires a concrete cost decision.
+
+## Explicit cluster identity before operations
+
+CLI `--context k8s-01` is the logical reviewed target. The shared resolver selects
+the explicitly named `k8s-01` context when present, otherwise the verified
+`k8s-01-admin` CI alias. Both must map to cluster `k8s-01` when both are present. It never uses
+current-context or copies/renames a kubeconfig. Every subsequent API operation
+passes that verified physical context explicitly. Missing or conflicting aliases fail
+closed; other unrelated kubeconfig contexts are ignored.
+
+Before any API operation, local metadata must match the independently verified
+Azure endpoint `https://k8s-01-dns-3l35exx4.hcp.canadacentral.azmk8s.io:443` and
+public CA **DER** SHA256
+`41d67224f5b8a393648f51ff37adcbd377b2778bef2ecf383991e52bd0b36916`.
+This differs from a PEM-file-byte hash because PEM is an encoding of the DER
+certificate. Insecure TLS, proxy override, TLS-name override, CA-file override,
+wrong endpoint/CA and ambiguous aliases are rejected. No user/token/client-key
+fields are projected or printed. The test fixture contains only this public CA,
+not a kubeconfig or authentication credential. Planned cluster/CA rotation needs
+a separately reviewed identity update; there is no automatic fallback.
+
+Only staging binds the existing kubeconfig in the new preflight stage before
+Kaniko. That stage checks local identity and read-only SelfSubjectAccessReview
+permissions for bootstrap/deploy. PRs skip it before agent allocation and bind no
+cluster credential. Source tests install a kubectl client solely for actual local
+synthetic-config projections; those tests contact no Kubernetes API and cannot
+execute an auth plugin. Bootstrap, release verify/deploy/record and recovery API
+operations independently repeat the local identity gate. Offline render/select
+and plan-only bootstrap/recovery remain offline.
