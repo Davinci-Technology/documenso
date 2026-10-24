@@ -69,13 +69,18 @@ This document details all branding-related locations in the codebase for future 
 | `packages/email/templates/*.tsx` | Alt text on logo images, preview text |
 
 ### Server-Side References
+
+Authentication protocol headers are wire contracts, not cosmetic branding. Preserve
+`X-Documenso-Secret` and `X-Documenso-Signature` exactly in handlers, resend paths
+and API documentation; never rename them during a brand sweep.
+
 | File | What to Change |
 |------|----------------|
 | `packages/lib/server-only/2fa/setup-2fa.ts` | ISSUER constant |
 | `packages/lib/utils/authenticator.ts` | rpName |
-| `packages/lib/jobs/definitions/internal/execute-webhook.handler.ts` | X-*-Secret header |
-| `packages/trpc/server/webhook-router/resend-webhook-call.ts` | X-*-Secret header |
-| `apps/documentation/pages/developers/webhooks.mdx` | X-*-Secret header reference in docs |
+| `packages/lib/jobs/definitions/internal/execute-webhook.handler.ts` | Preserve protocol header names |
+| `packages/trpc/server/webhook-router/resend-webhook-call.ts` | Preserve protocol header names |
+| `apps/documentation/pages/developers/webhooks.mdx` | Preserve protocol header names in docs |
 
 ### UI Components
 | File | What to Change |

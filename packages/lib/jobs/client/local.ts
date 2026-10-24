@@ -1,3 +1,7 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
+
+import { emailDeliveryContext } from '@documenso/email/delivery-context';
 import { prisma } from '@documenso/prisma';
 import { sha256 } from '@noble/hashes/sha2';
 import { BackgroundJobStatus, Prisma } from '@prisma/client';
@@ -33,6 +37,11 @@ type CronJobEntry = {
   cron: string;
   lastTickAt: Date;
 };
+
+const executionContext = new AsyncLocalStorage<{ jobId: string; taskId?: string }>();
+
+const LEASE_MS = 120_000;
+const recoveryDelay = (attempt: number) => Math.min(30_000 * 2 ** Math.max(0, attempt - 1), 300_000);
 
 const CRON_POLL_INTERVAL_MS = 30_000; // 30 seconds
 const CRON_POLL_JITTER_MS = 5_000; // 0-5 seconds random offset
@@ -97,18 +106,20 @@ export class LocalJobProvider extends BaseJobProvider {
       return;
     }
 
-    if (this._cronJobs.length === 0) {
-      return;
-    }
-
     const tick = () => {
       const jitter = Math.floor(Math.random() * CRON_POLL_JITTER_MS);
 
       this._cronPoller = setTimeout(() => {
-        void this.processCronTick().finally(tick);
+        void this.processCronTick()
+          .then(() => this.recoverJobs())
+          .catch(() => {
+            console.error('[JOBS_ALERT] Recovery sweep failed');
+          })
+          .finally(tick);
       }, CRON_POLL_INTERVAL_MS + jitter);
     };
 
+    void this.recoverJobs().catch(() => console.error('[JOBS_ALERT] Initial recovery failed'));
     tick();
 
     console.log(`[JOBS]: Started cron poller for ${this._cronJobs.length} job(s)`);
@@ -168,6 +179,87 @@ export class LocalJobProvider extends BaseJobProvider {
     }
   }
 
+  // Claims in the API handler are atomic, so duplicate dispatches are harmless.
+  // Old PROCESSING rows pre-dating leases are recovered after the same timeout.
+  public async recoverJobs() {
+    const now = new Date();
+    const stale = await prisma.backgroundJob.findMany({
+      where: {
+        status: BackgroundJobStatus.PROCESSING,
+        OR: [
+          { leaseExpiresAt: { lt: now } },
+          { leaseExpiresAt: null, updatedAt: { lt: new Date(now.getTime() - LEASE_MS) } },
+        ],
+      },
+      take: 100,
+    });
+    for (const job of stale) {
+      const legacyUnfenced = !job.leaseOwner;
+      const exhausted = job.retried >= job.maxRetries || legacyUnfenced;
+      await prisma.backgroundJob.updateMany({
+        where: {
+          id: job.id,
+          status: BackgroundJobStatus.PROCESSING,
+          leaseOwner: job.leaseOwner,
+          updatedAt: job.updatedAt,
+        },
+        data: {
+          status: exhausted ? BackgroundJobStatus.FAILED : BackgroundJobStatus.PENDING,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          availableAt: new Date(now.getTime() + recoveryDelay(job.retried)),
+          lastError: legacyUnfenced
+            ? 'LEGACY_JOB_RECONCILIATION_REQUIRED'
+            : exhausted
+              ? 'RECOVERY_RETRIES_EXHAUSTED'
+              : 'WORKER_LEASE_EXPIRED',
+          completedAt: exhausted ? now : null,
+        },
+      });
+      console.error('[JOBS_ALERT]', {
+        jobId: job.id,
+        reason: legacyUnfenced
+          ? 'LEGACY_JOB_RECONCILIATION_REQUIRED'
+          : exhausted
+            ? 'RECOVERY_RETRIES_EXHAUSTED'
+            : 'WORKER_LEASE_EXPIRED',
+      });
+    }
+    const pending = await prisma.backgroundJob.findMany({
+      where: { status: BackgroundJobStatus.PENDING, availableAt: { lte: now } },
+      orderBy: { availableAt: 'asc' },
+      take: 50,
+    });
+    await Promise.all(
+      pending.map(async (job) => {
+        if (
+          job.lastError === null &&
+          /send|email|reminder/.test(job.jobId) &&
+          (job.retried > 0 || job.availableAt.getTime() - job.submittedAt.getTime() > 1000)
+        ) {
+          await prisma.backgroundJob.updateMany({
+            where: { id: job.id, status: BackgroundJobStatus.PENDING, lastError: null },
+            data: {
+              status: BackgroundJobStatus.FAILED,
+              lastError: 'LEGACY_MAIL_RECONCILIATION_REQUIRED',
+              completedAt: now,
+            },
+          });
+          console.error('[JOBS_ALERT]', { jobId: job.id, reason: 'LEGACY_MAIL_RECONCILIATION_REQUIRED' });
+          return;
+        }
+        const definition = this._jobDefinitions[job.jobId];
+        if (definition?.enabled) {
+          await this.submitJobToEndpoint({
+            jobId: job.id,
+            jobDefinitionId: job.jobId,
+            data: { name: definition.trigger.name, payload: job.payload },
+          });
+        }
+      }),
+    );
+  }
+
   /**
    * Use cron-parser to find all cron slots that are due between the last tick
    * and now.
@@ -191,21 +283,41 @@ export class LocalJobProvider extends BaseJobProvider {
   }
 
   public async triggerJob(options: SimpleTriggerJobOptions) {
+    const parent = executionContext.getStore();
+    if (parent && !options.id) {
+      // Global jobs.triggerJob calls in production handler tails must inherit the
+      // same receipt identity as io.triggerJob, independent of lease/attempt.
+      options = {
+        ...options,
+        id: JSON.stringify([parent.jobId, parent.taskId ?? 'handler', options.name, options.payload]),
+      };
+    }
     const eligibleJobs = Object.values(this._jobDefinitions).filter((job) => job.trigger.name === options.name);
 
     await Promise.all(
       eligibleJobs.map(async (job) => {
         // Ideally we will change this to a createMany with returning later once we upgrade Prisma
         // @see: https://github.com/prisma/prisma/releases/tag/5.14.0
-        const pendingJob = await prisma.backgroundJob.create({
-          data: {
-            jobId: job.id,
-            name: job.name,
-            version: job.version,
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            payload: options.payload as Prisma.InputJsonValue,
-          },
-        });
+        const pendingJob = await prisma.backgroundJob
+          .create({
+            data: {
+              id: options.id ? `child_${Buffer.from(sha256(`${options.id}:${job.id}`)).toString('hex')}` : undefined,
+              jobId: job.id,
+              name: job.name,
+              version: job.version,
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              payload: options.payload as Prisma.InputJsonValue,
+            },
+          })
+          .catch((error: unknown) => {
+            if (options.id && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+              return null;
+            }
+            throw error;
+          });
+        if (!pendingJob) {
+          return;
+        }
 
         await this.submitJobToEndpoint({
           jobId: pendingJob.id,
@@ -227,7 +339,6 @@ export class LocalJobProvider extends BaseJobProvider {
 
       const jobId = req.header('x-job-id');
       const signature = req.header('x-job-signature');
-      const isRetry = req.header('x-job-retry') !== undefined;
 
       const options = await req
         .json()
@@ -256,7 +367,13 @@ export class LocalJobProvider extends BaseJobProvider {
         return c.text('Job not found', 404);
       }
 
-      if (!signature || !verify(options, signature)) {
+      let isVerified = false;
+      try {
+        isVerified = Boolean(signature) && verify(options, signature);
+      } catch {
+        // Malformed encrypted signatures are authentication failures.
+      }
+      if (!isVerified) {
         return c.text('Unauthorized', 401);
       }
 
@@ -272,20 +389,26 @@ export class LocalJobProvider extends BaseJobProvider {
         payload = result.data;
       }
 
-      console.log(`[JOBS]: Triggering job ${options.name} with payload`, payload);
+      console.info('[JOBS]: Claiming job', { jobId, definitionId: definition.id });
+      const leaseOwner = randomUUID();
 
       let backgroundJob = await prisma.backgroundJob
         .update({
           where: {
             id: jobId,
+            jobId: definition.id,
+            payload: {
+              equals: options.payload === null ? Prisma.JsonNull : (options.payload as Prisma.InputJsonValue),
+            },
             status: BackgroundJobStatus.PENDING,
+            availableAt: { lte: new Date() },
           },
           data: {
             status: BackgroundJobStatus.PROCESSING,
-            retried: {
-              increment: isRetry ? 1 : 0,
-            },
-            lastRetriedAt: isRetry ? new Date() : undefined,
+            retried: { increment: 1 },
+            lastRetriedAt: new Date(),
+            leaseOwner,
+            leaseExpiresAt: new Date(Date.now() + LEASE_MS),
           },
         })
         .catch(() => null);
@@ -294,37 +417,56 @@ export class LocalJobProvider extends BaseJobProvider {
         return c.text('Job not found', 404);
       }
 
+      const heartbeat = setInterval(() => {
+        void prisma.backgroundJob
+          .updateMany({
+            where: { id: jobId, status: BackgroundJobStatus.PROCESSING, leaseOwner },
+            data: { leaseExpiresAt: new Date(Date.now() + LEASE_MS) },
+          })
+          .catch(() => console.error('[JOBS_ALERT] Lease heartbeat failed', { jobId }));
+      }, 30_000);
+      heartbeat.unref();
       try {
-        await definition.handler({
-          payload,
-          io: this.createJobRunIO(jobId),
-        });
+        await executionContext.run({ jobId }, () =>
+          emailDeliveryContext.run({ jobId, sequence: 0 }, () =>
+            definition.handler({
+              payload,
+              io: this.createJobRunIO(jobId, leaseOwner),
+            }),
+          ),
+        );
 
         backgroundJob = await prisma.backgroundJob.update({
           where: {
             id: jobId,
             status: BackgroundJobStatus.PROCESSING,
+            leaseOwner,
           },
           data: {
             status: BackgroundJobStatus.COMPLETED,
+            leaseOwner: null,
+            leaseExpiresAt: null,
             completedAt: new Date(),
           },
         });
       } catch (error) {
-        console.log(`[JOBS]: Job ${options.name} failed`, error);
+        console.error('[JOBS_ALERT] Job failed', { jobId, definitionId: definition.id });
 
         const taskHasExceededRetries = error instanceof BackgroundTaskExceededRetriesError;
-        const jobHasExceededRetries =
-          backgroundJob.retried >= backgroundJob.maxRetries && !(error instanceof BackgroundTaskFailedError);
+        const jobHasExceededRetries = backgroundJob.retried >= backgroundJob.maxRetries;
 
         if (taskHasExceededRetries || jobHasExceededRetries) {
           backgroundJob = await prisma.backgroundJob.update({
             where: {
               id: jobId,
               status: BackgroundJobStatus.PROCESSING,
+              leaseOwner,
             },
             data: {
               status: BackgroundJobStatus.FAILED,
+              leaseOwner: null,
+              leaseExpiresAt: null,
+              lastError: 'RETRIES_EXHAUSTED',
               completedAt: new Date(),
             },
           });
@@ -336,18 +478,18 @@ export class LocalJobProvider extends BaseJobProvider {
           where: {
             id: jobId,
             status: BackgroundJobStatus.PROCESSING,
+            leaseOwner,
           },
           data: {
             status: BackgroundJobStatus.PENDING,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            availableAt: new Date(Date.now() + recoveryDelay(backgroundJob.retried)),
+            lastError: 'HANDLER_FAILED',
           },
         });
-
-        await this.submitJobToEndpoint({
-          jobId,
-          jobDefinitionId: backgroundJob.jobId,
-          data: options,
-          isRetry: true,
-        });
+      } finally {
+        clearInterval(heartbeat);
       }
 
       return c.text('OK', 200);
@@ -360,7 +502,10 @@ export class LocalJobProvider extends BaseJobProvider {
     data: SimpleTriggerJobOptions;
     isRetry?: boolean;
   }) {
-    const { jobId, jobDefinitionId, data, isRetry } = options;
+    const { jobId, jobDefinitionId, isRetry } = options;
+    // The receiver validates before verifying. Sign the same schema-ordered
+    // representation, including IDs introduced by durable parent receipts.
+    const data = ZSimpleTriggerJobOptionsSchema.parse(options.data);
 
     const endpoint = `${NEXT_PRIVATE_INTERNAL_WEBAPP_URL()}/api/jobs/${jobDefinitionId}/${jobId}`;
     const signature = sign(data);
@@ -388,9 +533,20 @@ export class LocalJobProvider extends BaseJobProvider {
     ]);
   }
 
-  private createJobRunIO(jobId: string): JobRunIO {
+  private createJobRunIO(jobId: string, leaseOwner: string): JobRunIO {
     return {
       runTask: async <T extends void | Json>(cacheKey: string, callback: () => Promise<T>) => {
+        const ownsLease = await prisma.backgroundJob.count({
+          where: {
+            id: jobId,
+            status: BackgroundJobStatus.PROCESSING,
+            leaseOwner,
+            leaseExpiresAt: { gt: new Date() },
+          },
+        });
+        if (!ownsLease) {
+          throw new BackgroundTaskFailedError('Worker lease expired');
+        }
         const hashedKey = Buffer.from(sha256(cacheKey)).toString('hex');
 
         let task = await prisma.backgroundJobTask.findFirst({
@@ -420,8 +576,11 @@ export class LocalJobProvider extends BaseJobProvider {
           throw new BackgroundTaskExceededRetriesError('Task exceeded retries');
         }
 
+        const taskId = task.id;
         try {
-          const result = await callback();
+          const result = await executionContext.run({ jobId, taskId }, () =>
+            emailDeliveryContext.run({ jobId, taskId, sequence: 0 }, callback),
+          );
 
           task = await prisma.backgroundJobTask.update({
             where: {
@@ -436,7 +595,7 @@ export class LocalJobProvider extends BaseJobProvider {
           });
 
           return result;
-        } catch (err) {
+        } catch (_err) {
           task = await prisma.backgroundJobTask.update({
             where: {
               id: task.id,
@@ -450,12 +609,12 @@ export class LocalJobProvider extends BaseJobProvider {
             },
           });
 
-          console.log(`[JOBS:${task.id}] Task failed`, err);
+          console.error('[JOBS_ALERT] Task failed', { jobId, taskId: task.id });
 
           throw new BackgroundTaskFailedError('Task failed');
         }
       },
-      triggerJob: async (_cacheKey, payload) => await this.triggerJob(payload),
+      triggerJob: async (cacheKey, payload) => await this.triggerJob({ ...payload, id: `${jobId}:${cacheKey}` }),
       logger: {
         debug: (...args) => console.debug(`[${jobId}]`, ...args),
         error: (...args) => console.error(`[${jobId}]`, ...args),

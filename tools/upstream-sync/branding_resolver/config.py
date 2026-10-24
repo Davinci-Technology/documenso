@@ -40,7 +40,6 @@ class BrandingConfig(BaseSettings):
     # Symbol renames (code identifiers that changed)
     symbol_renames: dict[str, str] = Field(default_factory=lambda: {
         "DOCUMENSO_INTERNAL_EMAIL": "DAVINCI_INTERNAL_EMAIL",
-        "X-Documenso-Secret": "X-Davinci-Secret",
     }, description="Code symbol renames mapping")
 
     # Package scope preserved to avoid breaking imports
@@ -172,7 +171,6 @@ BRANDING_SUBSTITUTIONS: list[tuple[str, str]] = [
     ("documenso-test", "davinci-sign-test"),
     # Code symbols (before generic brand name)
     ("DOCUMENSO_INTERNAL_EMAIL", "DAVINCI_INTERNAL_EMAIL"),
-    ("X-Documenso-Secret", "X-Davinci-Secret"),
     # 2FA issuer
     ("Documenso", "Davinci Sign"),
     # Color hex (upstream green -> Davinci blue)
@@ -201,7 +199,6 @@ SYMBOL_SAFE_SUBSTITUTIONS: list[tuple[str, str]] = [
     ("documenso-production", "davinci-sign-production"),
     ("documenso-test", "davinci-sign-test"),
     ("DOCUMENSO_INTERNAL_EMAIL", "DAVINCI_INTERNAL_EMAIL"),
-    ("X-Documenso-Secret", "X-Davinci-Secret"),
     ("#7AC455", "#1A98CF"),
 ]
 
@@ -209,6 +206,10 @@ SYMBOL_SAFE_SUBSTITUTIONS: list[tuple[str, str]] = [
 # --- Strings that must NEVER be replaced ---
 
 BRANDING_PRESERVATIONS: list[str] = [
+    # Authentication wire contracts are not cosmetic branding.
+    "X-Documenso-Secret",
+    "X-Documenso-Signature",
+    "X-Davinci-Secret",
     # Package scope - internal imports must stay @documenso/*
     "@documenso/",
     # Upstream GitHub URLs - credit to original project

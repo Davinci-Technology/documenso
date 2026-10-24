@@ -1,3 +1,4 @@
+import { withDeliveryTracking } from '@documenso/email/tracked-transport';
 import { buildTransport } from '@documenso/email/transports/build-transport';
 import { prisma } from '@documenso/prisma';
 import type { EmailTransport } from '@documenso/prisma/client';
@@ -26,7 +27,7 @@ export const resolveEmailTransport = async (emailTransportId: string): Promise<R
 
   try {
     const config = decryptEmailTransportConfig(row.config);
-    const transporter = buildTransport(config);
+    const transporter = withDeliveryTracking(buildTransport(config));
 
     return { row, transporter };
   } catch (err) {

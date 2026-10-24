@@ -90,6 +90,9 @@ def _check_branding_reversion(content: str, config: BrandingConfig) -> list[str]
     """
     errors: list[str] = []
     lines = content.splitlines()
+    protocol_ranges = [match.span() for match in re.finditer(
+        r"(?i)\bX-(?:Documenso|Davinci)-[A-Za-z0-9-]+", content
+    )]
 
     # Build a line-start offset table so we can compute line numbers quickly.
     line_starts: list[int] = [0]
@@ -113,7 +116,8 @@ def _check_branding_reversion(content: str, config: BrandingConfig) -> list[str]
             line_no = line_at(idx)
             line_text = lines[line_no] if line_no < len(lines) else ""
 
-            if not _line_is_preserved(line_text):
+            inside_protocol = any(lo <= idx and idx + len(brand_string) <= hi for lo, hi in protocol_ranges)
+            if not inside_protocol and not _line_is_preserved(line_text):
                 errors.append(
                     f"Upstream brand string '{brand_string}' found at line "
                     f"{line_no + 1} (not in a preserved context)"

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: davinci-sign-staging
+  labels:
+    name: davinci-sign-staging
+    environment: staging
+    app: davinci-sign
