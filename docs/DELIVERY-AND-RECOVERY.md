@@ -169,3 +169,33 @@ synthetic-config projections; those tests contact no Kubernetes API and cannot
 execute an auth plugin. Bootstrap, release verify/deploy/record and recovery API
 operations independently repeat the local identity gate. Offline render/select
 and plan-only bootstrap/recovery remain offline.
+
+## Git provenance under the CI tools user
+
+The checkout is created by JNLP UID1000 and read by the deployment tools
+container, which runs as root for its package installation. Git can reject that
+cross-owner repository with exit128/dubious ownership even after successful
+rollout. The provenance reader therefore grants trust only to its resolved
+checkout ROOT through each Git command's `-c safe.directory=<exact ROOT>`. It
+adds no wildcard or global configuration, does not trust another repository,
+and still requires actual source commit/tree identity for the release record.
+Historical staging4 stderr was captured but unavailable; the ownership cause
+was reproduced separately with the same pinned linux/amd64 tools image and
+synthetic UID1000 repositories, including unrelated-repository refusal.
+
+Reproduce the actual Git regression in a disposable local container (read-only
+source mount, no kubeconfig/credentials or cluster API):
+
+```sh
+docker run --rm --platform linux/amd64 \
+  --mount type=bind,source=ABSOLUTE_CHECKOUT/tools/delivery,target=/work/tools/delivery,readonly \
+  --entrypoint sh \
+  alpine/k8s:1.35.0@sha256:18bc02c1e0df04451f4f9194eb7b7341c1165da5495459b52f85f72fb9545032 \
+  -c 'apk add --no-cache python3 py3-yaml git >/dev/null && python3 /work/tools/delivery/tests/check_git_ownership.py'
+```
+
+This standalone regression uses real Git, files and UID ownership; no I/O
+mocking. It verifies raw128/dubious ownership, corrected actual helper commit
+and tree reads, unrelated repository refusal, and unchanged global Git trust.
+It is run explicitly in the CI tools image, separate from Python tests in the
+Node source-check container; no Docker requirement is added to that gate.
