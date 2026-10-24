@@ -24,7 +24,9 @@ def run(args, **kwargs):
 
 def git(*args):
     return run(
-        ["git", "-C", str(ROOT), *args], capture_output=True, text=True
+        ["git", "-c", f"safe.directory={ROOT}", "-C", str(ROOT), *args],
+        capture_output=True,
+        text=True,
     ).stdout.strip()
 
 
