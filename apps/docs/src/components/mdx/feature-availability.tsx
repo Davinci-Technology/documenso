@@ -1,6 +1,6 @@
 /**
  * Availability markers for feature comparison tables, matching the icons used on
- * documenso.com/pricing.
+ * davincisolutions.ai/pricing.
  *
  * Registered globally in `mdx-components.tsx`, so they can be used in any MDX page
  * as `<Included />` and `<NotIncluded />` without an explicit import.
