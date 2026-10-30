@@ -1,10 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@documenso/prisma', () => ({ prisma: {} }));
-vi.mock('./accept-organisation-invitation', () => ({ addUserToOrganisation: vi.fn() }));
-vi.mock('../../utils/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
+const prismaMock = vi.hoisted(() => ({
+  organisation: { findUnique: vi.fn().mockResolvedValue(null) },
+}));
 
-const { computeTeamGroupChanges, extractOidcGroupsClaim, parseOidcGroupTeamMap } = await import(
+vi.mock('@documenso/prisma', () => ({ prisma: prismaMock }));
+const { addUserToOrganisationMock, loggerMock } = vi.hoisted(() => ({
+  addUserToOrganisationMock: vi.fn(),
+  loggerMock: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock('./accept-organisation-invitation', () => ({ addUserToOrganisation: addUserToOrganisationMock }));
+vi.mock('../../utils/logger', () => ({ logger: loggerMock }));
+
+const { computeTeamGroupChanges, extractOidcGroupsClaim, parseOidcGroupTeamMap, syncOidcMemberships } = await import(
   './sync-oidc-memberships'
 );
 
@@ -135,5 +144,48 @@ describe('parseOidcGroupTeamMap', () => {
 
   it.each([undefined, '', 'not json', '[]', '{"a":1}', '{"a":""}'])('rejects %s', (raw) => {
     expect(parseOidcGroupTeamMap(raw)).toBeNull();
+  });
+});
+
+describe('syncOidcMemberships email domain guard', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
+
+  const groupsClaim = { groups: [HR_GROUP], hasGroupOverage: false };
+
+  it('skips auto-join and team sync for an email outside the allowed signup domains', async () => {
+    vi.stubEnv('NEXT_PRIVATE_OIDC_AUTO_JOIN_ORGANISATION_ID', 'org_test');
+    vi.stubEnv('NEXT_PRIVATE_OIDC_GROUP_TEAM_MAP', JSON.stringify(groupTeamMap));
+    vi.stubEnv('NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS', 'davincisolutions.ai');
+
+    await syncOidcMemberships({ userId: 1, email: 'guest@example.com', groupsClaim });
+
+    expect(prismaMock.organisation.findUnique).not.toHaveBeenCalled();
+    expect(addUserToOrganisationMock).not.toHaveBeenCalled();
+    expect(loggerMock.warn).toHaveBeenCalledWith(expect.objectContaining({ reason: 'email_domain_not_allowed' }));
+    expect(loggerMock.error).not.toHaveBeenCalled();
+  });
+
+  it('proceeds for an allowed domain, matched case-insensitively', async () => {
+    vi.stubEnv('NEXT_PRIVATE_OIDC_AUTO_JOIN_ORGANISATION_ID', 'org_test');
+    vi.stubEnv('NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS', 'davincisolutions.ai');
+
+    await syncOidcMemberships({ userId: 1, email: 'Jane@DavinciSolutions.ai', groupsClaim });
+
+    expect(prismaMock.organisation.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'org_test' } }),
+    );
+    expect(loggerMock.warn).not.toHaveBeenCalledWith(expect.objectContaining({ reason: 'email_domain_not_allowed' }));
+  });
+
+  it('does nothing when no auto-join organisation is configured', async () => {
+    vi.stubEnv('NEXT_PRIVATE_OIDC_AUTO_JOIN_ORGANISATION_ID', '');
+
+    await syncOidcMemberships({ userId: 1, email: 'guest@example.com', groupsClaim });
+
+    expect(prismaMock.organisation.findUnique).not.toHaveBeenCalled();
+    expect(loggerMock.warn).not.toHaveBeenCalled();
   });
 });

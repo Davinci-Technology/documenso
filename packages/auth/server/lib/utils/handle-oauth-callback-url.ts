@@ -78,13 +78,14 @@ export const handleOAuthCallbackUrl = async (options: HandleOAuthCallbackUrlOpti
 const syncMembershipsForProvider = async (
   clientOptions: OAuthClientOptions,
   userId: number,
+  email: string,
   groupsClaim: OidcGroupsClaim,
 ) => {
   if (clientOptions.id !== 'oidc') {
     return;
   }
 
-  await syncOidcMemberships({ userId, groupsClaim });
+  await syncOidcMemberships({ userId, email, groupsClaim });
 };
 
 const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
@@ -125,9 +126,10 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
 
   // Directly log in user if account already exists.
   if (existingAccount) {
-    await syncMembershipsForProvider(clientOptions, existingAccount.user.id, groupsClaim);
-
     await onAuthorize({ userId: existingAccount.user.id }, c);
+
+    // After onAuthorize so a disabled user (onAuthorize throws) is never joined or re-synced.
+    await syncMembershipsForProvider(clientOptions, existingAccount.user.id, email, groupsClaim);
 
     return c.redirect(redirectPath, 302);
   }
@@ -188,9 +190,10 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
       }
     });
 
-    await syncMembershipsForProvider(clientOptions, userWithSameEmail.id, groupsClaim);
-
     await onAuthorize({ userId: userWithSameEmail.id }, c);
+
+    // After onAuthorize so a disabled user (onAuthorize throws) is never joined or re-synced.
+    await syncMembershipsForProvider(clientOptions, userWithSameEmail.id, email, groupsClaim);
 
     return c.redirect(redirectPath, 302);
   }
@@ -243,9 +246,10 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
     console.error(err);
   });
 
-  await syncMembershipsForProvider(clientOptions, createdUser.id, groupsClaim);
-
   await onAuthorize({ userId: createdUser.id }, c);
+
+  // After onAuthorize so a disabled user (onAuthorize throws) is never joined or re-synced.
+  await syncMembershipsForProvider(clientOptions, createdUser.id, email, groupsClaim);
 
   return c.redirect(redirectPath, 302);
 };

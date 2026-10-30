@@ -1,7 +1,11 @@
 import { prisma } from '@documenso/prisma';
 import { OrganisationGroupType, OrganisationMemberRole, TeamMemberRole } from '@prisma/client';
 
-import { getOidcAutoJoinOrganisationId, getOidcGroupTeamMapRaw } from '../../constants/auth';
+import {
+  getOidcAutoJoinOrganisationId,
+  getOidcGroupTeamMapRaw,
+  isEmailDomainAllowedForSignup,
+} from '../../constants/auth';
 import { generateDatabaseId } from '../../universal/id';
 import { logger } from '../../utils/logger';
 import { addUserToOrganisation } from './accept-organisation-invitation';
@@ -147,6 +151,7 @@ export const computeTeamGroupChanges = ({
 
 export type SyncOidcMembershipsOptions = {
   userId: number;
+  email: string;
   groupsClaim: OidcGroupsClaim;
 };
 
@@ -183,10 +188,22 @@ const findOrganisationMember = async (userId: number, organisationId: string) =>
     },
   });
 
-const syncOidcMembershipsOrThrow = async ({ userId, groupsClaim }: SyncOidcMembershipsOptions) => {
+const syncOidcMembershipsOrThrow = async ({ userId, email, groupsClaim }: SyncOidcMembershipsOptions) => {
   const organisationId = getOidcAutoJoinOrganisationId();
 
   if (!organisationId) {
+    return;
+  }
+
+  // Only users from the allowed signup domains are auto-joined or team-synced.
+  if (!isEmailDomainAllowedForSignup(email)) {
+    logger.warn({
+      msg: 'OIDC user email domain not allowed; skipping membership sync',
+      event: 'auth.oidc.membership_sync_skipped',
+      reason: 'email_domain_not_allowed',
+      userId,
+    });
+
     return;
   }
 
