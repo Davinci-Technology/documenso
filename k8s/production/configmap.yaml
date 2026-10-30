@@ -15,6 +15,7 @@ data:
   # URLs
   NEXT_PUBLIC_WEBAPP_URL: "https://sign.davincisolutions.ai"
   NEXT_PRIVATE_INTERNAL_WEBAPP_URL: "http://davinci-sign:3000"
+  NEXT_PUBLIC_DEFAULT_DOCUMENT_TIME_ZONE: "America/Edmonton"
 
   # Database (Dedicated Azure PostgreSQL Flexible Server)
   # Password comes from secret, URL constructed in deployment
