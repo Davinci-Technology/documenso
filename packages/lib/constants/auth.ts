@@ -27,6 +27,17 @@ export const IS_OIDC_SSO_ENABLED = Boolean(
 export const OIDC_PROVIDER_LABEL = env('NEXT_PRIVATE_OIDC_PROVIDER_LABEL');
 
 /**
+ * Organisation that every OIDC user is added to as MEMBER on sign-in (no invite, no email).
+ */
+export const getOidcAutoJoinOrganisationId = () =>
+  env('NEXT_PRIVATE_OIDC_AUTO_JOIN_ORGANISATION_ID')?.trim() || undefined;
+
+/**
+ * Raw JSON object of IdP group object id -> team url inside the auto-join organisation.
+ */
+export const getOidcGroupTeamMapRaw = () => env('NEXT_PRIVATE_OIDC_GROUP_TEAM_MAP')?.trim() || undefined;
+
+/**
  * Opt-out flag for the automatic OIDC redirect.
  *
  * When OIDC is the only enabled signin transport we redirect to the provider

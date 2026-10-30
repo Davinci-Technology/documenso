@@ -50,6 +50,10 @@ data:
   NEXT_PRIVATE_OIDC_PROVIDER_LABEL: "Sign in with Microsoft"
   # Entra emits no email_verified claim; bypass verification (mandatory for Azure AD).
   NEXT_PRIVATE_OIDC_SKIP_VERIFY: "true"
+  # Every Entra sign-in joins Davinci AI Solutions as MEMBER (no invite email).
+  NEXT_PRIVATE_OIDC_AUTO_JOIN_ORGANISATION_ID: "org_mmfztyxdlfxstxyd"
+  # Entra group object id -> team url. Each sign-in adds/removes the MEMBER role on these teams only.
+  NEXT_PRIVATE_OIDC_GROUP_TEAM_MAP: '{"6e679ae0-5c04-4a07-b3c8-7e8223bfd5e8":"human-resources","ce247c2a-a41b-4ee0-afc4-d6119b82f438":"sales","1306ee23-55fe-43f0-815c-67f584277ad6":"admin_uefcp8j7"}'
 
   # Features (billing disabled for internal use initially)
   NEXT_PUBLIC_FEATURE_BILLING_ENABLED: "false"
