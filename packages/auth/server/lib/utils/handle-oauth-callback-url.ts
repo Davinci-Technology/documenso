@@ -6,6 +6,11 @@ import {
 } from '@documenso/lib/constants/auth';
 import { formatEmbedAuthCompletePageUrl } from '@documenso/lib/constants/embed-auth';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
+import {
+  extractOidcGroupsClaim,
+  type OidcGroupsClaim,
+  syncOidcMemberships,
+} from '@documenso/lib/server-only/organisation/sync-oidc-memberships';
 import { getEmailBlocklistDomains } from '@documenso/lib/server-only/site-settings/get-email-blocklist-domains';
 import { onCreateUserHook } from '@documenso/lib/server-only/user/create-user';
 import { deletedServiceAccountEmail } from '@documenso/lib/server-only/user/service-accounts/deleted-account';
@@ -66,15 +71,32 @@ export const handleOAuthCallbackUrl = async (options: HandleOAuthCallbackUrlOpti
   }
 };
 
+/**
+ * Entra (generic OIDC provider) only: auto-join the configured organisation and sync
+ * mapped team memberships. Never throws, so sign-in is never blocked.
+ */
+const syncMembershipsForProvider = async (
+  clientOptions: OAuthClientOptions,
+  userId: number,
+  groupsClaim: OidcGroupsClaim,
+) => {
+  if (clientOptions.id !== 'oidc') {
+    return;
+  }
+
+  await syncOidcMemberships({ userId, groupsClaim });
+};
+
 const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
   const { c, clientOptions } = options;
 
   const requestMeta = c.get('requestMetadata');
 
-  const { email, name, sub, accessToken, accessTokenExpiresAt, idToken, redirectPath } = await validateOauth({
-    c,
-    clientOptions,
-  });
+  const { email, name, sub, accessToken, accessTokenExpiresAt, idToken, redirectPath, groupsClaim } =
+    await validateOauth({
+      c,
+      clientOptions,
+    });
 
   if (email.toLowerCase() === legacyServiceAccountEmail() || email.toLowerCase() === deletedServiceAccountEmail()) {
     const isEmbedFlow = await failEmbedAuthFlow(c, c.req.query('state'), 'service_account');
@@ -103,6 +125,8 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
 
   // Directly log in user if account already exists.
   if (existingAccount) {
+    await syncMembershipsForProvider(clientOptions, existingAccount.user.id, groupsClaim);
+
     await onAuthorize({ userId: existingAccount.user.id }, c);
 
     return c.redirect(redirectPath, 302);
@@ -164,6 +188,8 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
       }
     });
 
+    await syncMembershipsForProvider(clientOptions, userWithSameEmail.id, groupsClaim);
+
     await onAuthorize({ userId: userWithSameEmail.id }, c);
 
     return c.redirect(redirectPath, 302);
@@ -216,6 +242,8 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
     // Todo: (RR7) Add logging.
     console.error(err);
   });
+
+  await syncMembershipsForProvider(clientOptions, createdUser.id, groupsClaim);
 
   await onAuthorize({ userId: createdUser.id }, c);
 
@@ -309,5 +337,6 @@ export const validateOauth = async (options: HandleOAuthCallbackUrlOptions) => {
     accessTokenExpiresAt,
     idToken,
     redirectPath,
+    groupsClaim: extractOidcGroupsClaim(claims),
   };
 };

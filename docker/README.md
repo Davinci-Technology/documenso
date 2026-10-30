@@ -260,4 +260,6 @@ Here's a markdown table documenting all the provided environment variables:
 | `NEXT_PUBLIC_DISABLE_GOOGLE_SIGNUP`                            | Set to `true` to block new accounts via Google. Existing Google-linked users can still sign in.     |
 | `NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNUP`                         | Set to `true` to block new accounts via Microsoft. Existing linked users can still sign in.         |
 | `NEXT_PUBLIC_DISABLE_OIDC_SIGNUP`                              | Set to `true` to block new accounts via OIDC (incl. organisation portal). Existing users unaffected.|
+| `NEXT_PRIVATE_OIDC_AUTO_JOIN_ORGANISATION_ID`                 | Organisation id every OIDC user joins as MEMBER on sign-in (no invite, no email).                   |
+| `NEXT_PRIVATE_OIDC_GROUP_TEAM_MAP`                             | JSON object of IdP group id -> team url; OIDC sign-in syncs each mapped team's MEMBER role.         |
 | `NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS`                          | Comma-separated list of email domains allowed to sign up (e.g., `example.com,acme.org`).            |
