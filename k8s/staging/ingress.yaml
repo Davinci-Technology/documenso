@@ -8,6 +8,7 @@ metadata:
     environment: staging
   annotations:
     external-dns.alpha.kubernetes.io/hostname: "staging-sign.davincisolutions.ai"
+    external-dns.alpha.kubernetes.io/controller: "none"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "100m"
