@@ -55,8 +55,8 @@ data:
   NEXT_PUBLIC_FEATURE_BILLING_ENABLED: "false"
   NEXT_PUBLIC_DISABLE_SIGNUP: "false"
   NEXT_PUBLIC_DISABLE_ONBOARDING: "false"
-  # Link-only SSO: users link an Entra account instead of signing up via OIDC.
-  NEXT_PUBLIC_DISABLE_OIDC_SIGNUP: "true"
+  # SSO may create accounts; the Entra app is single-tenant and the domain allowlist below applies.
+  NEXT_PUBLIC_DISABLE_OIDC_SIGNUP: "false"
   # Restrict signups to the company domain.
   NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS: "davincisolutions.ai"
   NEXT_PUBLIC_DOCUMENT_LINK_ENABLED: "true"

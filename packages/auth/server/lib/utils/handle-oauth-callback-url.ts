@@ -110,7 +110,11 @@ const handleOAuthCallback = async (options: HandleOAuthCallbackUrlOptions) => {
 
   const userWithSameEmail = await prisma.user.findFirst({
     where: {
-      email: email,
+      // IdPs such as Entra ID can return the email with different casing than it was stored.
+      email: {
+        equals: email,
+        mode: 'insensitive',
+      },
     },
     select: {
       id: true,
