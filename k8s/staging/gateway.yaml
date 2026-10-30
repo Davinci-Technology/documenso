@@ -1,0 +1,56 @@
+# Gateway API route for staging-sign.davincisolutions.ai (shared Gateway envoy-gateway-system/public).
+# The Ingress stays deployed but hidden from external-dns as the rollback path.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-tls
+  namespace: davinci-sign-staging
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: envoy-gateway-system
+  to:
+    - group: ""
+      kind: Secret
+      name: davinci-sign-staging-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-staging
+  labels:
+    app: davinci-sign
+    environment: staging
+spec:
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: https-staging-sign-davincisolutions-ai
+  hostnames:
+    - staging-sign.davincisolutions.ai
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: davinci-sign
+          port: 3000
+      timeouts:
+        request: 600s
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-staging
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: davinci-sign
+  timeout:
+    http:
+      streamIdleTimeout: 300s
