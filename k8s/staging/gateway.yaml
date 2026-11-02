@@ -10,6 +10,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: Gateway
       namespace: envoy-gateway-system
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      namespace: envoy-gateway-system
   to:
     - group: ""
       kind: Secret
