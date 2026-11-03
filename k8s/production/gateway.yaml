@@ -1,0 +1,102 @@
+# Gateway API routes for sign.davincisolutions.ai and inbucket.davincisolutions.ai (shared Gateway envoy-gateway-system/public).
+# The Ingress stays deployed but hidden from external-dns as the rollback path.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-tls
+  namespace: davinci-sign-production
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: envoy-gateway-system
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      namespace: envoy-gateway-system
+  to:
+    - group: ""
+      kind: Secret
+      name: davinci-sign-production-tls
+    - group: ""
+      kind: Secret
+      name: inbucket-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-production
+  labels:
+    app: davinci-sign
+    environment: production
+spec:
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: https-sign-davincisolutions-ai
+  hostnames:
+    - sign.davincisolutions.ai
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: davinci-sign
+          port: 3000
+      timeouts:
+        request: 600s
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-production
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: davinci-sign
+  timeout:
+    http:
+      streamIdleTimeout: 300s
+---
+# Mirrors the inbucket Ingress: / Prefix -> inbucket:9000, no auth or allowlist annotations (none on the Ingress).
+# nginx defaults reproduced: 60s read timeout -> 60s stream idle. Request timeout 0s so the UI's
+# websocket monitor is not cut by a total-duration cap (nginx has none either).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: inbucket
+  namespace: davinci-sign-production
+spec:
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: https-inbucket-davincisolutions-ai
+  hostnames:
+    - inbucket.davincisolutions.ai
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: inbucket
+          port: 9000
+      timeouts:
+        request: 0s
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: inbucket
+  namespace: davinci-sign-production
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: inbucket
+  timeout:
+    http:
+      streamIdleTimeout: 60s

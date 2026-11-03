@@ -7,6 +7,7 @@ metadata:
     app: davinci-sign
     environment: production
   annotations:
+    external-dns.alpha.kubernetes.io/controller: "none"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "100m"
@@ -32,3 +33,31 @@ spec:
                 name: davinci-sign
                 port:
                   number: 3000
+---
+# Was live-only (applied by hand); captured exactly as live, plus the external-dns hide annotation.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: inbucket
+  namespace: davinci-sign-production
+  annotations:
+    external-dns.alpha.kubernetes.io/controller: "none"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - inbucket.davincisolutions.ai
+      secretName: inbucket-tls
+  rules:
+    - host: inbucket.davincisolutions.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: inbucket
+                port:
+                  number: 9000
