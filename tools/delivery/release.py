@@ -16,6 +16,12 @@ LOG = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = re.compile(r"^davinciai\.azurecr\.io/davinci-sign@sha256:[0-9a-f]{64}$")
 TRUSTED_JOB = "Davinci/Web-Apps/Davinci-Sign/staging"
+# Ingresses that left the repo when each environment got its own ListenerSet. kubectl apply
+# never deletes, so deploy removes them by name; a no-op once they are gone.
+RETIRED_INGRESSES = {
+    "staging": ["davinci-sign-ingress"],
+    "production": ["davinci-sign-ingress", "inbucket"],
+}
 
 
 def run(args, **kwargs):
@@ -278,6 +284,13 @@ def main():
         if args.apply:
             kubectl(args, "apply", "-f", "-", input=rendered, text=True)
             verify(args, image)
+            kubectl(
+                args,
+                "delete",
+                "ingress",
+                *RETIRED_INGRESSES[args.environment],
+                "--ignore-not-found",
+            )
         else:
             LOG.info(
                 "Dry run complete; use --apply after reviewed prerequisites are ready"

@@ -25,10 +25,11 @@ The bootstrap creates only missing secrets and refuses incomplete certificate/ke
 state; reruns preserve every existing key. A failed partial bootstrap requires
 inspection; do not delete keys automatically.
 
-`staging-sign.davincisolutions.ai` initially had no DNS record. The ingress carries
-an external-dns hostname annotation; existing external-dns on k8s-01 watches
-Ingress and manages this domain. The lead must verify DNS and the distinct
-`davinci-sign-staging-tls` certificate become ready. The `default` storageClass
+`staging-sign.davincisolutions.ai` is served by Envoy Gateway: the environment's own
+ListenerSet, Certificate and HTTPRoute live in `k8s/<env>/gateway.yaml`, and external-dns
+on k8s-01 publishes the HTTPRoute's hostname. There is no Ingress; `release.py deploy`
+deletes the retired ones by name. The lead must verify DNS and the distinct
+`davinci-sign-staging-tls` certificate are ready. The `default` storageClass
 was observed on production's MinIO PVC, but staging deliberately creates no PVC
 or paid managed disk. Synthetic staging data resets when its database/storage
 pod is replaced. App-pod replacement and callback outages can still rehearse

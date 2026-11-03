@@ -168,3 +168,59 @@ def test_production_approval_is_gated_before_input_without_removing_owner_gate()
     assert "            input {" in stage
     assert "ok 'Promote approved release'" in stage
     assert stage.index("            input {") < stage.index("            agent {")
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+def test_routes_attach_to_own_listenerset_backed_by_own_certificate(environment):
+    docs = release.manifests(environment, IMAGE)
+    assert not [d for d in docs if d["kind"] == "Ingress"]
+
+    (listenerset,) = [d for d in docs if d["kind"] == "ListenerSet"]
+    assert listenerset["metadata"]["name"] == "davinci-sign"
+    assert listenerset["spec"]["parentRef"] == {
+        "name": "public",
+        "namespace": "envoy-gateway-system",
+    }
+    listeners = {l["name"]: l for l in listenerset["spec"]["listeners"]}
+    secrets = {
+        d["spec"]["secretName"]: d["spec"]["dnsNames"]
+        for d in docs
+        if d["kind"] == "Certificate"
+    }
+    for name, listener in listeners.items():
+        assert name == "https-" + listener["hostname"].replace(".", "-")
+        (ref,) = listener["tls"]["certificateRefs"]
+        assert listener["hostname"] in secrets[ref["name"]], name
+
+    routes = [d for d in docs if d["kind"] == "HTTPRoute"]
+    assert routes
+    for route in routes:
+        own = route["spec"]["parentRefs"][0]
+        assert (own["kind"], own["name"]) == ("ListenerSet", "davinci-sign")
+        assert listeners[own["sectionName"]]["hostname"] in route["spec"]["hostnames"]
+
+    # The handover grant serves only the old Gateway listeners (least privilege).
+    (grant,) = [d for d in docs if d["kind"] == "ReferenceGrant"]
+    assert [f["kind"] for f in grant["spec"]["from"]] == ["Gateway"]
+
+
+def test_deploy_deletes_retired_ingresses_after_apply_and_verify(monkeypatch):
+    calls = []
+    monkeypatch.setattr(release, "resolve_context", lambda *a: "k8s-01")
+    monkeypatch.setattr(release, "verify", lambda *a: calls.append(("verify",)))
+    monkeypatch.setattr(
+        release, "kubectl", lambda args, *command, **kw: calls.append(command)
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["release.py", "deploy", "--context", "k8s-01", "--kubeconfig", "k",
+         "--image", IMAGE, "--apply"],
+    )
+    release.main()
+    assert [c[:2] for c in calls] == [
+        ("apply", "--dry-run=server"),
+        ("apply", "-f"),
+        ("verify",),
+        ("delete", "ingress"),
+    ]
+    assert calls[-1] == ("delete", "ingress", "davinci-sign-ingress", "--ignore-not-found")
