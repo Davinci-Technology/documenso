@@ -100,7 +100,7 @@ test.describe('V2 envelope text field signing', () => {
 
 const seedTextFieldDocument = async (request: APIRequestContext, textFieldMeta?: Record<string, unknown>) => {
   const { envelope, distributeResult } = await apiSeedPendingDocument(request, {
-    recipients: [{ email: 'signer-text@test.documenso.com', name: 'Text Signer' }],
+    recipients: [{ email: 'signer-text@test.davincisolutions.ai', name: 'Text Signer' }],
     fieldsPerRecipient: [
       [
         { type: FieldType.SIGNATURE, page: 1, positionX: 5, positionY: 5, width: 20, height: 5 },
