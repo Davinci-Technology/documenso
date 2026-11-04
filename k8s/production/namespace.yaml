@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   name: davinci-sign-production
   labels:
+    gateway.davincisolutions.ai/public-listeners: "true"
     name: davinci-sign-production
     environment: production
     app: davinci-sign
