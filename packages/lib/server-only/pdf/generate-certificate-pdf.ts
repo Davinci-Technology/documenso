@@ -136,6 +136,7 @@ export const generateCertificatePdf = async (options: GenerateCertificatePdfOpti
       };
     }),
     envelopeOwner,
+    timeZone: envelope.documentMeta.timezone,
     envelopeId: envelope.id,
     qrToken: envelope.qrToken,
     hidePoweredBy: organisationClaim.flags.hidePoweredBy ?? false,

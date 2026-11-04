@@ -3,6 +3,10 @@
 ###########################
 FROM node:24-alpine3.23 AS base
 
+# Alberta stays on UTC-6 from 2026-11-01 and Node bundles its own tz data (not the OS
+# package), so fail the build if this Node still has the older rules for America/Edmonton.
+RUN node -e "const offset = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Edmonton', timeZoneName: 'longOffset' }).formatToParts(new Date('2027-01-15T15:00:00Z')).find((part) => part.type === 'timeZoneName').value; if (offset !== 'GMT-06:00') { console.error('Node tz data predates 2026c: America/Edmonton must be UTC-6 in winter, got ' + offset + '. Use a newer base image.'); process.exit(1); }"
+
 RUN apk add --no-cache openssl
 RUN apk add --no-cache font-freefont
 

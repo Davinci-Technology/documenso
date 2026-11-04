@@ -1,11 +1,11 @@
 import type { DocumentMeta, Envelope, OrganisationGlobalSettings, Recipient, Team, User } from '@prisma/client';
 import { DocumentDistributionMethod, DocumentStatus } from '@prisma/client';
 
-import { DEFAULT_DOCUMENT_TIME_ZONE } from '../constants/time-zones';
 import { resolveSigningOrder } from '../server-only/signature-level/resolve-signing-order';
 import type { TDocumentLite, TDocumentMany } from '../types/document';
 import { DEFAULT_DOCUMENT_EMAIL_SETTINGS } from '../types/document-email';
 import { SignatureLevel } from '../types/signature-level';
+import { getDefaultDocumentTimeZone } from './document-time-zone';
 import { mapSecondaryIdToDocumentId } from './envelope';
 import { mapRecipientToLegacyRecipient } from './recipients';
 
@@ -45,7 +45,7 @@ export const extractDerivedDocumentMeta = (
   // since there is custom work there which allows 3 overrides.
   return {
     language: meta.language || settings.documentLanguage,
-    timezone: meta.timezone || settings.documentTimezone || DEFAULT_DOCUMENT_TIME_ZONE,
+    timezone: meta.timezone || settings.documentTimezone || getDefaultDocumentTimeZone(),
     dateFormat: meta.dateFormat || settings.documentDateFormat,
     message: meta.message || null,
     subject: meta.subject || null,

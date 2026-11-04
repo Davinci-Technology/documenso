@@ -12,6 +12,7 @@ data:
   LOG_LEVEL: info
   NEXT_PUBLIC_WEBAPP_URL: https://staging-sign.davincisolutions.ai
   NEXT_PRIVATE_INTERNAL_WEBAPP_URL: http://davinci-sign:3000
+  NEXT_PUBLIC_DEFAULT_DOCUMENT_TIME_ZONE: America/Edmonton
   POSTGRES_USER: davinci_sign_staging
   POSTGRES_DB: davinci_sign_staging
   DB_HOST: postgres.davinci-sign-staging.svc.cluster.local
