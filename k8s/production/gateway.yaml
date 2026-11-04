@@ -1,5 +1,77 @@
-# Gateway API routes for sign.davincisolutions.ai and inbucket.davincisolutions.ai (shared Gateway envoy-gateway-system/public).
-# The Ingress stays deployed but hidden from external-dns as the rollback path.
+# This app's own HTTPS listeners on the shared Gateway's IP. While the old Gateway listener
+# for a host still exists, this one shows Conflicted and the old one keeps serving.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: davinci-sign
+  namespace: davinci-sign-production
+spec:
+  parentRef:
+    name: public
+    namespace: envoy-gateway-system
+  listeners:
+    - name: https-sign-davincisolutions-ai
+      protocol: HTTPS
+      port: 443
+      hostname: sign.davincisolutions.ai
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: davinci-sign-production-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https-inbucket-davincisolutions-ai
+      protocol: HTTPS
+      port: 443
+      hostname: inbucket.davincisolutions.ai
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: inbucket-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+# Same name and Secret as the Certificate the Ingress created, so nothing is reissued.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: davinci-sign-production-tls
+  namespace: davinci-sign-production
+spec:
+  secretName: davinci-sign-production-tls
+  dnsNames:
+    - sign.davincisolutions.ai
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  usages:
+    - digital signature
+    - key encipherment
+---
+# Same name and Secret as the Certificate the Ingress created, so nothing is reissued.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: inbucket-tls
+  namespace: davinci-sign-production
+spec:
+  secretName: inbucket-tls
+  dnsNames:
+    - inbucket.davincisolutions.ai
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  usages:
+    - digital signature
+    - key encipherment
+---
+# Lets the old Gateway listeners read the TLS Secrets during the handover. A cleanup PR removes it.
 apiVersion: gateway.networking.k8s.io/v1
 kind: ReferenceGrant
 metadata:
@@ -9,9 +81,6 @@ spec:
   from:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      namespace: envoy-gateway-system
-    - group: gateway.networking.k8s.io
-      kind: ListenerSet
       namespace: envoy-gateway-system
   to:
     - group: ""
@@ -31,6 +100,11 @@ metadata:
     environment: production
 spec:
   parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: davinci-sign
+      sectionName: https-sign-davincisolutions-ai
+    # Old Gateway listener, kept for the handover. A cleanup PR removes it and the ReferenceGrant.
     - name: public
       namespace: envoy-gateway-system
       sectionName: https-sign-davincisolutions-ai
@@ -71,6 +145,11 @@ metadata:
   namespace: davinci-sign-production
 spec:
   parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: davinci-sign
+      sectionName: https-inbucket-davincisolutions-ai
+    # Old Gateway listener, kept for the handover. A cleanup PR removes it and the ReferenceGrant.
     - name: public
       namespace: envoy-gateway-system
       sectionName: https-inbucket-davincisolutions-ai
