@@ -22,6 +22,8 @@ RETIRED_INGRESSES = {
     "staging": ["davinci-sign-ingress"],
     "production": ["davinci-sign-ingress", "inbucket"],
 }
+# Served only the old listeners in envoy-gateway-system; kubectl apply never prunes it.
+RETIRED_REFERENCE_GRANTS = ["allow-gateway-tls"]
 
 
 def run(args, **kwargs):
@@ -289,6 +291,13 @@ def main():
                 "delete",
                 "ingress",
                 *RETIRED_INGRESSES[args.environment],
+                "--ignore-not-found",
+            )
+            kubectl(
+                args,
+                "delete",
+                "referencegrant",
+                *RETIRED_REFERENCE_GRANTS,
                 "--ignore-not-found",
             )
         else:
