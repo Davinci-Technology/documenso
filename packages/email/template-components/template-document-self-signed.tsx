@@ -10,10 +10,7 @@ export interface TemplateDocumentSelfSignedProps {
   assetBaseUrl: string;
 }
 
-export const TemplateDocumentSelfSigned = ({
-  documentName,
-  assetBaseUrl,
-}: TemplateDocumentSelfSignedProps) => {
+export const TemplateDocumentSelfSigned = ({ documentName, assetBaseUrl }: TemplateDocumentSelfSignedProps) => {
   const NEXT_PUBLIC_WEBAPP_URL = env('NEXT_PUBLIC_WEBAPP_URL');
 
   const signUpUrl = `${NEXT_PUBLIC_WEBAPP_URL ?? 'http://localhost:3002'}/signup`;
@@ -25,7 +22,7 @@ export const TemplateDocumentSelfSigned = ({
       <Section className="flex-row items-center justify-center">
         <Section>
           <Column align="center">
-            <Text className="text-base font-semibold text-[#1A98CF]">
+            <Text className="font-semibold text-[#0B98CE] text-base">
               <Img
                 src={getEmailAssetUrl(assetBaseUrl, 'static/completed.png')}
                 className="-mt-0.5 mr-2 inline h-7 w-7 align-middle"
@@ -36,18 +33,14 @@ export const TemplateDocumentSelfSigned = ({
           </Column>
         </Section>
 
-        <Text className="mt-6 mb-0 text-center text-lg font-semibold text-foreground">
+        <Text className="mt-6 mb-0 text-center font-semibold text-foreground text-lg">
           <Trans>You have signed “{documentName}”</Trans>
         </Text>
 
         <Text className="mx-auto mt-1 mb-6 max-w-[80%] text-center text-base text-muted-foreground">
           <Trans>
             Create a{' '}
-            <Link
-              href={signUpUrl}
-              target="_blank"
-              className="whitespace-nowrap text-primary hover:text-primary"
-            >
+            <Link href={signUpUrl} target="_blank" className="whitespace-nowrap text-primary hover:text-primary">
               free account
             </Link>{' '}
             to access your signed documents at any time.
@@ -57,7 +50,7 @@ export const TemplateDocumentSelfSigned = ({
         <Section className="mt-8 mb-6 text-center">
           <Button
             href={signUpUrl}
-            className="mr-4 rounded-lg border border-solid border-border px-4 py-2 text-center text-sm font-medium text-foreground no-underline"
+            className="mr-4 rounded-lg border border-border border-solid px-4 py-2 text-center font-medium text-foreground text-sm no-underline"
           >
             <Img
               src={getEmailAssetUrl(assetBaseUrl, 'static/user-plus.png')}
@@ -68,7 +61,7 @@ export const TemplateDocumentSelfSigned = ({
           </Button>
 
           <Button
-            className="rounded-lg border border-solid border-border px-4 py-2 text-center text-sm font-medium text-foreground no-underline"
+            className="rounded-lg border border-border border-solid px-4 py-2 text-center font-medium text-foreground text-sm no-underline"
             href="https://davincisolutions.ai"
           >
             <Img
