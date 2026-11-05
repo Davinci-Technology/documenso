@@ -1,5 +1,4 @@
-# This app's own HTTPS listeners on the shared Gateway's IP. While the old Gateway listener
-# for a host still exists, this one shows Conflicted and the old one keeps serving.
+# This app's own HTTPS listeners on the shared Gateway's IP.
 apiVersion: gateway.networking.k8s.io/v1
 kind: ListenerSet
 metadata:
@@ -71,25 +70,6 @@ spec:
     - digital signature
     - key encipherment
 ---
-# Lets the old Gateway listeners read the TLS Secrets during the handover. A cleanup PR removes it.
-apiVersion: gateway.networking.k8s.io/v1
-kind: ReferenceGrant
-metadata:
-  name: allow-gateway-tls
-  namespace: davinci-sign-production
-spec:
-  from:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      namespace: envoy-gateway-system
-  to:
-    - group: ""
-      kind: Secret
-      name: davinci-sign-production-tls
-    - group: ""
-      kind: Secret
-      name: inbucket-tls
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -103,10 +83,6 @@ spec:
     - group: gateway.networking.k8s.io
       kind: ListenerSet
       name: davinci-sign
-      sectionName: https-sign-davincisolutions-ai
-    # Old Gateway listener, kept for the handover. A cleanup PR removes it and the ReferenceGrant.
-    - name: public
-      namespace: envoy-gateway-system
       sectionName: https-sign-davincisolutions-ai
   hostnames:
     - sign.davincisolutions.ai
@@ -148,10 +124,6 @@ spec:
     - group: gateway.networking.k8s.io
       kind: ListenerSet
       name: davinci-sign
-      sectionName: https-inbucket-davincisolutions-ai
-    # Old Gateway listener, kept for the handover. A cleanup PR removes it and the ReferenceGrant.
-    - name: public
-      namespace: envoy-gateway-system
       sectionName: https-inbucket-davincisolutions-ai
   hostnames:
     - inbucket.davincisolutions.ai

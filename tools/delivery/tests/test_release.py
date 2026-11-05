@@ -173,7 +173,7 @@ def test_production_approval_is_gated_before_input_without_removing_owner_gate()
 @pytest.mark.parametrize("environment", ["staging", "production"])
 def test_routes_attach_to_own_listenerset_backed_by_own_certificate(environment):
     docs = release.manifests(environment, IMAGE)
-    assert not [d for d in docs if d["kind"] == "Ingress"]
+    assert not [d for d in docs if d["kind"] in ("Ingress", "ReferenceGrant")]
 
     (listenerset,) = [d for d in docs if d["kind"] == "ListenerSet"]
     assert listenerset["metadata"]["name"] == "davinci-sign"
@@ -195,16 +195,12 @@ def test_routes_attach_to_own_listenerset_backed_by_own_certificate(environment)
     routes = [d for d in docs if d["kind"] == "HTTPRoute"]
     assert routes
     for route in routes:
-        own = route["spec"]["parentRefs"][0]
+        (own,) = route["spec"]["parentRefs"]
         assert (own["kind"], own["name"]) == ("ListenerSet", "davinci-sign")
         assert listeners[own["sectionName"]]["hostname"] in route["spec"]["hostnames"]
 
-    # The handover grant serves only the old Gateway listeners (least privilege).
-    (grant,) = [d for d in docs if d["kind"] == "ReferenceGrant"]
-    assert [f["kind"] for f in grant["spec"]["from"]] == ["Gateway"]
 
-
-def test_deploy_deletes_retired_ingresses_after_apply_and_verify(monkeypatch):
+def test_deploy_deletes_retired_ingresses_and_grant_after_apply_and_verify(monkeypatch):
     calls = []
     monkeypatch.setattr(release, "resolve_context", lambda *a: "k8s-01")
     monkeypatch.setattr(release, "verify", lambda *a: calls.append(("verify",)))
@@ -222,5 +218,7 @@ def test_deploy_deletes_retired_ingresses_after_apply_and_verify(monkeypatch):
         ("apply", "-f"),
         ("verify",),
         ("delete", "ingress"),
+        ("delete", "referencegrant"),
     ]
-    assert calls[-1] == ("delete", "ingress", "davinci-sign-ingress", "--ignore-not-found")
+    assert calls[-2] == ("delete", "ingress", "davinci-sign-ingress", "--ignore-not-found")
+    assert calls[-1] == ("delete", "referencegrant", "allow-gateway-tls", "--ignore-not-found")

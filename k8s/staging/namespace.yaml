@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   name: davinci-sign-staging
   labels:
+    gateway.davincisolutions.ai/public-listeners: "true"
     name: davinci-sign-staging
     environment: staging
     app: davinci-sign
